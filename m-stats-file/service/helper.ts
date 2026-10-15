@@ -1,4 +1,4 @@
-import type { ParsedStatsFile, StatsFile, Transaction } from '@/types'
+import type { ParsedStatsFile, StatsFile } from '@/types'
 import { Currency, StatsFileErrorCode, StatsFileStatus } from '@/types-enums'
 import { MISC } from '@/common'
 import { parseFiles } from '@/utils/FileParser'
@@ -81,27 +81,6 @@ export const getFileBankAccounts = (files: ParsedStatsFile[]): FileBankAccount[]
   })
 
   return Array.from(accounts.values()).sort((a, b) => a.label.localeCompare(b.label))
-}
-
-/**
- * IDs are content hashes, so identical transactions (e.g. from overlapping statements) are duplicates. The first
- * occurrence is unique, any later ones are duplicates.
- */
-export const splitDuplicates = <T extends Transaction>(transactions: T[]) => {
-  const seenIds = new Set<string>()
-  const unique: T[] = []
-  const duplicates: T[] = []
-
-  transactions.forEach((transaction) => {
-    if (seenIds.has(transaction.id)) {
-      duplicates.push(transaction)
-    } else {
-      seenIds.add(transaction.id)
-      unique.push(transaction)
-    }
-  })
-
-  return { unique, duplicates }
 }
 
 const reparseFiles = async (isOutdated: (file: StatsFile) => boolean) => {

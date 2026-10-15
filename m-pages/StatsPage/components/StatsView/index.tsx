@@ -5,15 +5,10 @@ import { Box, Stack } from '@mui/material'
 import { useMemo } from 'react'
 
 import { FletchingDivider, SegmentedToggle } from '@/components'
+import { getFilteredCurrencies } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
-import {
-  EMPTY_REASON_TITLE_KEYS,
-  getAmountFilterOptions,
-  getEmptyReason,
-  getFilteredCurrencies,
-  isMissingData,
-} from '../../actions'
+import { EMPTY_REASON_TITLE_KEYS, getAmountFilterOptions, getEmptyReason, isMissingData } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useCurrencySelect, useTransactionFilter } from '../../hooks'
 import ViewEmptyState from '../ViewEmptyState'

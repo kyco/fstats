@@ -4,9 +4,9 @@ import { Box, Typography } from '@mui/material'
 
 import type { Transaction, TransactionCounts } from '@/types'
 import type { Currency } from '@/types-enums'
+import { getStats } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { toFixedLocaleCurrency } from '@/utils/Number'
-import { getStats } from '@/utils/Stats'
 import { useTranslation } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 

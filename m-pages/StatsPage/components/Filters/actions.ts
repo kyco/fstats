@@ -4,9 +4,8 @@ import type { KeyboardEvent } from 'react'
 
 import type { CategoryGroup, ParentCategory, ParentCategoryCode, ParentCategoryOption, Transaction } from '@/types'
 import { ALL_CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
+import { getCategoryKey, NO_CATEGORY } from '@/m-transaction/service'
 import { getCategoryLabel } from '@/utils/Category'
-
-import { getCategoryKey, NO_CATEGORY } from '../../actions'
 
 const KNOWN_KEYS = new Set(Object.values(ALL_CATEGORIES).flatMap((parent) => Object.keys(parent.subcategories)))
 

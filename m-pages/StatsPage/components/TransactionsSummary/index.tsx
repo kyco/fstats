@@ -3,11 +3,11 @@
 import { useMemo } from 'react'
 
 import type { TransactionFilter } from '@/types'
+import { getTransactionsByCurrency } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
 import { useStatsTransactions } from '../../context'
 import StatsRow from '../StatsRow'
-import { getTransactionsByCurrency } from './actions'
 
 type TransactionsSummaryProps = {
   filter: TransactionFilter

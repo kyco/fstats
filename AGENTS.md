@@ -12,6 +12,8 @@ Privacy-focused CSV bank statement parser. All processing is client-side (Indexe
 
 - **API Layer** (`api/`) — LocalForage operations and persistence/runtime schema synchronization; monetary values stay decimal strings and use `Big` for calculations
 - **Service Layer** (`service/`) — TanStack Query hooks, cache management, business logic
+- Modules without persistence have only `service/`, e.g. `m-transaction` (filters, duplicates, counts, stats, profit and loss, date ranges); its types are in `types/services/transaction.ts`
+- Page-independent logic belongs in a module, not in a page's `actions.ts`; low-level helpers that `utils/Parser` needs stay in `utils/` (e.g. `utils/Stats`)
 
 ### Page Modules (`m-pages/{Name}Page/`)
 

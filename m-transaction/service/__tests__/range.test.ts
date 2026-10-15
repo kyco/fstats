@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Transaction } from '@/types'
 import { DateFormat, UserLocale } from '@/types-enums'
 
-import { getRangeGranularity, getTransactionRangeItems, RangeGranularity } from '../helper'
+import { getRangeGranularity, getTransactionRangeItems, RangeGranularity } from '../range'
 
 const toTransaction = (day: string) => ({ date: `${day}T00:00:00+00:00`, value: '1' }) as Transaction
 

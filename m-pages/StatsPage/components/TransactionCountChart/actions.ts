@@ -4,7 +4,7 @@ import { mean, round } from 'lodash'
 
 import type { Transaction } from '@/types'
 import { DateFormat, UserLocale } from '@/types-enums'
-import { getTransactionRangeItems, getTransactionsDateRange, RangeGranularity } from '@/hooks'
+import { getTransactionRangeItems, getTransactionsDateRange, RangeGranularity } from '@/m-transaction/service'
 import { getBaseChartOptions, getThemeColor } from '@/utils/Chart'
 
 type GetMonthlyCountsProps = {

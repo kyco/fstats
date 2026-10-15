@@ -6,7 +6,8 @@ import { groupBy, uniq } from 'lodash'
 import type { ParsedStatsFile, SourcedTransaction, Transaction, VirtualTableColumn } from '@/types'
 import { AmountFilter, TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
-import { getFileCurrency, getFileTransactions, splitDuplicates } from '@/m-stats-file/service'
+import { getFileCurrency, getFileTransactions } from '@/m-stats-file/service'
+import { getDuplicates } from '@/m-transaction/service'
 import { getCategoryLabel } from '@/utils/Category'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
@@ -35,7 +36,7 @@ export const getSourcedTransactions = (files: ParsedStatsFile[]): SourcedTransac
   const transactions = files.flatMap((file) =>
     getFileTransactions(file).map((transaction) => ({ ...transaction, source: file.file.name })),
   )
-  const duplicates = new Set(splitDuplicates(transactions).duplicates)
+  const duplicates = getDuplicates(transactions)
   const sourcesById = groupBy(transactions, 'id')
 
   return transactions

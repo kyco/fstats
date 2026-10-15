@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Transaction } from '@/types'
+import { NO_CATEGORY } from '@/m-transaction/service'
 import { i18n } from '@/lib/i18n'
 
-import { NO_CATEGORY } from '../../../actions'
 import { getCategoryGroups, getCheckState, toggleCategories } from '../actions'
 
 const toTransaction = (category: string | null) => ({ category }) as Transaction

@@ -7,17 +7,15 @@ import { useDeferredValue, useMemo, useState } from 'react'
 import { TransactionsLayout } from '@/types-enums'
 import { getView, WorkspaceView } from '@/common'
 import { FletchingDivider, SearchField, SegmentedToggle } from '@/components'
+import { filterTransactions, getFilteredCurrencies, groupFilesByCurrency } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
 import {
   ALL_CURRENCIES,
   EMPTY_REASON_TITLE_KEYS,
-  filterTransactions,
   getAmountFilterOptions,
   getEmptyReason,
-  getFilteredCurrencies,
   getTransactionsLayoutOptions,
-  groupFilesByCurrency,
 } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useCurrencySelect, useTableOptions, useTransactionFilter } from '../../hooks'

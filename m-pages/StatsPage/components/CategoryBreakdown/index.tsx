@@ -5,7 +5,7 @@ import type { Transaction } from '@/types'
 import { AmountFilter, Currency } from '@/types-enums'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
 import { CardTitle } from '@/components'
-import { getStats } from '@/utils/Stats'
+import { getStats } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
 import { getTransactionsGroupedByCategory } from './actions'

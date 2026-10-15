@@ -1,13 +1,12 @@
 import type { SvgIconComponent } from '@mui/icons-material'
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from 'react'
 
-import type { AmountFilter, Currency } from '@/types-enums'
-import type { BankAccountId } from '@/utils/Parser/registry'
+import type { Currency } from '@/types-enums'
 
 import type { NumberString } from './global'
 import type { CustomParserMapping } from './services/custom-parser'
 import type { ParsedStatsFile, StatsFile } from './services/stats-file'
-import type { Category, CategoryCode, ParentCategory, Transaction } from './services/transaction'
+import type { Category, CategoryCode, ParentCategory, StatsTransactions, Transaction } from './services/transaction'
 
 // -------------------------------------------------------
 // Layout
@@ -47,76 +46,6 @@ export type StorageListTab = 'files' | 'formats'
 // -------------------------------------------------------
 // Stats page: workspace
 // -------------------------------------------------------
-
-export type TransactionFilter = {
-  amount: AmountFilter
-  /**
-   * Category codes (or `NO_CATEGORY`) deselected in the filters.
-   */
-  excludedCategories: Set<string>
-}
-
-/**
- * Transactions of the checked parsed files: all (before the date explorer, in file order), without duplicates and on
- * the selected days of the date explorer. The single source of the transactions of the views and the sidebar, see
- * `useStatsTransactions`. Each view applies its `TransactionFilter` itself.
- */
-export type StatsTransactions = CurrencyTransactions & {
-  /**
-   * Transactions also in an earlier file (e.g. overlapping statements), by reference.
-   */
-  duplicates: Set<Transaction>
-  deselectedDays: Set<string>
-  /**
-   * Days with transactions that are deselected.
-   */
-  excludedDayCount: number
-  /**
-   * Per currency of the files, in file order. Also currencies of files without transactions.
-   */
-  byCurrency: Partial<Record<Currency, CurrencyTransactions>>
-  /**
-   * Counts of transactions out of `all` (e.g. filtered), see `getTransactionCounts`.
-   */
-  count: (transactions: Transaction[]) => TransactionCounts
-}
-
-export type CurrencyTransactions = {
-  /**
-   * Before the date explorer, with duplicates.
-   */
-  all: Transaction[]
-  unique: Transaction[]
-  /**
-   * Unique, on selected days.
-   */
-  shown: Transaction[]
-}
-
-/**
- * The part of `StatsTransactions` that only depends on the files, so it is kept when (de)selecting days.
- */
-export type CheckedTransactions = {
-  all: Transaction[]
-  unique: Transaction[]
-  duplicates: Set<Transaction>
-  byCurrency: Partial<Record<Currency, { all: Transaction[]; unique: Transaction[] }>>
-}
-
-export type TransactionCounts = {
-  /**
-   * Counted in the stats: without duplicates and those on deselected days.
-   */
-  count: number
-  /**
-   * On days deselected in the date explorer.
-   */
-  dateExcludedCount: number
-  /**
-   * Also in an earlier file (e.g. overlapping statements), on selected days.
-   */
-  duplicateCount: number
-}
 
 export type WorkspaceContextValue = {
   /**
@@ -269,39 +198,6 @@ export type DateRow = {
 // -------------------------------------------------------
 // Stats page: profit and loss
 // -------------------------------------------------------
-
-export type AccountTransaction = Transaction & { bankAccountId: BankAccountId }
-
-export type ProfitLossRow = {
-  key: string
-  label: string
-  /**
-   * By period key, periods without transactions are missing.
-   */
-  values: Record<string, NumberString>
-  total: NumberString
-  children: ProfitLossRow[]
-  /**
-   * Only rows of a single transaction.
-   */
-  date?: string
-}
-
-export type ProfitLoss = {
-  currency: Currency
-  /**
-   * Period keys with transactions (or transfers), oldest first.
-   */
-  periods: string[]
-  income: { rows: ProfitLossRow[]; total: ProfitLossRow }
-  expenses: { rows: ProfitLossRow[]; total: ProfitLossRow }
-  net: ProfitLossRow
-  /**
-   * Of the net result, per period (missing without income) and in total.
-   */
-  netMargin: { values: Record<string, NumberString>; total?: NumberString }
-  transfers: { incoming: ProfitLossRow; outgoing: ProfitLossRow; net: ProfitLossRow; count: number }
-}
 
 export type ProfitLossRowVariant = 'category' | 'subcategory' | 'transaction' | 'total' | 'net' | 'rate'
 

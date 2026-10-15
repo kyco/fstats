@@ -7,22 +7,16 @@ import { useMemo } from 'react'
 
 import type { Currency } from '@/types-enums'
 import { FletchingDivider, SegmentedToggle } from '@/components'
+import { filterDays, filterTransactions, getAccountTransactions, getProfitLoss } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
-import {
-  EMPTY_REASON_TITLE_KEYS,
-  filterDays,
-  filterTransactions,
-  getEmptyReason,
-  getTransactionCountText,
-  isMissingData,
-} from '../../actions'
+import { EMPTY_REASON_TITLE_KEYS, getEmptyReason, getTransactionCountText, isMissingData } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useBreakdownPeriod, useCurrencySelect, useTransactionFilter } from '../../hooks'
 import PreviewSection from '../PreviewSection'
 import ViewEmptyState from '../ViewEmptyState'
 import ViewToolbar from '../ViewToolbar'
-import { getAccountTransactions, getBreakdownPeriodOptions, getProfitLoss } from './actions'
+import { getBreakdownPeriodOptions } from './actions'
 import { ProfitLossTable } from './components'
 import { ui } from './styled'
 

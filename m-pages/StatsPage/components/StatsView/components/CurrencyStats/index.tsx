@@ -5,10 +5,9 @@ import { useMemo } from 'react'
 
 import type { CurrencyTransactions } from '@/types'
 import type { Currency } from '@/types-enums'
+import { filterTransactions, getTransactionHelper } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
-import { getTransactionHelper } from '@/hooks'
 
-import { filterTransactions } from '../../../../actions'
 import { useStatsTransactions } from '../../../../context'
 import { useTransactionFilter } from '../../../../hooks'
 import BalanceChart from '../../../BalanceChart'

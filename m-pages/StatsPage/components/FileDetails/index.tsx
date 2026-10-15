@@ -7,18 +7,12 @@ import { useMemo } from 'react'
 import type { StatsFile, TransactionFilter } from '@/types'
 import { MISC } from '@/common'
 import { getFileCurrency, getFileTransactions, isParsed } from '@/m-stats-file/service'
+import { filterDays, filterTransactions, withoutDuplicates } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { toDisplayDate } from '@/utils/Date'
 import { formatFileSize } from '@/utils/File'
 
-import {
-  filterDays,
-  filterTransactions,
-  getFileAccount,
-  getFileFormat,
-  getFileNameColor,
-  withoutDuplicates,
-} from '../../actions'
+import { getFileAccount, getFileFormat, getFileNameColor } from '../../actions'
 import { useStatsTransactions } from '../../context'
 import StatsRow from '../StatsRow'
 import { ui } from './styled'

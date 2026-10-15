@@ -9,9 +9,10 @@ import type { CustomParserMapping } from '@/types'
 import { getEndDemoHref, getSetupFileId, getView, isDemo, WorkspaceView } from '@/common'
 import { PageWrapper } from '@/components'
 import { isConvertible } from '@/m-stats-file/service'
+import { getCheckedTransactions, getStatsTransactions } from '@/m-transaction/service'
 import { useFileHelper, useResizeHandle, useStatsLayout } from '@/hooks'
 
-import { getCheckedTransactions, getStatsTransactions, resizeColumns } from './actions'
+import { resizeColumns } from './actions'
 import {
   DataView,
   DemoBanner,

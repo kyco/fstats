@@ -6,11 +6,12 @@ import { useMemo } from 'react'
 
 import type { StatsFile, TransactionFilter } from '@/types'
 import { isParsed } from '@/m-stats-file/service'
+import { filterTransactions, getTransactionCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { getTransactionDay } from '@/utils/Date'
 import { useTranslation } from '@/lib/i18n'
 
-import { filterTransactions, getTransactionCounts, getTransactionCountText } from '../../actions'
+import { getTransactionCountText } from '../../actions'
 import { useWorkspaceDayFilter } from '../../context'
 import FileMessage from '../FileMessage'
 import PreviewSection from '../PreviewSection'

@@ -5,8 +5,7 @@ import { BreakdownPeriod, Currency, StatsFileStatus } from '@/types-enums'
 import { i18n } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
-import { getCheckedTransactions } from '../../../actions'
-import { getAccountTransactions, getPeriodKey, getProfitLoss, splitTransfers } from '../actions'
+import { getAccountTransactions, getCheckedTransactions, getPeriodKey, getProfitLoss, splitTransfers } from '..'
 
 const toTransaction = (
   day: string,
