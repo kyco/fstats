@@ -29,8 +29,10 @@ export const ui = () => {
       whiteSpace: 'nowrap',
     },
     closeButton: {
-      p: 0.5,
-      mr: -0.5,
+      mr: -0.75,
+    },
+    closeIcon: {
+      fontSize: 18,
     },
     scroll: {
       flexGrow: 1,

@@ -83,7 +83,7 @@ const Component = ({ file }: ParserSetupProps) => {
         </Box>
         <Tooltip title={t('STATS_PAGE.PARSER_SETUP.CLOSE')}>
           <IconButton size="small" onClick={close} aria-label={t('STATS_PAGE.PARSER_SETUP.CLOSE')} sx={sx.closeButton}>
-            <CloseOutlined fontSize="small" />
+            <CloseOutlined sx={sx.closeIcon} />
           </IconButton>
         </Tooltip>
       </Box>
