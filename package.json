@@ -1,7 +1,7 @@
 {
   "name": "fstats",
   "private": true,
-  "version": "1.41.0",
+  "version": "1.41.1",
   "description": "fstats",
   "author": "Cornelius Weidmann <cornelius@kyco.io>",
   "scripts": {
