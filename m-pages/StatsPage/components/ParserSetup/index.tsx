@@ -1,6 +1,6 @@
 'use client'
 
-import { CloseOutlined } from '@mui/icons-material'
+import { CheckCircleOutlined, CloseOutlined, GitHub } from '@mui/icons-material'
 import {
   Alert,
   Box,
@@ -16,20 +16,22 @@ import {
 } from '@mui/material'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { KeyboardEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 
-import type { RowData, StatsFile } from '@/types'
+import type { CustomParserMapping, RowData, StatsFile } from '@/types'
 import { getSetupChange, getWorkspaceHref } from '@/common'
 import { useMutateAddCustomParser } from '@/m-custom-parser/service'
 import { useFileRows } from '@/m-stats-file/service'
 import { detectMapping, getMatchingNumberFormats, looksLikeHeader } from '@/utils/Parser'
-import { useTranslation } from '@/lib/i18n'
+import { Trans, useTranslation } from '@/lib/i18n'
 
 import { useWorkspaceFiles } from '../../context'
+import EmptyDisplay from '../EmptyDisplay'
 import PreviewSection from '../PreviewSection'
 import type { HeaderRowProblem, SetupDraft } from './actions'
 import {
   getAmountValues,
+  getFormatIssueHref,
   getHeaderRowProblem,
   getPreview,
   getPreviewCaption,
@@ -58,13 +60,18 @@ type ParserSetupProps = {
    * A file of a detected format, see `isConvertible`.
    */
   file: StatsFile
+  /**
+   * The saved format, shown with a link to submit it once saved. The file is parsed with it by then.
+   */
+  savedMapping: CustomParserMapping | null
+  onSaved: (mapping: CustomParserMapping) => void
 }
 
 /**
  * Middle column view to set up a custom parser for a file of a detected format, one step at a time like an onboarding:
  * the detected transactions are confirmed (or the columns fixed), then the currency and the account name.
  */
-const Component = ({ file }: ParserSetupProps) => {
+const Component = ({ file, savedMapping, onSaved }: ParserSetupProps) => {
   const sx = ui()
   const { t } = useTranslation()
   const router = useRouter()
@@ -83,14 +90,16 @@ const Component = ({ file }: ParserSetupProps) => {
         </Box>
         <Tooltip title={t('STATS_PAGE.PARSER_SETUP.CLOSE')}>
           <IconButton size="small" onClick={close} aria-label={t('STATS_PAGE.PARSER_SETUP.CLOSE')} sx={sx.closeButton}>
-            <CloseOutlined fontSize="small" />
+            <CloseOutlined sx={sx.closeIcon} />
           </IconButton>
         </Tooltip>
       </Box>
       <Box ref={setScrollElement} sx={sx.scroll}>
-        {data ? (
+        {savedMapping ? (
+          <SavedFormat file={file} mapping={savedMapping} onClose={close} />
+        ) : data ? (
           // Files that weren't parsed are read as one section with all rows
-          <SetupSteps file={file} rows={data[0]?.rows ?? []} scrollElement={scrollElement} onClose={close} />
+          <SetupSteps file={file} rows={data[0]?.rows ?? []} scrollElement={scrollElement} onSaved={onSaved} />
         ) : (
           <Typography variant="body2" color={error ? 'error' : 'text.secondary'}>
             {error
@@ -102,6 +111,45 @@ const Component = ({ file }: ParserSetupProps) => {
         )}
       </Box>
     </>
+  )
+}
+
+type SavedFormatProps = {
+  file: StatsFile
+  mapping: CustomParserMapping
+  onClose: () => void
+}
+
+/**
+ * Shown once the format is saved, offers to submit it on GitHub (prefilled issue the user reviews and submits).
+ */
+const SavedFormat = ({ file, mapping, onClose }: SavedFormatProps) => {
+  const sx = ui()
+  const { t } = useTranslation()
+
+  return (
+    <EmptyDisplay
+      icon={CheckCircleOutlined}
+      title={t('STATS_PAGE.PARSER_SETUP.SAVED_TITLE')}
+      subtitle={
+        <Trans
+          i18nKey="STATS_PAGE.PARSER_SETUP.SAVED_SUBTITLE"
+          values={{ file: file.file.name }}
+          components={{ file: <Button size="large" onClick={onClose} sx={sx.savedFile} /> }}
+        />
+      }
+      actions={
+        <Button
+          variant="contained"
+          startIcon={<GitHub />}
+          href={getFormatIssueHref(mapping)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t('STATS_PAGE.PARSER_SETUP.SUBMIT_FORMAT')}
+        </Button>
+      }
+    />
   )
 }
 
@@ -127,10 +175,10 @@ type SetupStepsProps = {
   file: StatsFile
   rows: RowData[]
   scrollElement: HTMLElement | null
-  onClose: () => void
+  onSaved: (mapping: CustomParserMapping) => void
 }
 
-const SetupSteps = ({ file, rows, scrollElement, onClose }: SetupStepsProps) => {
+const SetupSteps = ({ file, rows, scrollElement, onSaved }: SetupStepsProps) => {
   const sx = ui()
   const { t } = useTranslation()
   const { setSelectedFileIds } = useWorkspaceFiles()
@@ -170,7 +218,7 @@ const SetupSteps = ({ file, rows, scrollElement, onClose }: SetupStepsProps) => 
     addCustomParser(mapping, {
       onSuccess: () => {
         setSelectedFileIds((prev) => (prev.includes(file.id) ? prev : [...prev, file.id]))
-        onClose()
+        onSaved(mapping)
       },
     })
   }
@@ -324,7 +372,8 @@ const SetupSteps = ({ file, rows, scrollElement, onClose }: SetupStepsProps) => 
           </MuiStep>
         ))}
       </Stepper>
-      {renderStep()}
+      {/* Remounted per step, otherwise the buttons are reused and animate e.g. from enabled to disabled */}
+      <Fragment key={step}>{renderStep()}</Fragment>
     </Box>
   )
 }

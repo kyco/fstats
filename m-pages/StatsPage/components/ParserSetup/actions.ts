@@ -3,6 +3,7 @@ import { mapValues, pick, without, xor } from 'lodash'
 
 import type { CustomParserMapping, RowData, Transaction } from '@/types'
 import { Currency } from '@/types-enums'
+import { CONFIG } from '@/common'
 import type { DetectedMapping, NumberFormat } from '@/utils/Parser'
 import {
   createMappingParser,
@@ -352,4 +353,18 @@ export const getPreviewCaption = (
   return isValidPreview(preview)
     ? t('STATS_PAGE.PARSER_SETUP.PREVIEW_COUNT', { count: preview.transactions.length })
     : undefined
+}
+
+/**
+ * GitHub issue form (`.github/ISSUE_TEMPLATE/new-format.yml`) prefilled with the format, so it can be added as a
+ * built-in one. Only the column names and settings, no transactions, the user reviews it before submitting.
+ */
+export const getFormatIssueHref = (mapping: CustomParserMapping) => {
+  const url = new URL(`${CONFIG.GITHUB_URL}/issues/new`)
+  url.searchParams.set('template', 'new-format.yml')
+  url.searchParams.set('title', `New format: ${mapping.bankName} – ${mapping.accountName}`)
+  url.searchParams.set('bank', mapping.bankName)
+  url.searchParams.set('format', JSON.stringify(mapping, null, 2))
+  url.searchParams.set('version', CONFIG.APP_VERSION)
+  return url.toString()
 }

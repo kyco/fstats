@@ -3,8 +3,9 @@
 import { Box } from '@mui/material'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { Fragment, useMemo, useRef } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 
+import type { CustomParserMapping } from '@/types'
 import { getEndDemoHref, getSetupFileId, getView, isDemo, WorkspaceView } from '@/common'
 import { PageWrapper } from '@/components'
 import { isConvertible } from '@/m-stats-file/service'
@@ -39,9 +40,11 @@ const Component = () => {
   const view = getView(searchParams)
   const isDemoMode = isDemo(searchParams)
   const files = useFileHelper({ isDemoMode })
-  // Only while the file isn't set up yet, it's parsed once it is
+  // Only while the file isn't set up yet, it's parsed once it is. Kept once saved, to show the saved format.
   const setupFileId = getSetupFileId(searchParams)
-  const setupFile = files.files.find((file) => file.id === setupFileId && isConvertible(file))
+  const [savedSetup, setSavedSetup] = useState<{ fileId: string; mapping: CustomParserMapping } | null>(null)
+  const savedMapping = savedSetup?.fileId === setupFileId ? savedSetup.mapping : null
+  const setupFile = files.files.find((file) => file.id === setupFileId && (isConvertible(file) || !!savedMapping))
   const dayFilter = useDayFilter({ isDemoMode, isDisabled: view === WorkspaceView.CSV })
   // Once for all components, the part only depending on the files is kept when (de)selecting days
   const checkedTransactions = useMemo(() => getCheckedTransactions(files.selectedFiles), [files.selectedFiles])
@@ -72,7 +75,12 @@ const Component = () => {
     {
       id: 'middle',
       content: setupFile ? (
-        <ParserSetup key={setupFile.id} file={setupFile} />
+        <ParserSetup
+          key={setupFile.id}
+          file={setupFile}
+          savedMapping={savedMapping}
+          onSaved={(mapping) => setSavedSetup({ fileId: setupFile.id, mapping })}
+        />
       ) : view === WorkspaceView.STATS ? (
         <StatsView />
       ) : view === WorkspaceView.BREAKDOWN ? (
