@@ -1,7 +1,4 @@
 name: build-branch
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 on:
   pull_request:
     branches:
@@ -29,11 +26,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
       - name: Unit tests
         run: pnpm test
 
-      - name: Vercel - Pull environment information
-        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Vercel - Build project artifacts
-        run: ./node_modules/.bin/vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000

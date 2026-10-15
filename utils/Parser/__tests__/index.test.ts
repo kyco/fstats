@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { parse } from 'papaparse'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
+import type { RowData } from '@/types'
 import { AccountType, Country, Currency } from '@/types-enums'
 import type { BuiltInBankAccountId, BuiltInParserId } from '@/utils/Parser'
 import {
@@ -27,6 +30,7 @@ describe('registry', () => {
       | 'ing__giro'
       | 'lloyds__current'
       | 'n26__current'
+      | 'trade_republic__current'
     >()
     expectTypeOf<BuiltInBankAccountId>().toEqualTypeOf<
       | 'capitec__savings'
@@ -36,6 +40,7 @@ describe('registry', () => {
       | 'ing__current'
       | 'lloyds__current'
       | 'n26__current'
+      | 'trade_republic__current'
     >()
   })
 
@@ -140,6 +145,41 @@ describe('createParser', () => {
       { reference: 'Ref' },
       null,
     ])
+  })
+})
+
+describe('Trade Republic', () => {
+  const csv = readFileSync(new URL('../__fixtures__/trade_republic_fake.csv', import.meta.url), 'utf8')
+  const rows = parse<RowData>(csv, { header: false, skipEmptyLines: 'greedy' }).data
+  const parseCsv = () => {
+    const [section] = findSections(rows).sections
+
+    return section.parser.parse(section.rows)
+  }
+
+  it('should match only the Trade Republic parser', () => {
+    expect(findSections(rows).sections.map(({ parser }) => parser.id)).toEqual(['trade_republic__current'])
+  })
+
+  it('should keep cash and trading transactions', () => {
+    expect(parseCsv().map(({ description, value }) => [description, value])).toEqual([
+      ['Interest payment for payout collection 6188b6bc-f7f6-41e4-9af6-45574bffc855', '1.350000'],
+      ['Apple Inc.', '2.170000'],
+      ['Alex Example', '1200.000000'],
+      ['Core MSCI World USD (Acc)', '-1000.00'],
+      ['Core MSCI EM IMI USD (Acc)', '-500.00'],
+      ['Shell plc', '328.92'],
+      ['Alex Example', '850.000000'],
+    ])
+  })
+
+  it('should store the category and transaction type as extra', () => {
+    const [interest, dividend, deposit, buy] = parseCsv()
+
+    expect(interest.extra).toEqual({ category: 'CASH', transactionType: 'INTEREST_PAYMENT' })
+    expect(dividend.extra).toEqual({ category: 'CASH', transactionType: 'DIVIDEND' })
+    expect(deposit.extra).toEqual({ category: 'CASH', transactionType: 'CUSTOMER_INPAYMENT' })
+    expect(buy.extra).toEqual({ category: 'TRADING', transactionType: 'BUY' })
   })
 })
 
