@@ -7,7 +7,7 @@ import { getView, WorkspaceView } from '@/common'
 import { useTranslation } from '@/lib/i18n'
 
 import { useWorkspaceFiles } from '../../context'
-import { useTransactionFilter } from '../../useTransactionFilter'
+import { useTransactionFilter } from '../../hooks'
 import FileDetails from '../FileDetails'
 import StatsCard from '../StatsCard'
 import StatsSkeleton from '../StatsSkeleton'

@@ -9,7 +9,7 @@ import { OptionSwitcher } from '@/components'
 import { useUserPreferences } from '@/m-user/service'
 import { useTranslation } from '@/lib/i18n'
 
-const LOCALES = Object.values(UserLocale)
+import { LOCALES } from './actions'
 
 type LanguageSwitcherProps = {
   renderTrigger?: (props: OptionSwitcherTriggerProps) => ReactNode

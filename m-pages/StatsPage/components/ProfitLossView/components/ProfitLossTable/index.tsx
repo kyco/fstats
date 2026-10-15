@@ -5,29 +5,26 @@ import { Box, ButtonBase } from '@mui/material'
 import type { ReactNode } from 'react'
 import { Fragment, useState } from 'react'
 
-import type { NumberString } from '@/types'
+import type { NumberString, ProfitLoss, ProfitLossRow, ProfitLossRowVariant } from '@/types'
+import type { BreakdownPeriod } from '@/types-enums'
 import { MISC } from '@/common'
 import { useUserPreferences } from '@/m-user/service'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
 import { toFixedLocale, toFixedLocaleAmount } from '@/utils/Number'
+import { toggleKey } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
 import { getAmountColor } from '../../../../actions'
-import type { BreakdownPeriod, ProfitLoss, ProfitLossRow } from '../../actions'
 import { getPeriodLabel } from '../../actions'
+import { EMPTY_AMOUNT } from './actions'
 import { ui } from './styled'
 
 type ProfitLossTableProps = {
   profitLoss: ProfitLoss
   period: BreakdownPeriod
 }
-
-// Periods without transactions
-const EMPTY_AMOUNT = '–'
-
-export type RowVariant = 'category' | 'subcategory' | 'transaction' | 'total' | 'net' | 'rate'
 
 /**
  * Income statement with one column per period and the total, like a profit and loss sheet.
@@ -40,27 +37,17 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
   const { currency, periods, income, expenses, net, netMargin, transfers } = profitLoss
   const columnCount = periods.length + 2
 
-  const toggle = (key: string) => {
-    setExpandedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
-  }
+  const toggle = (key: string) => setExpandedKeys((prev) => toggleKey(prev, key))
 
   const formatAmount = (value: NumberString | undefined) => {
-    return value === undefined || Big(value).eq(0) ? EMPTY_AMOUNT : toFixedLocaleAmount(value, currency, locale)
+    return value === undefined || Big(value).eq(0) ? EMPTY_AMOUNT : toFixedLocaleAmount({ value, currency, locale })
   }
 
   const formatPercent = (value: NumberString | undefined) => {
-    return value === undefined ? EMPTY_AMOUNT : `${toFixedLocale(value, 1, locale)}%`
+    return value === undefined ? EMPTY_AMOUNT : `${toFixedLocale({ value, round: 1, locale })}%`
   }
 
-  const renderAmount = (value: NumberString | undefined, key: string, variant: RowVariant) => (
+  const renderAmount = (value: NumberString | undefined, key: string, variant: ProfitLossRowVariant) => (
     <Box
       component="td"
       key={key}
@@ -70,13 +57,13 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
     </Box>
   )
 
-  const renderRow = (row: ProfitLossRow, variant: RowVariant, parentKey = ''): ReactNode => {
+  const renderRow = (row: ProfitLossRow, variant: ProfitLossRowVariant, parentKey = ''): ReactNode => {
     const key = `${parentKey}${row.key}`
     const isExpandable = row.children.length > 0
     const isExpanded = expandedKeys.has(key)
     const childVariant = row.children[0]?.date ? 'transaction' : 'subcategory'
     const label = row.date
-      ? `${toDisplayDate(row.date, locale, { formatTo: dateFormat })} ${MISC.CENTER_DOT} ${row.label}`
+      ? `${toDisplayDate({ date: row.date, locale, formatTo: dateFormat })} ${MISC.CENTER_DOT} ${row.label}`
       : row.label
 
     return (
@@ -136,7 +123,7 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
             </Box>
             {periods.map((periodKey) => (
               <Box component="th" scope="col" key={periodKey} sx={sx.header}>
-                {getPeriodLabel(periodKey, period, locale)}
+                {getPeriodLabel({ key: periodKey, period, locale })}
               </Box>
             ))}
             <Box component="th" scope="col" sx={sx.header}>

@@ -7,7 +7,12 @@ import { getBaseChartOptions, getGradient } from '@/utils/Chart'
 import { toFixedLocaleCurrency } from '@/utils/Number'
 import { Big } from '@/lib/w-big'
 
-export const getBarThickness = ({ transactions, chartWidth }: { transactions: Transaction[]; chartWidth: number }) => {
+type GetBarThicknessProps = {
+  transactions: Transaction[]
+  chartWidth: number
+}
+
+export const getBarThickness = ({ transactions, chartWidth }: GetBarThicknessProps) => {
   const calculatedThickness = Math.floor(chartWidth / transactions.length) / 3
   const minThickness = 1
   const maxThickness = 30
@@ -38,13 +43,12 @@ export const getBorderRadius = (context: ScriptableContext<'bar'>) => {
     : { topLeft: 0, topRight: 0, bottomLeft: 100, bottomRight: 100 }
 }
 
-export const getChartOptions = ({
-  currency,
-  locale,
-}: {
+type GetChartOptionsProps = {
   currency: Currency
   locale: UserLocale
-}): ChartOptions<'bar'> => {
+}
+
+export const getChartOptions = ({ currency, locale }: GetChartOptionsProps): ChartOptions<'bar'> => {
   return getBaseChartOptions<'bar'>({
     plugins: {
       legend: {
@@ -55,7 +59,7 @@ export const getChartOptions = ({
         callbacks: {
           label: function (context) {
             if (context.parsed.y !== null) {
-              return toFixedLocaleCurrency(Big(context.parsed.y).toString(), currency, locale)
+              return toFixedLocaleCurrency({ value: Big(context.parsed.y).toString(), currency, locale })
             }
             return context.dataset.label
           },
@@ -72,7 +76,7 @@ export const getChartOptions = ({
         beginAtZero: true,
         ticks: {
           callback(value) {
-            return toFixedLocaleCurrency(Big(value).toString(), currency, locale, { trimTrailingZeros: true })
+            return toFixedLocaleCurrency({ value: Big(value).toString(), currency, locale, trimTrailingZeros: true })
           },
         },
       },

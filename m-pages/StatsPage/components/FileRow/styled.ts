@@ -1,17 +1,17 @@
 import { listItemButtonClasses, listItemSecondaryActionClasses } from '@mui/material'
 
-import { sxListRow, sxListRowTitle, sxSmallCheckbox } from '../../styled'
-
-const sxSetupButton = {
-  flexShrink: 0,
-  minWidth: 0,
-  py: 0,
-  px: 1,
-  fontSize: 12,
-  lineHeight: 1.6,
-} as const
+import { sxListRow, sxListRowTitle, sxSmallCheckbox } from '@/styles/styled'
 
 export const ui = () => {
+  const setupButton = {
+    flexShrink: 0,
+    minWidth: 0,
+    py: 0,
+    px: 1,
+    fontSize: 12,
+    lineHeight: 1.6,
+  } as const
+
   return {
     item: {
       [`& > .${listItemButtonClasses.root}`]: { pr: 1.25 },
@@ -25,14 +25,18 @@ export const ui = () => {
       minWidth: 0,
     },
     checkbox: sxSmallCheckbox,
-    name: sxListRowTitle,
+    name: (color: string, isChecked: boolean) => ({
+      ...sxListRowTitle,
+      color,
+      fontWeight: isChecked ? 700 : 400,
+    }),
     status: {
       flexShrink: 0,
       fontSize: 16,
     },
-    setupButton: sxSetupButton,
+    setupButton: setupButton,
     setupSpacer: {
-      ...sxSetupButton,
+      ...setupButton,
       visibility: 'hidden',
     },
     bankChip: {

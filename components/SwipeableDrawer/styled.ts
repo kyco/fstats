@@ -5,15 +5,6 @@ import type { Theme } from '@mui/material/styles'
 import { ColorMode } from '@/types-enums'
 import { sxGlass } from '@/styles/styled'
 
-const sxHideScrollbar = {
-  overflow: 'auto',
-  scrollbarWidth: 'none', // Firefox
-  msOverflowStyle: 'none', // IE 10+
-  '&::-webkit-scrollbar': {
-    display: 'none', // WebKit (Chrome, Safari, Edge)
-  },
-} as const
-
 const PULLER_OFFSET_TOP = 8
 const PULLER_HEIGHT = 4
 const PULLER_WIDTH = 30
@@ -37,6 +28,15 @@ export const Puller = styled('div')(({ theme }) => ({
 }))
 
 export const ui = (anchor: 'left' | 'bottom', theme: Theme, isMobile = false) => {
+  const hideScrollbar = {
+    overflow: 'auto',
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none', // IE 10+
+    '&::-webkit-scrollbar': {
+      display: 'none', // WebKit (Chrome, Safari, Edge)
+    },
+  } as const
+
   const isBottomDrawer = anchor === 'bottom'
 
   return {
@@ -54,7 +54,7 @@ export const ui = (anchor: 'left' | 'bottom', theme: Theme, isMobile = false) =>
       const maxHeight = isMobile ? '370px' : '60%'
 
       return {
-        ...sxHideScrollbar,
+        ...hideScrollbar,
         ...sxGlass(theme),
         m: padding,
         width: mainMenu ? 300 : `calc(100% - (2 * ${paddingX}))`,

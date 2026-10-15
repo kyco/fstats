@@ -1,39 +1,15 @@
-import { groupBy, mapValues, uniq } from 'lodash'
-
-import type { NumberString, ParsedStatsFile, StatsFile, Transaction } from '@/types'
-import type { Currency } from '@/types-enums'
-import { StatsFileStatus } from '@/types-enums'
+import type { NumberString, StatsFile, Transaction, TransactionCounts, TransactionFilter } from '@/types'
+import { AmountFilter, EmptyReason, StatsFileStatus, TransactionsLayout } from '@/types-enums'
 import { MISC } from '@/common'
-import {
-  getFileCurrency,
-  getFileTransactions,
-  isConvertible,
-  isError,
-  isParsed,
-  isUnknown,
-  splitDuplicates,
-} from '@/m-stats-file/service'
-import { getTransactionDay } from '@/utils/Date'
-import { getParser } from '@/utils/Parser'
-import { isExpense, isIncome } from '@/utils/Stats'
+import { getFileAccount, isConvertible, isError, isParsed, isUnknown } from '@/m-stats-file/service'
+import { filterTransactions } from '@/m-transaction/service'
 import { i18n } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
 /**
- * Height of the section headers of both views, e.g. the preview and card titles.
+ * Currency selection of all currencies, see `useCurrencySelect`.
  */
-export const HEADER_HEIGHT = 28 // px
-
-/**
- * Bank and accounts of a parsed file, e.g. Comdirect with Giro and Visa.
- */
-export const getFileAccount = (file: ParsedStatsFile) => {
-  // Files of deleted custom parsers are re-parsed on start, until then they show their parser ID
-  const parsers = uniq(file.sections.map((section) => section.parserId)).map(
-    (parserId) => getParser(parserId) ?? { bankName: parserId, accountName: parserId },
-  )
-  return { bankName: parsers[0].bankName, accountNames: parsers.map((parser) => parser.accountName) }
-}
+export const ALL_CURRENCIES = 'all'
 
 /**
  * Same colors as `FileStatusIcon`.
@@ -78,20 +54,6 @@ export const getFileFormat = (file: StatsFile) => {
  */
 export const getAmountColor = (value: NumberString) => {
   return Big(value).lt(0) ? 'error.main' : undefined
-}
-
-export const MIN_COLUMN_WIDTH_PERCENT = 10
-
-/**
- * Moves the divider between column `index` and `index + 1` by `delta` percent, respecting the minimum width.
- */
-export const resizeColumns = (widths: number[], index: number, delta: number) => {
-  const total = widths[index] + widths[index + 1]
-  const left = Math.min(Math.max(widths[index] + delta, MIN_COLUMN_WIDTH_PERCENT), total - MIN_COLUMN_WIDTH_PERCENT)
-  const next = [...widths]
-  next[index] = left
-  next[index + 1] = total - left
-  return next
 }
 
 /**
@@ -146,13 +108,6 @@ export const setInputFiles = (input: HTMLInputElement, files: File[]) => {
   input.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
-export const TransactionsLayout = {
-  COMBINED: 'combined',
-  SPLIT: 'split',
-} as const
-
-export type TransactionsLayout = (typeof TransactionsLayout)[keyof typeof TransactionsLayout]
-
 export const getTransactionsLayoutOptions = () => [
   {
     value: TransactionsLayout.COMBINED,
@@ -165,14 +120,6 @@ export const getTransactionsLayoutOptions = () => [
     title: i18n.t('STATS_PAGE.DATA_VIEW.TRANSACTIONS_LAYOUT.SPLIT_TITLE'),
   },
 ]
-
-export const AmountFilter = {
-  ALL: 'all',
-  IN: 'in',
-  OUT: 'out',
-} as const
-
-export type AmountFilter = (typeof AmountFilter)[keyof typeof AmountFilter]
 
 export const getAmountFilterOptions = () => [
   {
@@ -192,146 +139,6 @@ export const getAmountFilterOptions = () => [
   },
 ]
 
-export const filterAmount = <T extends Transaction>(transactions: T[], filter: AmountFilter) => {
-  switch (filter) {
-    case AmountFilter.IN:
-      return transactions.filter(isIncome)
-    case AmountFilter.OUT:
-      return transactions.filter(isExpense)
-    default:
-      return transactions
-  }
-}
-
-/**
- * Category filter key of transactions without a category.
- */
-export const NO_CATEGORY = 'none'
-
-export const getCategoryKey = (transaction: Transaction) => {
-  return transaction.category ?? NO_CATEGORY
-}
-
-export type TransactionFilter = {
-  amount: AmountFilter
-  /**
-   * Category codes (or `NO_CATEGORY`) deselected in the filters.
-   */
-  excludedCategories: Set<string>
-}
-
-export const filterTransactions = <T extends Transaction>(
-  transactions: T[],
-  { amount, excludedCategories }: TransactionFilter,
-) => {
-  const amountTransactions = filterAmount(transactions, amount)
-  return excludedCategories.size
-    ? amountTransactions.filter((transaction) => !excludedCategories.has(getCategoryKey(transaction)))
-    : amountTransactions
-}
-
-/**
- * Transactions without those on the deselected days of the date explorer.
- */
-export const filterDays = <T extends Transaction>(transactions: T[], deselectedDays: Set<string>) => {
-  return deselectedDays.size
-    ? transactions.filter((transaction) => !deselectedDays.has(getTransactionDay(transaction)))
-    : transactions
-}
-
-/**
- * Transactions of the checked parsed files: all (before the date explorer, in file order), without duplicates and on
- * the selected days of the date explorer. The single source of the transactions of the views and the sidebar, see
- * `useStatsTransactions`. Each view applies its `TransactionFilter` itself.
- */
-export type StatsTransactions = CurrencyTransactions & {
-  /**
-   * Transactions also in an earlier file (e.g. overlapping statements), by reference.
-   */
-  duplicates: Set<Transaction>
-  deselectedDays: Set<string>
-  /**
-   * Days with transactions that are deselected.
-   */
-  excludedDayCount: number
-  /**
-   * Per currency of the files, in file order. Also currencies of files without transactions.
-   */
-  byCurrency: Partial<Record<Currency, CurrencyTransactions>>
-  /**
-   * Counts of transactions out of `all` (e.g. filtered), see `getTransactionCounts`.
-   */
-  count: (transactions: Transaction[]) => TransactionCounts
-}
-
-export type CurrencyTransactions = {
-  /**
-   * Before the date explorer, with duplicates.
-   */
-  all: Transaction[]
-  unique: Transaction[]
-  /**
-   * Unique, on selected days.
-   */
-  shown: Transaction[]
-}
-
-/**
- * The part of `StatsTransactions` that only depends on the files, so it is kept when (de)selecting days.
- */
-export type CheckedTransactions = {
-  all: Transaction[]
-  unique: Transaction[]
-  duplicates: Set<Transaction>
-  byCurrency: Partial<Record<Currency, { all: Transaction[]; unique: Transaction[] }>>
-}
-
-export const getCheckedTransactions = (files: ParsedStatsFile[]): CheckedTransactions => {
-  const all = files.flatMap(getFileTransactions)
-  const duplicates = getDuplicates(all)
-
-  return {
-    all,
-    unique: withoutDuplicates(all, duplicates),
-    duplicates,
-    byCurrency: mapValues(groupFilesByCurrency(files), (currencyFiles) => {
-      const currencyAll = currencyFiles.flatMap(getFileTransactions)
-      return { all: currencyAll, unique: withoutDuplicates(currencyAll, duplicates) }
-    }),
-  }
-}
-
-export const getStatsTransactions = (
-  { all, unique, duplicates, byCurrency }: CheckedTransactions,
-  deselectedDays: Set<string>,
-): StatsTransactions => {
-  const days = new Set(all.map(getTransactionDay))
-
-  return {
-    all,
-    unique,
-    shown: filterDays(unique, deselectedDays),
-    duplicates,
-    deselectedDays,
-    excludedDayCount: [...days].filter((day) => deselectedDays.has(day)).length,
-    byCurrency: mapValues(byCurrency, (transactions) => ({
-      ...transactions!,
-      shown: filterDays(transactions!.unique, deselectedDays),
-    })),
-    count: (transactions) => getTransactionCounts(transactions, deselectedDays, duplicates),
-  }
-}
-
-export const EmptyReason = {
-  NO_FILES: 'noFiles',
-  NO_SELECTION: 'noSelection',
-  NO_TRANSACTIONS: 'noTransactions',
-  NO_DATES: 'noDates',
-  NO_MATCHES: 'noMatches',
-} as const
-
-export type EmptyReason = (typeof EmptyReason)[keyof typeof EmptyReason]
-
 export const EMPTY_REASON_TITLE_KEYS: Record<EmptyReason, string> = {
   [EmptyReason.NO_FILES]: 'STATS_PAGE.NO_FILES.TITLE',
   [EmptyReason.NO_SELECTION]: 'STATS_PAGE.NO_SELECTION.TITLE',
@@ -349,7 +156,7 @@ export const isMissingData = (reason: EmptyReason | null) => {
   )
 }
 
-type EmptyReasonInput = {
+type GetEmptyReasonProps = {
   fileCount: number
   checkedCount: number
   /**
@@ -377,7 +184,7 @@ type EmptyReasonInput = {
  * unsupported files), all days deselected in the date explorer, or the filters leave none. `null` if there's
  * something to show.
  */
-export const getEmptyReason = ({ fileCount, checkedCount, transactions }: EmptyReasonInput): EmptyReason | null => {
+export const getEmptyReason = ({ fileCount, checkedCount, transactions }: GetEmptyReasonProps): EmptyReason | null => {
   if (!fileCount) {
     return EmptyReason.NO_FILES
   }
@@ -403,54 +210,6 @@ export const getEmptyReason = ({ fileCount, checkedCount, transactions }: EmptyR
   return !filter || filterTransactions(shown, filter).length ? null : EmptyReason.NO_MATCHES
 }
 
-export type TransactionCounts = {
-  /**
-   * Counted in the stats: without duplicates and those on deselected days.
-   */
-  count: number
-  /**
-   * On days deselected in the date explorer.
-   */
-  dateExcludedCount: number
-  /**
-   * Also in an earlier file (e.g. overlapping statements), on selected days.
-   */
-  duplicateCount: number
-}
-
-/**
- * Counts of the transactions (before the date explorer), the same wherever a transaction count is shown. Duplicates
- * and transactions on deselected days are never counted, also when shown in the transactions table.
- */
-export const getTransactionCounts = (
-  transactions: Transaction[],
-  deselectedDays: Set<string>,
-  duplicates = getDuplicates(transactions),
-): TransactionCounts => {
-  const unique = withoutDuplicates(transactions, duplicates)
-  const isOnSelectedDay = (transaction: Transaction) => !deselectedDays.has(getTransactionDay(transaction))
-  const count = unique.filter(isOnSelectedDay).length
-
-  return {
-    count,
-    dateExcludedCount: unique.length - count,
-    duplicateCount: transactions.filter((transaction) => duplicates.has(transaction) && isOnSelectedDay(transaction))
-      .length,
-  }
-}
-
-/**
- * Transactions that are also earlier in the list (e.g. in an earlier file with overlapping statements), by reference.
- * Determined across all checked files, so the stats of a single file agree with the totals.
- */
-export const getDuplicates = (transactions: Transaction[]) => {
-  return new Set(splitDuplicates(transactions).duplicates)
-}
-
-export const withoutDuplicates = (transactions: Transaction[], duplicates: Set<Transaction>) => {
-  return transactions.filter((transaction) => !duplicates.has(transaction))
-}
-
 /**
  * E.g. "20 transactions · 12 excluded by date · 5 duplicates excluded".
  */
@@ -460,20 +219,4 @@ export const getTransactionCountText = ({ count, dateExcludedCount, duplicateCou
     ...(dateExcludedCount ? [i18n.t('MISC.DATE_EXCLUDED', { count: dateExcludedCount })] : []),
     ...(duplicateCount ? [i18n.t('MISC.DUPLICATES_EXCLUDED', { count: duplicateCount })] : []),
   ].join(` ${MISC.CENTER_DOT} `)
-}
-
-/**
- * Files per currency, as amounts in different currencies can't be summed up. Only for tables listing the source files,
- * otherwise see `StatsTransactions.byCurrency`.
- */
-// TODO: Once we have currency conversion logic, convert files with different currencies
-export const groupFilesByCurrency = (files: ParsedStatsFile[]) => {
-  return groupBy(files, getFileCurrency) as Record<Currency, ParsedStatsFile[]>
-}
-
-/**
- * Currencies of the transactions matching the filter, in order.
- */
-export const getFilteredCurrencies = (transactions: Transaction[], filter: TransactionFilter) => {
-  return uniq(filterTransactions(transactions, filter).map((transaction) => transaction.currency))
 }

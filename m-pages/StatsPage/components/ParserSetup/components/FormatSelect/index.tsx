@@ -4,34 +4,11 @@ import { ArrowDropDown } from '@mui/icons-material'
 import { Box, Button } from '@mui/material'
 import { useState } from 'react'
 
+import type { FormatOption } from '@/types'
+import { DropdownMenu, DropdownMenuItem } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
-import DropdownMenu, { DropdownMenuItem } from '../../../DropdownMenu'
 import { ui } from './styled'
-
-export type FormatOption = {
-  value: string
-  /**
-   * E.g. an example date in the format.
-   */
-  label: string
-  /**
-   * The values of the column can be read with it.
-   */
-  isMatch?: boolean
-  /**
-   * In the menu, after the label (e.g. the name of a currency).
-   */
-  description?: string
-  /**
-   * In the menu, aligned right (e.g. the symbol of a currency).
-   */
-  end?: string
-  /**
-   * On the button, the label by default.
-   */
-  buttonLabel?: string
-}
 
 type FormatSelectProps = {
   /**

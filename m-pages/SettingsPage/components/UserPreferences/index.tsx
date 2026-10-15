@@ -1,37 +1,15 @@
 'use client'
 
-import { ChevronRight } from '@mui/icons-material'
-import { Box, ButtonBase, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 
-import type { OptionSwitcherTriggerProps } from '@/components'
 import { ThemeSwitcher } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
 import DateFormatSwitcher from '../DateFormatSwitcher'
 import LanguageSwitcher from '../LanguageSwitcher'
 import SettingsCard from '../SettingsCard'
+import { PreferenceTile } from './components'
 import { ui } from './styled'
-
-type PreferenceTileProps = OptionSwitcherTriggerProps & {
-  title: string
-}
-
-const PreferenceTile = ({ title, icon, label, onOpen }: PreferenceTileProps) => {
-  const sx = ui()
-
-  return (
-    <ButtonBase onClick={onOpen} sx={sx.tile}>
-      <Box sx={sx.iconCircle}>{icon}</Box>
-      <Box sx={sx.text}>
-        <Typography variant="caption" component="p" sx={sx.tileTitle}>
-          {title}
-        </Typography>
-        <Typography sx={sx.value}>{label}</Typography>
-      </Box>
-      <ChevronRight sx={sx.chevron} />
-    </ButtonBase>
-  )
-}
 
 const Component = () => {
   const sx = ui()

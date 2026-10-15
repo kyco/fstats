@@ -27,18 +27,24 @@ type SectionsResult = { sections: Section[]; error: string }
  * If there are no sections, `error` explains why the closest built-in parser was rejected.
  */
 export const findSections = (rows: RowData[]): SectionsResult => {
-  const builtIn = findSectionsWith(rows, Object.values(AVAILABLE_PARSERS), { isCustom: false })
+  const builtIn = findSectionsWith({ rows, parsers: Object.values(AVAILABLE_PARSERS), isCustom: false })
   const customParsers = getCustomParsers()
 
   if (builtIn.sections.length || !customParsers.length) {
     return builtIn
   }
 
-  const custom = findSectionsWith(rows, customParsers, { isCustom: true })
+  const custom = findSectionsWith({ rows, parsers: customParsers, isCustom: true })
   return custom.sections.length ? custom : builtIn
 }
 
-const findSectionsWith = (rows: RowData[], parsers: Parser[], { isCustom }: { isCustom: boolean }): SectionsResult => {
+type FindSectionsWithProps = {
+  rows: RowData[]
+  parsers: Parser[]
+  isCustom: boolean
+}
+
+const findSectionsWith = ({ rows, parsers, isCustom }: FindSectionsWithProps): SectionsResult => {
   const starts: { index: number; parser: Parser }[] = []
   let closest: { parser: Parser; closeness: number; missing: string[] } | null = null
 

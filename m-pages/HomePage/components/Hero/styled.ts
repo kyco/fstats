@@ -1,12 +1,21 @@
 import type { Theme } from '@mui/material/styles'
 
-import { accentColor, ctaButton, darkStyles } from '../../styled'
+import { sxAccentColor, sxDark } from '@/styles/styled'
 
 export const ui = (theme: Theme, isMobile: boolean) => {
   const logo = {
     width: isMobile ? 96 : 128,
     height: 'auto',
     mb: 3,
+  }
+
+  const ctaButton = {
+    minWidth: 200,
+    py: 1.5,
+    px: 5,
+    fontSize: 17,
+    fontWeight: 600,
+    borderRadius: 100,
   }
 
   return {
@@ -21,13 +30,13 @@ export const ui = (theme: Theme, isMobile: boolean) => {
 
     logo: {
       ...logo,
-      ...darkStyles(theme, { display: 'none' }),
+      ...sxDark(theme, { display: 'none' }),
     },
 
     logoDark: {
       ...logo,
       display: 'none',
-      ...darkStyles(theme, { display: 'block' }),
+      ...sxDark(theme, { display: 'block' }),
     },
 
     title: {
@@ -37,7 +46,7 @@ export const ui = (theme: Theme, isMobile: boolean) => {
       mb: 2,
     },
 
-    titleAccent: accentColor(theme),
+    titleAccent: sxAccentColor(theme),
 
     subtitle: {
       color: 'text.secondary',

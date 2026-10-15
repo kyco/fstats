@@ -5,11 +5,12 @@ import { Box, Checkbox, Divider, IconButton, Tooltip, Typography } from '@mui/ma
 import { useState } from 'react'
 
 import { MISC } from '@/common'
+import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem, DropdownMenuSubheader } from '@/components'
 import { isConvertible, isError, isParsed, isUnknown, useMutateRemoveFiles } from '@/m-stats-file/service'
+import { getCheckState } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
 import { useWorkspace, useWorkspaceFiles } from '../../context'
-import DropdownMenu, { DropdownMenuDivider, DropdownMenuItem, DropdownMenuSubheader } from '../DropdownMenu'
 import { getBankAccountOptions, isSameSelection, toggleFileIds } from './actions'
 import { ui } from './styled'
 
@@ -119,8 +120,7 @@ const Component = () => {
               start={
                 <Checkbox
                   size="small"
-                  checked={checkedCount === option.fileIds.length}
-                  indeterminate={checkedCount > 0 && checkedCount < option.fileIds.length}
+                  {...getCheckState(option.fileIds.length - checkedCount, option.fileIds.length)}
                   tabIndex={-1}
                   sx={sx.menuCheckbox}
                 />

@@ -5,17 +5,18 @@ import { Box, Typography } from '@mui/material'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useMemo, useState } from 'react'
 
+import type { DateRow } from '@/types'
+import { OutlineCheckbox } from '@/components'
 import { useUserPreferences } from '@/m-user/service'
 import { getTransactionDay, toDisplayDate } from '@/utils/Date'
+import { onRowKeyDown } from '@/utils/Event'
+import { getCheckState, toggleKey, toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
 import { EMPTY_REASON_TITLE_KEYS, getEmptyReason } from '../../actions'
 import { useStatsTransactions, useWorkspaceDayFilter, useWorkspaceFiles } from '../../context'
 import DateSkeleton from '../DateSkeleton'
-import OutlineCheckbox from '../OutlineCheckbox'
-import type { DateRow } from './actions'
 import {
-  getCheckState,
   getDateTree,
   getDefaultExpanded,
   getDeselectedCounts,
@@ -23,8 +24,6 @@ import {
   getVisibleRows,
   OVERSCAN,
   ROW_INDENT,
-  toggleDays,
-  toggleExpanded,
 } from './actions'
 import { ui } from './styled'
 
@@ -63,18 +62,18 @@ const Component = () => {
       case 'year':
         return row.key
       case 'month':
-        return toDisplayDate(`${row.key}-01`, locale, { formatTo: 'MMMM' })
+        return toDisplayDate({ date: `${row.key}-01`, locale, formatTo: 'MMMM' })
       default:
-        return toDisplayDate(row.key, locale, { formatTo: dateFormat })
+        return toDisplayDate({ date: row.key, locale, formatTo: dateFormat })
     }
   }
 
   const toggleRow = (row: DateRow) => {
-    setDeselectedDays(toggleDays(row.days, deselectedDays))
+    setDeselectedDays(toggleKeys(deselectedDays, row.days))
   }
 
   const toggleRowExpanded = (row: DateRow) => {
-    setExpandedKeys(toggleExpanded(row.key, expanded))
+    setExpandedKeys(toggleKey(expanded, row.key))
   }
 
   // Only an indicator, the whole row expands
@@ -106,7 +105,7 @@ const Component = () => {
           const row = rows[item.index]
           const isExpandable = row.type !== 'day'
           const isExpanded = expanded.has(row.key)
-          const checkState = getCheckState(row, deselectedCounts)
+          const checkState = getCheckState(deselectedCounts.get(row.key) ?? 0, row.days.length)
           const isDeselected = !checkState.checked && !checkState.indeterminate
 
           return (
@@ -117,18 +116,9 @@ const Component = () => {
               role="button"
               tabIndex={0}
               aria-expanded={isExpandable ? isExpanded : undefined}
-              onKeyDown={(event) => {
-                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                  event.preventDefault()
-                  event.currentTarget.click()
-                }
-              }}
+              onKeyDown={onRowKeyDown}
               sx={sx.row}
-              style={{
-                transform: `translateY(${item.start}px)`,
-                height: item.size,
-                paddingLeft: ROW_INDENT[row.type],
-              }}
+              style={sx.rowPosition(item.start, item.size, ROW_INDENT[row.type])}
             >
               {row.type === 'month' ? renderExpandIcon(row, isExpanded) : null}
               {row.type === 'day' ? <Box sx={sx.expandSpacer} /> : null}
@@ -138,11 +128,7 @@ const Component = () => {
                 onChange={() => toggleRow(row)}
               />
               <Typography
-                sx={{
-                  ...sx.label,
-                  ...(row.type === 'year' ? sx.yearLabel : null),
-                  color: isDeselected ? 'text.disabled' : 'text.primary',
-                }}
+                sx={sx.label(row.type === 'year', isDeselected)}
                 // Deselected months aren't emphasized, like deselected files
                 style={{ fontWeight: row.type === 'month' && !isDeselected ? 600 : 400 }}
               >
@@ -150,7 +136,7 @@ const Component = () => {
               </Typography>
               {row.type === 'day' ? (
                 <Box component="span" sx={{ ...sx.weekday, ...(checkState.checked ? null : sx.weekdayDeselected) }}>
-                  {toDisplayDate(row.key, locale, { formatTo: 'EEE' })}
+                  {toDisplayDate({ date: row.key, locale, formatTo: 'EEE' })}
                 </Box>
               ) : null}
               {/* Years expand on the right, like a section header */}

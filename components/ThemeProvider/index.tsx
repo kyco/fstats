@@ -5,17 +5,9 @@ import { ThemeProvider } from '@mui/material/styles'
 import type { ReactNode } from 'react'
 
 import { MISC } from '@/common'
-import { useDarkModeMetaTagUpdater } from '@/hooks'
 import { theme } from '@/styles/theme'
 
-type InnerWrapperProps = {
-  children: ReactNode
-}
-
-const InnerWrapper = ({ children }: InnerWrapperProps) => {
-  useDarkModeMetaTagUpdater()
-  return <>{children}</>
-}
+import { InnerWrapper } from './components'
 
 type ThemeProviderProps = {
   children: ReactNode

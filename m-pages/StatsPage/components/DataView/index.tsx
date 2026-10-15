@@ -4,28 +4,23 @@ import { Box } from '@mui/material'
 import { useSearchParams } from 'next/navigation'
 import { useDeferredValue, useMemo, useState } from 'react'
 
+import { TransactionsLayout } from '@/types-enums'
 import { getView, WorkspaceView } from '@/common'
-import { FletchingDivider } from '@/components'
+import { FletchingDivider, SearchField, SegmentedToggle } from '@/components'
+import { filterTransactions, getFilteredCurrencies, groupFilesByCurrency } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
 import {
+  ALL_CURRENCIES,
   EMPTY_REASON_TITLE_KEYS,
-  filterTransactions,
   getAmountFilterOptions,
   getEmptyReason,
-  getFilteredCurrencies,
   getTransactionsLayoutOptions,
-  groupFilesByCurrency,
-  TransactionsLayout,
 } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
-import { ALL_CURRENCIES, useCurrencySelect } from '../../useCurrencySelect'
-import { useTableOptions } from '../../useTableOptions'
-import { useTransactionFilter } from '../../useTransactionFilter'
+import { useCurrencySelect, useTableOptions, useTransactionFilter } from '../../hooks'
 import CsvPreview from '../CsvPreview'
 import NoSearchResultsDisplay from '../NoSearchResultsDisplay'
-import SearchField from '../SearchField'
-import SegmentedToggle from '../SegmentedToggle'
 import TransactionsPreview from '../TransactionsPreview'
 import ViewEmptyState from '../ViewEmptyState'
 import ViewToolbar from '../ViewToolbar'

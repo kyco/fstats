@@ -65,13 +65,15 @@ export const getViewChange = (view: WorkspaceView) => {
   return { [VIEW_PARAM]: view === WorkspaceView.TRANSACTIONS ? null : view }
 }
 
+type GetDemoHrefProps = {
+  searchParams?: SearchParams
+  view?: WorkspaceView
+}
+
 /**
  * The workspace URL in demo mode, keeping the current params (if any) and optionally switching to `view`.
  */
-export const getDemoHref = ({
-  searchParams = new URLSearchParams(),
-  view,
-}: { searchParams?: SearchParams; view?: WorkspaceView } = {}) => {
+export const getDemoHref = ({ searchParams = new URLSearchParams(), view }: GetDemoHrefProps = {}) => {
   return getWorkspaceHref(searchParams, { [DEMO_PARAM]: 'true', ...(view ? getViewChange(view) : {}) })
 }
 

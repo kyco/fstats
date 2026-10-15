@@ -5,30 +5,34 @@ import { de, enGB } from 'date-fns/locale'
 import type { SelectOptionWithType, Transaction } from '@/types'
 import { DateFormat, SortOrder, UserLocale } from '@/types-enums'
 
+type ToDisplayDateProps = {
+  date: Date | string
+  locale: UserLocale
+  formatTo: string
+  formatFrom?: string
+}
+
 /**
- * Date strings are parsed with `options.formatFrom`, ISO by default.
+ * Date strings are parsed with `formatFrom`, ISO by default.
  */
-export const toDisplayDate = (
-  date: Date | string,
-  locale: UserLocale,
-  options: {
-    formatTo: string
-    formatFrom?: string
-  },
-): string => {
-  const dateObject = date instanceof Date ? date : toDate(date, options)
+export const toDisplayDate = ({ date, locale, formatTo, formatFrom }: ToDisplayDateProps): string => {
+  const dateObject = date instanceof Date ? date : toDate(date, { formatFrom })
 
   if (!isValid(dateObject)) {
     throw new Error('Invalid date')
   }
 
-  return format(dateObject, options.formatTo, { locale: getDateFnsLocale(locale) })
+  return format(dateObject, formatTo, { locale: getDateFnsLocale(locale) })
+}
+
+type ToDateProps = {
+  formatFrom?: string
 }
 
 /**
  * Parsed with `options.formatFrom`, ISO by default.
  */
-export const toDate = (date: string, options?: { formatFrom?: string }): Date => {
+export const toDate = (date: string, options?: ToDateProps): Date => {
   const dateObject = options?.formatFrom ? parse(date, options.formatFrom, new Date()) : parseISO(date)
 
   if (!isValid(dateObject)) {
@@ -42,7 +46,7 @@ export const getDateFormatSelectOptions = (locale: UserLocale): SelectOptionWith
   return Object.entries(DateFormat).map(([, value]) => {
     return {
       value,
-      label: toDisplayDate(new Date(), locale, { formatTo: value }),
+      label: toDisplayDate({ date: new Date(), locale, formatTo: value }),
     }
   })
 }
@@ -59,19 +63,17 @@ const getDateFnsLocale = (locale: UserLocale): Locale => {
   }
 }
 
+type GetUniqueTimestampsProps = {
+  dates: Date[]
+  dateFormat: string
+  sortOrder: SortOrder
+}
+
 /**
  * Spreads dates that share a timestamp (a day, for formats without time) one second apart, keeping their order.
  * Dates from formats with seconds are returned unchanged, so duplicates there stay.
  */
-export const getUniqueTimestamps = ({
-  dates,
-  dateFormat,
-  sortOrder,
-}: {
-  dates: Date[]
-  dateFormat: string
-  sortOrder: SortOrder
-}): Date[] => {
+export const getUniqueTimestamps = ({ dates, dateFormat, sortOrder }: GetUniqueTimestampsProps): Date[] => {
   const { hasTime, hasSeconds } = getDateFormatPrecision(dateFormat)
 
   if (hasTime && hasSeconds) {
@@ -85,15 +87,17 @@ export const getUniqueTimestamps = ({
   })
 }
 
+type AttachUniqueSecondsToDatesProps = {
+  dates: Date[]
+  sortOrder: SortOrder
+  getBaseTimestamp: (date: Date) => number
+}
+
 const attachUniqueSecondsToDates = ({
   dates,
   sortOrder,
   getBaseTimestamp,
-}: {
-  dates: Date[]
-  sortOrder: SortOrder
-  getBaseTimestamp: (date: Date) => number
-}): Date[] => {
+}: AttachUniqueSecondsToDatesProps): Date[] => {
   const totalByGroup = new Map<number, number>()
   const seenByGroup = new Map<number, number>()
 

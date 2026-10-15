@@ -4,13 +4,12 @@ import { ArrowDownward, ArrowUpward } from '@mui/icons-material'
 import { Box, Divider, Grid, Typography } from '@mui/material'
 import { useState } from 'react'
 
-import type { NumberString, SortingPref } from '@/types'
+import type { NumberString, ParentCategoryWithTransactions, SortingPref } from '@/types'
 import { Currency } from '@/types-enums'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { useTranslation } from '@/lib/i18n'
 
 import { COL_SPACING, COL1, COL2, COL3, getSortedCategories } from '../../actions'
-import type { ParentCategoryWithTransactions } from '../../actions'
 import BreakdownRow from '../BreakdownRow'
 import { ui } from './styled'
 
@@ -52,7 +51,7 @@ const Component = ({
         </Grid>
         <Grid size={{ xs: COL2[0], sm: COL2[1] }}>
           <Box
-            sx={{ ...sx.tableHeader, justifyContent: 'flex-end' }}
+            sx={sx.totalHeader}
             onClick={() => setSortingPref(sortingPref === 'totalDesc' ? 'totalAsc' : 'totalDesc')}
           >
             <Box sx={sx.tableHeaderContent}>
@@ -63,7 +62,7 @@ const Component = ({
           </Box>
         </Grid>
         <Grid size={{ xs: COL3[0], sm: COL3[1] }}>
-          <Box sx={{ ...sx.tableHeader, justifyContent: 'flex-end', cursor: 'default' }}>%</Box>
+          <Box sx={sx.percentHeader}>%</Box>
         </Grid>
       </Grid>
 
@@ -76,7 +75,7 @@ const Component = ({
           )
         })
       ) : (
-        <Typography variant="body2" noWrap sx={{ fontSize: 13, mb: 0, color: 'text.secondary', ml: 1, mt: 1 }}>
+        <Typography variant="body2" noWrap sx={sx.emptyText}>
           {emptyText}
         </Typography>
       )}

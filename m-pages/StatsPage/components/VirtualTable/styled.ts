@@ -4,16 +4,13 @@ import { ROW_HEIGHT } from './actions'
 
 export const ui = () => {
   return {
-    wrapper: {
+    wrapper: (hasHeader: boolean, isScrollable: boolean) => ({
       border: 1,
       borderColor: 'divider',
-    },
-    headerWrapper: {
-      borderTop: 0,
-    },
-    scrollWrapper: {
-      overflowX: 'auto',
-    },
+      // The header row draws the top border, see `table`
+      ...(hasHeader ? { borderTop: 0 } : null),
+      ...(isScrollable ? { overflowX: 'auto' } : null),
+    }),
     table: {
       // Fixed layout, so column widths don't change as rows are virtualized
       tableLayout: 'fixed',

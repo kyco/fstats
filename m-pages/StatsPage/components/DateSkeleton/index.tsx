@@ -3,20 +3,9 @@
 import { ChevronRight, ExpandMore } from '@mui/icons-material'
 import { Box, Skeleton } from '@mui/material'
 
-import type { DateRow } from '../DateExplorer/actions'
 import { getRowHeight, ROW_INDENT } from '../DateExplorer/actions'
+import { ROWS } from './actions'
 import { ui } from './styled'
-
-// A year, an expanded month with some of its days and two collapsed months, label widths in px
-const ROWS: { type: DateRow['type']; width: number; isExpanded?: boolean }[] = [
-  { type: 'year', width: 36, isExpanded: true },
-  { type: 'month', width: 48, isExpanded: true },
-  { type: 'day', width: 68 },
-  { type: 'day', width: 68 },
-  { type: 'day', width: 68 },
-  { type: 'month', width: 56 },
-  { type: 'month', width: 44 },
-]
 
 type DateSkeletonProps = {
   /**

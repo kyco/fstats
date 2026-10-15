@@ -2,13 +2,12 @@ import { Box, FormControlLabel, Switch } from '@mui/material'
 import { useState } from 'react'
 
 import type { Transaction } from '@/types'
-import { Currency } from '@/types-enums'
+import { AmountFilter, Currency } from '@/types-enums'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
-import { getStats } from '@/utils/Stats'
+import { CardTitle } from '@/components'
+import { getStats } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
-import { AmountFilter } from '../../actions'
-import CardTitle from '../CardTitle'
 import { getTransactionsGroupedByCategory } from './actions'
 import { BreakdownTable } from './components'
 

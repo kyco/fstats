@@ -2,19 +2,13 @@
 
 import { List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material/styles'
-import type { ReactNode } from 'react'
+
+import type { SwitcherOption } from '@/types'
 
 import RadioButton from '../../../RadioButton'
 
-export type Option<T extends string> = {
-  value: T
-  primary: ReactNode
-  secondary?: ReactNode
-  checked: boolean
-}
-
 type OptionListProps<T extends string> = {
-  options: Option<T>[]
+  options: SwitcherOption<T>[]
   onSelect: (value: T) => void
   sx?: SxProps<Theme>
 }

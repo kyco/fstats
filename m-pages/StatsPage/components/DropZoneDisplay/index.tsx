@@ -7,10 +7,11 @@ import NextLink from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
 import { getDemoHref, MISC, WorkspaceView } from '@/common'
+import { EmptyDisplay } from '@/components'
 import { Trans, useTranslation } from '@/lib/i18n'
 
 import { useWorkspace } from '../../context'
-import EmptyDisplay from '../EmptyDisplay'
+import { ui } from './styled'
 
 type DropZoneDisplayProps = {
   icon?: SvgIconComponent
@@ -30,6 +31,7 @@ const Component = ({
   subtitleKey = 'STATS_PAGE.DROP_ZONE.CLICK_TO_SELECT',
 }: DropZoneDisplayProps) => {
   const { t } = useTranslation()
+  const sx = ui()
   const searchParams = useSearchParams()
   const { onAddFiles, onAddFolder } = useWorkspace()
 
@@ -60,7 +62,7 @@ const Component = ({
       caption={t('STATS_PAGE.DROP_ZONE.FILE_RESTRICTIONS')}
       actions={
         <>
-          <Divider sx={{ width: 240, fontSize: 12, color: 'text.secondary' }}>{t('MISC.OR')}</Divider>
+          <Divider sx={sx.divider}>{t('MISC.OR')}</Divider>
           <Button
             component={NextLink}
             href={getDemoHref({ searchParams, view: WorkspaceView.STATS })}

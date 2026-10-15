@@ -2,9 +2,9 @@
 
 import { Box, TextField } from '@mui/material'
 
+import type { SetupDraft } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 
-import type { SetupDraft } from '../../actions'
 import { ui } from './styled'
 
 type AccountFormProps = {

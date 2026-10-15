@@ -1,4 +1,5 @@
-import { HEADER_HEIGHT } from '../../actions'
+import { LAYOUT } from '@/common'
+
 import { HEADER_SPACING, SCROLL_PADDING } from './actions'
 
 export const ui = () => {
@@ -9,7 +10,7 @@ export const ui = () => {
     header: {
       display: 'flex',
       alignItems: 'center',
-      height: HEADER_HEIGHT,
+      height: LAYOUT.SECTION_HEADER_HEIGHT,
       mb: `${HEADER_SPACING}px`,
     },
     // Sticks to the very top, covering the scroll container's padding

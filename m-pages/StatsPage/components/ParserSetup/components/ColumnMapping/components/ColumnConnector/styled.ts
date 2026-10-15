@@ -43,6 +43,11 @@ export const ui = () => {
       bgcolor: 'background.paper',
       transition: 'border-color 150ms, box-shadow 150ms',
     },
+    // As tall as the fields, more columns scroll
+    scrollList: (height: number) => ({
+      height,
+      overflowY: 'auto',
+    }),
     // The rows of this list connect to the selected row
     targetList: {
       borderColor: 'primary.main',

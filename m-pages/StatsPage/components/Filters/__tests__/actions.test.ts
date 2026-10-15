@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Transaction } from '@/types'
+import { NO_CATEGORY } from '@/m-transaction/service'
 import { i18n } from '@/lib/i18n'
 
-import { NO_CATEGORY } from '../../../actions'
-import { getCategoryGroups, getCheckState, toggleCategories } from '../actions'
+import { getCategoryGroups } from '../actions'
 
 const toTransaction = (category: string | null) => ({ category }) as Transaction
 
@@ -22,15 +22,5 @@ describe('getCategoryGroups', () => {
     expect(findParent(1, 'HOU')?.children.length).toBeGreaterThan(2)
     // Without a category last
     expect(groups[1].parents.at(-1)?.keys).toEqual([NO_CATEGORY])
-  })
-})
-
-describe('toggleCategories', () => {
-  it('should include all keys if any is excluded, otherwise exclude them', () => {
-    const excluded = new Set(['HOU_01', 'INC_01'])
-
-    expect([...toggleCategories(excluded, ['HOU_01', 'HOU_02'])]).toEqual(['INC_01'])
-    expect([...toggleCategories(new Set(), ['HOU_01', 'HOU_02'])]).toEqual(['HOU_01', 'HOU_02'])
-    expect(getCheckState(excluded, ['HOU_01', 'HOU_02'])).toEqual({ checked: false, indeterminate: true })
   })
 })

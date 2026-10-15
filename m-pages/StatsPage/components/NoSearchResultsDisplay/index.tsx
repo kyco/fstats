@@ -3,9 +3,8 @@
 import { SearchOffOutlined } from '@mui/icons-material'
 import { Button } from '@mui/material'
 
+import { EmptyDisplay } from '@/components'
 import { useTranslation } from '@/lib/i18n'
-
-import EmptyDisplay from '../EmptyDisplay'
 
 type NoSearchResultsDisplayProps = {
   search: string
@@ -25,7 +24,7 @@ const Component = ({ search, onClear }: NoSearchResultsDisplayProps) => {
       subtitle={t('STATS_PAGE.DATA_VIEW.NO_SEARCH_RESULTS.SUBTITLE', { search })}
       actions={
         <Button variant="outlined" onClick={onClear}>
-          {t('STATS_PAGE.DATA_VIEW.CLEAR_SEARCH')}
+          {t('MISC.CLEAR_SEARCH')}
         </Button>
       }
     />

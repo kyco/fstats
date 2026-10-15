@@ -5,7 +5,7 @@ import { sha256 } from '@/utils/Hash'
 import { parseOrThrow } from '@/lib/zod'
 
 export const syncStatsFile = (dataToSync: StatsFile): StatsFileAtRest => {
-  return parseOrThrow(zStatsFile, dataToSync, 'Cannot sync StatsFile')
+  return parseOrThrow({ schema: zStatsFile, data: dataToSync, label: 'Cannot sync StatsFile' })
 }
 
 export const parseStatsFile = (dataToParse: StatsFileAtRest): StatsFile => {

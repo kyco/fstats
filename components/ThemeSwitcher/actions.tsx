@@ -4,15 +4,21 @@ import { useColorScheme } from '@mui/material/styles'
 import { ColorMode } from '@/types-enums'
 import { i18n } from '@/lib/i18n'
 
+import { ui } from './styled'
+
+export const MODES = [ColorMode.SYSTEM, ColorMode.LIGHT, ColorMode.DARK]
+
 export const getActiveIcon = (mode: ReturnType<typeof useColorScheme>['mode'], color: 'primary' | 'secondary') => {
+  const sx = ui()
+
   switch (mode) {
     case ColorMode.LIGHT:
-      return <LightModeOutlined color={color} sx={{ fontSize: 18 }} />
+      return <LightModeOutlined color={color} sx={sx.icon} />
     case ColorMode.DARK:
-      return <DarkModeOutlined color={color} sx={{ fontSize: 18 }} />
+      return <DarkModeOutlined color={color} sx={sx.icon} />
     case ColorMode.SYSTEM:
     default:
-      return <Brightness4Outlined color={color} sx={{ fontSize: 18 }} />
+      return <Brightness4Outlined color={color} sx={sx.icon} />
   }
 }
 

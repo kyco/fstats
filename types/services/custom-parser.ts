@@ -1,8 +1,10 @@
 import { z } from 'zod'
 
+import type { Currency } from '@/types-enums'
 import { zCurrency } from '@/types-enums'
 
 import { zDateTimeString, zIdString, zNonEmptyString } from '../global'
+import type { Transaction } from './transaction'
 
 const zAmountColumn = z.discriminatedUnion('type', [
   z.object({ type: z.literal('signed'), header: zNonEmptyString }),
@@ -50,3 +52,39 @@ export const zCustomParser = z.object({
 })
 
 export type CustomParser = z.infer<typeof zCustomParser>
+
+// -------------------------------------------------------
+// Setup, see `m-custom-parser/service/setup.ts`
+// -------------------------------------------------------
+
+export type ColumnField =
+  | 'date'
+  | 'description'
+  | 'moneyIn'
+  | 'moneyOut'
+  | 'balance'
+  | 'reference'
+  | 'transactionType'
+  | 'category'
+  | 'parentCategory'
+
+/**
+ * The form state, the connected header names per field. At most one, except for the amount fields.
+ */
+export type SetupDraft = {
+  headerIndex: number
+  bankName: string
+  accountName: string
+  currency: Currency
+  dateFormat: string
+  numberFormat: CustomParserMapping['numberFormat']
+  columns: Record<ColumnField, string[]>
+}
+
+/**
+ * The file parsed with the mapping of the setup, see `getPreview`.
+ */
+export type SetupPreviewResult = {
+  transactions: Transaction[]
+  error: string | null
+}
