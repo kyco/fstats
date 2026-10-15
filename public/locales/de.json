@@ -287,7 +287,10 @@
       "HEADER_CANDIDATES_other": "Wir haben {{count}} mögliche Kopfzeilen gefunden, bitte wähle die richtige.",
       "SHOW_ALL_ROWS": "Weitere mögliche Kopfzeilen anzeigen",
       "SHOW_CANDIDATES": "Weniger anzeigen",
-      "HEADER_NONE": "Wir konnten keine Kopfzeile finden, bitte wähle die richtige."
+      "HEADER_NONE": "Wir konnten keine Kopfzeile finden, bitte wähle die richtige.",
+      "SAVED_TITLE": "Format gespeichert",
+      "SAVED_SUBTITLE": "Diese Datei kannst du jetzt ansehen: <file>{{file}}</file>",
+      "SUBMIT_FORMAT": "Format auf GitHub einreichen"
     }
   },
   "SETTINGS_PAGE": {

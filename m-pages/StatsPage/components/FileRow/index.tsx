@@ -29,8 +29,31 @@ const Component = ({ file, isChecked, onToggle, disabled = false }: FileRowProps
   const searchParams = useSearchParams()
   const format = getFileFormat(file)
 
+  const showSetup = isConvertible(file) && !disabled
+  const setupLabel = t('STATS_PAGE.PARSER_SETUP.SET_UP')
+
   return (
-    <ListItem disablePadding divider>
+    <ListItem
+      disablePadding
+      divider
+      sx={sx.item}
+      secondaryAction={
+        showSetup ? (
+          <Tooltip title={format.value}>
+            <Button
+              component={NextLink}
+              href={getWorkspaceHref(searchParams, getSetupChange(file.id))}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={sx.setupButton}
+            >
+              {setupLabel}
+            </Button>
+          </Tooltip>
+        ) : null
+      }
+    >
       <ListItemButton onClick={() => onToggle(file.id)} disabled={disabled} sx={sx.row}>
         <Checkbox size="small" checked={isChecked} tabIndex={-1} disableRipple sx={sx.checkbox} />
         <Typography
@@ -51,22 +74,12 @@ const Component = ({ file, isChecked, onToggle, disabled = false }: FileRowProps
             {format.value}
           </TextChip>
         ) : null}
-      </ListItemButton>
-      {/* Sibling of the row button, interactive elements can't be nested */}
-      {isConvertible(file) && !disabled ? (
-        <Tooltip title={format.value}>
-          <Button
-            component={NextLink}
-            href={getWorkspaceHref(searchParams, getSetupChange(file.id))}
-            size="small"
-            color="info"
-            variant="outlined"
-            sx={sx.setupButton}
-          >
-            {t('STATS_PAGE.PARSER_SETUP.SET_UP')}
+        {showSetup ? (
+          <Button component="span" aria-hidden size="small" variant="outlined" sx={sx.setupSpacer}>
+            {setupLabel}
           </Button>
-        </Tooltip>
-      ) : null}
+        ) : null}
+      </ListItemButton>
     </ListItem>
   )
 }

@@ -1,0 +1,32 @@
+name: New bank format
+description: Submit a format set up in the app, so it can be supported out of the box
+title: 'New format: '
+labels: ['new format']
+body:
+  - type: markdown
+    attributes:
+      value: Only the column names and settings of the format are shared, no transactions. Please check that the bank and account names don't contain personal details.
+  - type: input
+    id: bank
+    attributes:
+      label: Bank and country
+      placeholder: e.g. Barclays, United Kingdom
+    validations:
+      required: true
+  - type: textarea
+    id: format
+    attributes:
+      label: Format
+      description: Filled in by fstats when submitting from the app.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything else, e.g. which export option of the bank was used.
+  - type: input
+    id: version
+    attributes:
+      label: fstats version

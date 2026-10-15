@@ -287,7 +287,10 @@
       "HEADER_CANDIDATES_other": "We found {{count}} possible header rows, please pick the right one.",
       "SHOW_ALL_ROWS": "Show more possible header rows",
       "SHOW_CANDIDATES": "Show less",
-      "HEADER_NONE": "We couldn't find a header row, please pick the right one."
+      "HEADER_NONE": "We couldn't find a header row, please pick the right one.",
+      "SAVED_TITLE": "Format saved",
+      "SAVED_SUBTITLE": "You can now view <file>{{file}}</file>",
+      "SUBMIT_FORMAT": "Submit format to GitHub"
     }
   },
   "SETTINGS_PAGE": {
