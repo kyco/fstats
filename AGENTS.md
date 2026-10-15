@@ -22,7 +22,7 @@ Privacy-focused CSV bank statement parser. All processing is client-side (Indexe
 ### Component Structure (`components/`, `m-pages/`)
 
 - One React component per file: `{Component}/index.tsx`; child components go in `{Component}/components/{Child}/` (same structure)
-- Local `styled.ts` exports only `ui()` (returns the component's style objects, consumed as `const sx = ui()`) and `styled()` components; no loose style exports. Shared `sx*` styles/helpers (e.g. `sxMenuItem`) live only in the global `styles/styled.ts`
+- Local `styled.ts` exports only `ui()` (returns the component's style objects, consumed as `const sx = ui()`) and `styled()` components; no loose style exports. Shared `sx*` styles/helpers (e.g. `sxTile`) live only in the global `styles/styled.ts`
 - Styles go in `styled.ts` next to the component; small inline `sx`/`style` (1–2 props, fits on one line) is fine — move it once it has 3+ props or wraps
 - Helper functions and constants the component needs go in `actions.ts` next to it
 - Component props are typed in the component file; all other types go in the global `types/` folder — keep it flat (e.g. all page types in `types/pages.ts`)
