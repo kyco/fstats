@@ -24,10 +24,12 @@ export const getFormatHeaders = ({ headers }: FormatDef) => {
  * Headers read by `columns` and `extraColumns`.
  */
 export const getReferencedHeaders = ({ columns, extraColumns }: FormatDef) => {
+  const description = Array.isArray(columns.description) ? columns.description : [columns.description]
+
   return [
     ...new Set([
       columns.date,
-      columns.description,
+      ...description,
       ...getAmountHeaders(columns.amount),
       ...Object.values(extraColumns).filter((header) => header !== null),
     ]),

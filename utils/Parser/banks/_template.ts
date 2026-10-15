@@ -92,7 +92,8 @@ export const newBank = defineBank({
          */
         date: 'Date',
         /**
-         * E.g. the payee or booking text.
+         * E.g. the payee or booking text. A list uses the first non-empty column, e.g.
+         * `['Name', 'Description']`.
          */
         description: 'Description',
         /**

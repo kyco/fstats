@@ -33,6 +33,8 @@ export const createParser = (bank: Pick<BankDef, 'id' | 'name' | 'currency'>, fo
   const { amount } = columns
   const { headers, required } = getFormatHeaders(format)
 
+  const descriptionHeaders = typeof columns.description === 'string' ? [columns.description] : columns.description
+
   // Thousands separators aren't valid in number strings, e.g. "1,234.56"
   const toNumber = (value: string) => (numberFormat === 'de' ? parseGermanNumber(value) : value.replace(/,/g, ''))
 
@@ -68,6 +70,8 @@ export const createParser = (bank: Pick<BankDef, 'id' | 'name' | 'currency'>, fo
       }
     }
   }
+
+  const getDescription = (row: Row): string => descriptionHeaders.map(row.get).find(Boolean) ?? ''
 
   const getExtra = (row: Row): Transaction['extra'] => {
     const fields = (Object.entries(extraColumns) as [ExtraField, string | null][])
@@ -140,7 +144,7 @@ export const createParser = (bank: Pick<BankDef, 'id' | 'name' | 'currency'>, fo
 
       const parsedRows: Omit<Transaction, 'id'>[] = locateRows(section).rows.map((row) => ({
         date: formatISO(toDate(row.get(columns.date), { formatFrom: dateFormat })),
-        description: row.get(columns.description),
+        description: getDescription(row),
         value: getValue(row) || '0',
         category: null,
         currency: bank.currency,
