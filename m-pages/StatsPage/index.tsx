@@ -3,15 +3,15 @@
 import { Box } from '@mui/material'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { Fragment, useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 
 import type { CustomParserMapping } from '@/types'
 import { getEndDemoHref, getSetupFileId, getView, isDemo, WorkspaceView } from '@/common'
 import { PageWrapper } from '@/components'
 import { isConvertible } from '@/m-stats-file/service'
-import { useFileHelper, useResizeHandle, useStatsLayout } from '@/hooks'
+import { getCheckedTransactions, getStatsTransactions } from '@/m-transaction/service'
+import { useStatsLayout } from '@/hooks'
 
-import { getCheckedTransactions, getStatsTransactions, resizeColumns } from './actions'
 import {
   DataView,
   DemoBanner,
@@ -20,13 +20,13 @@ import {
   FileSidebar,
   ParserSetup,
   ProfitLossView,
+  ResizeDivider,
   StatsView,
 } from './components'
+import { resizePanes } from './components/ResizeDivider/actions'
 import { WorkspaceContext } from './context'
+import { useDayFilter, useDemoState, useFileDropzone, useFileHelper } from './hooks'
 import { ui } from './styled'
-import { useDayFilter } from './useDayFilter'
-import { useFileDropzone } from './useFileDropzone'
-import { useDemoState } from './useViewStorage'
 
 /**
  * Workspace of the stats page: file explorer, the transactions, stats, breakdown or CSV view (`view` param) in the middle column, and the file
@@ -34,7 +34,6 @@ import { useDemoState } from './useViewStorage'
  */
 const Component = () => {
   const sx = ui()
-  const containerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const view = getView(searchParams)
@@ -58,7 +57,6 @@ const Component = () => {
   const { dropzone, addFolder } = useFileDropzone({
     onAdded: isDemoMode ? () => router.replace(getEndDemoHref(searchParams)) : undefined,
   })
-  const startResize = useResizeHandle(containerRef, 'x')
 
   if (files.isLoadingFiles) {
     return <PageWrapper />
@@ -103,13 +101,13 @@ const Component = () => {
         <input {...dropzone.getInputProps()} />
         {/* Above all columns, all of them show demo data in demo mode */}
         {isDemoMode ? <DemoBanner /> : null}
-        <Box ref={containerRef} sx={sx.container}>
+        <Box sx={sx.container}>
           {columns.map((column, index) => (
             <Fragment key={column.id}>
               {index > 0 ? (
-                <Box
-                  sx={sx.divider}
-                  onPointerDown={startResize((delta) => setWidths(resizeColumns(widths, index - 1, delta)))}
+                <ResizeDivider
+                  axis="x"
+                  onResize={(delta) => setWidths(resizePanes({ sizes: widths, index: index - 1, delta }))}
                 />
               ) : null}
               <Box sx={{ ...sx.column, flexBasis: `${widths[index]}%` }}>{column.content}</Box>

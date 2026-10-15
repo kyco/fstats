@@ -9,17 +9,9 @@ import {
   Settings,
   SettingsOutlined,
 } from '@mui/icons-material'
-import type { SvgIconComponent } from '@mui/icons-material'
 
+import type { NavItem } from '@/types'
 import { CONFIG, ROUTES } from '@/common'
-
-type NavItem = {
-  route: string
-  labelKey: string
-  icon: SvgIconComponent
-  iconActive: SvgIconComponent
-  isExternal?: boolean
-}
 
 export const NAV_ITEMS_TOP: NavItem[] = [
   { route: ROUTES.HOME, labelKey: 'NAVIGATION.HOME', icon: HomeOutlined, iconActive: Home },

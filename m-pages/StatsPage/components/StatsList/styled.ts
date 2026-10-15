@@ -1,4 +1,18 @@
 export const ui = () => {
+  const value = {
+    m: 0,
+    fontSize: 12,
+    fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums',
+    whiteSpace: 'nowrap',
+  } as const
+
+  const total = {
+    fontSize: 14,
+    fontWeight: 700,
+    color: 'text.primary',
+  } as const
+
   return {
     count: {
       mb: 1,
@@ -26,17 +40,12 @@ export const ui = () => {
       m: 0,
       fontSize: 12,
     },
-    value: {
-      m: 0,
-      fontSize: 12,
-      fontWeight: 500,
-      fontVariantNumeric: 'tabular-nums',
-      whiteSpace: 'nowrap',
-    },
-    total: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: 'text.primary',
-    },
+    value: value,
+    total: total,
+    totalValue: (color: string | undefined) => ({
+      ...value,
+      ...total,
+      color,
+    }),
   }
 }

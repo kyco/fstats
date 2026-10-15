@@ -1,4 +1,4 @@
-import type { FixedLocaleAmountOptions, FixedLocaleOptions, NumberString } from '@/types'
+import type { NumberString } from '@/types'
 import { Currency, UserLocale } from '@/types-enums'
 import { getCurrencySymbol, getMaxDecimalsForCurrency } from '@/utils/Currency'
 import { Big } from '@/lib/w-big'
@@ -49,15 +49,17 @@ const toLocaleString = (value: NumberString, locale: UserLocale): string => {
   return isNegative ? `-${formattedNumber}` : formattedNumber
 }
 
+type ToFixedLocaleProps = {
+  value: NumberString
+  round: number
+  locale: UserLocale
+  trimTrailingZeros?: boolean
+}
+
 /**
  * Rounded to `round` decimals. `trimTrailingZeros` turns e.g. "7.00" into "7".
  */
-export const toFixedLocale = (
-  value: NumberString,
-  round: number,
-  locale: UserLocale,
-  { trimTrailingZeros = false }: FixedLocaleOptions = {},
-): string => {
+export const toFixedLocale = ({ value, round, locale, trimTrailingZeros = false }: ToFixedLocaleProps): string => {
   const roundedValue = getRoundedValue(value, round)
   let decimalPlaces = round
 
@@ -71,34 +73,37 @@ export const toFixedLocale = (
   return toLocaleString(Big(roundedValue).toFixed(decimalPlaces), locale)
 }
 
+type ToFixedLocaleAmountProps = Omit<ToFixedLocaleProps, 'round'> & {
+  currency: Currency
+  /**
+   * Whether to prefix positive values with "+", e.g. "+1.00"
+   */
+  showPlusSign?: boolean
+}
+
 /**
  * Like `toFixedLocale`, rounded to the currency's decimals, e.g. "-1.00"
- *
- * @param options.showPlusSign - Whether to prefix positive values with "+", e.g. "+1.00"
  */
-export const toFixedLocaleAmount = (
-  value: NumberString,
-  currency: Currency,
-  locale: UserLocale,
-  { showPlusSign = false, ...options }: FixedLocaleAmountOptions = {},
-): string => {
-  const formatted = toFixedLocale(value, getMaxDecimalsForCurrency(currency), locale, options)
+export const toFixedLocaleAmount = ({
+  value,
+  currency,
+  showPlusSign = false,
+  ...options
+}: ToFixedLocaleAmountProps): string => {
+  const formatted = toFixedLocale({ ...options, value, round: getMaxDecimalsForCurrency(currency) })
 
   return showPlusSign && Big(value).gt(0) ? `+${formatted}` : formatted
 }
 
+type ToFixedLocaleCurrencyProps = ToFixedLocaleAmountProps
+
 /**
  * Like `toFixedLocaleAmount`, prefixed with the currency symbol, e.g. "-€1.00"
  */
-export const toFixedLocaleCurrency = (
-  value: NumberString,
-  currency: Currency,
-  locale: UserLocale,
-  options: FixedLocaleAmountOptions = {},
-): string => {
-  const formatted = toFixedLocaleAmount(value, currency, locale, options)
+export const toFixedLocaleCurrency = (props: ToFixedLocaleCurrencyProps): string => {
+  const formatted = toFixedLocaleAmount(props)
   const sign = formatted.startsWith('-') || formatted.startsWith('+') ? formatted[0] : ''
-  const symbol = getCurrencySymbol(currency)
+  const symbol = getCurrencySymbol(props.currency)
 
   return `${sign}${symbol}${formatted.slice(sign.length)}`
 }

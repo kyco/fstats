@@ -1,4 +1,16 @@
+import type { CSSProperties } from 'react'
+
 export const ui = () => {
+  // Digits only (no descenders to clip), trimmed to their height to center them with the checkbox, Roboto's line box puts
+  // them slightly high
+  const yearLabel = {
+    fontSize: 14.5,
+    textBoxTrim: 'trim-both',
+    textBoxEdge: 'cap alphabetic',
+    // Round digits overshoot the trimmed box, years are short enough to never need the ellipsis
+    overflow: 'visible',
+  } as const
+
   return {
     scroll: {
       flexGrow: 1,
@@ -8,6 +20,12 @@ export const ui = () => {
     rows: {
       position: 'relative',
     },
+    // Positioned by the virtualizer, inline styles as they change on every scroll
+    rowPosition: (start: number, size: number, indent: number): CSSProperties => ({
+      transform: `translateY(${start}px)`,
+      height: size,
+      paddingLeft: indent,
+    }),
     row: {
       position: 'absolute',
       top: 0,
@@ -37,7 +55,7 @@ export const ui = () => {
       flexShrink: 0,
       width: 22,
     },
-    label: {
+    label: (isYear: boolean, isDeselected: boolean) => ({
       minWidth: 0,
       fontSize: 13,
       lineHeight: 1.4,
@@ -46,7 +64,9 @@ export const ui = () => {
       whiteSpace: 'nowrap',
       // Same width digits, so the dates line up
       fontVariantNumeric: 'tabular-nums',
-    },
+      ...(isYear ? yearLabel : null),
+      color: isDeselected ? 'text.disabled' : 'text.primary',
+    }),
     // Fixed width, so the weekdays line up like a column
     weekday: {
       flexShrink: 0,
@@ -62,15 +82,6 @@ export const ui = () => {
     },
     weekdayDeselected: {
       color: 'text.disabled',
-    },
-    // Digits only (no descenders to clip), trimmed to their height to center them with the checkbox, Roboto's line box
-    // puts them slightly high
-    yearLabel: {
-      fontSize: 14.5,
-      textBoxTrim: 'trim-both',
-      textBoxEdge: 'cap alphabetic',
-      // Round digits overshoot the trimmed box, years are short enough to never need the ellipsis
-      overflow: 'visible',
     },
   }
 }

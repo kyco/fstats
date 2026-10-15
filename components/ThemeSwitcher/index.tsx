@@ -8,9 +8,7 @@ import { useTranslation } from '@/lib/i18n'
 
 import OptionSwitcher from '../OptionSwitcher'
 import type { OptionSwitcherTriggerProps } from '../OptionSwitcher'
-import { getActiveIcon, getActiveLabel } from './actions'
-
-const MODES = [ColorMode.SYSTEM, ColorMode.LIGHT, ColorMode.DARK]
+import { getActiveIcon, getActiveLabel, MODES } from './actions'
 
 type ThemeSwitcherProps = {
   renderTrigger?: (props: OptionSwitcherTriggerProps) => ReactNode

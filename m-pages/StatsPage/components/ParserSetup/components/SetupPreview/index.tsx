@@ -3,22 +3,23 @@
 import { Alert, Box } from '@mui/material'
 import { format, parseISO } from 'date-fns'
 
+import type { SetupPreviewResult } from '@/types'
+import { AmountFilter } from '@/types-enums'
 import type { Currency } from '@/types-enums'
+import { isValidPreview } from '@/m-custom-parser/service'
 import { useUserPreferences } from '@/m-user/service'
 import { useTranslation } from '@/lib/i18n'
 
-import { AmountFilter } from '../../../../actions'
 import { getTransactionCells, getTransactionColumns } from '../../../TransactionsPreview/actions'
 import VirtualTable from '../../../VirtualTable'
-import type { SetupPreview } from '../../actions'
-import { isValidPreview, PREVIEW_ROWS } from '../../actions'
+import { PREVIEW_ROWS } from '../../actions'
 import { ui } from './styled'
 
 type SetupPreviewProps = {
   /**
    * `null` while required columns are missing.
    */
-  preview: SetupPreview | null
+  preview: SetupPreviewResult | null
   /**
    * Of the amounts, also shown without transactions.
    */
@@ -38,7 +39,12 @@ const Component = ({ preview, currency, dateFormat: fileDateFormat, scrollElemen
   const { t } = useTranslation()
   const { locale, dateFormat } = useUserPreferences()
   const transactions = preview?.transactions.slice(0, PREVIEW_ROWS) ?? []
-  const [dateColumn, ...otherColumns] = getTransactionColumns(currency, false, AmountFilter.ALL, t)
+  const [dateColumn, ...otherColumns] = getTransactionColumns({
+    currency,
+    showSource: false,
+    amountFilter: AmountFilter.ALL,
+    t,
+  })
   // Wider, the file's dates can have a time
   const columns = [{ ...dateColumn, width: 150 }, ...otherColumns]
   // Why is shown above the buttons of the steps

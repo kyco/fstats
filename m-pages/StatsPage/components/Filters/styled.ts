@@ -1,4 +1,31 @@
 export const ui = () => {
+  const row = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.25,
+    height: 30,
+    pr: 1.5,
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': { bgcolor: 'action.hover' },
+  } as const
+
+  const disabledRow = {
+    cursor: 'default',
+    color: 'text.disabled',
+    '&:hover': { bgcolor: 'transparent' },
+  } as const
+
+  const label = {
+    flexGrow: 1,
+    minWidth: 0,
+    fontSize: 13,
+    lineHeight: 1.4,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  } as const
+
   return {
     // On the right of the toolbar
     button: {
@@ -56,25 +83,16 @@ export const ui = () => {
       overflowY: 'auto',
     },
     // Same as the rows of the date explorer
-    row: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 0.25,
-      height: 30,
-      pr: 1.5,
-      cursor: 'pointer',
-      userSelect: 'none',
-      '&:hover': { bgcolor: 'action.hover' },
-    },
-    optionRow: {
+    row: (isDisabled: boolean) => ({
+      ...row,
+      ...(isDisabled ? disabledRow : null),
+    }),
+    optionRow: (isDisabled: boolean) => ({
+      ...row,
       gap: 1,
       pl: 1.5,
-    },
-    disabledRow: {
-      cursor: 'default',
-      color: 'text.disabled',
-      '&:hover': { bgcolor: 'transparent' },
-    },
+      ...(isDisabled ? disabledRow : null),
+    }),
     // Money in or out, on the left like the years of the date explorer
     groupRow: {
       pl: '4px',
@@ -91,15 +109,13 @@ export const ui = () => {
     childRow: {
       pl: '28px',
     },
-    label: {
-      flexGrow: 1,
-      minWidth: 0,
-      fontSize: 13,
-      lineHeight: 1.4,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-    },
+    label: label,
+    categoryLabel: (isDeselected: boolean, isParent: boolean) => ({
+      ...label,
+      color: isDeselected ? 'text.disabled' : 'text.primary',
+      // Deselected parents aren't emphasized, like deselected months
+      fontWeight: isParent && !isDeselected ? 600 : 400,
+    }),
     count: {
       flexShrink: 0,
       ml: 1,

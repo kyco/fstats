@@ -1,5 +1,6 @@
 import { uniq } from 'lodash'
 
+import type { DateRow, DateYear } from '@/types'
 import { groupInOrder } from '@/utils/Array'
 
 export const ROW_HEIGHT = 30 // px
@@ -20,30 +21,6 @@ export const OVERSCAN = 10
  * checkboxes start where the month labels start.
  */
 export const ROW_INDENT: Record<DateRow['type'], number> = { year: 4, month: 6, day: 28 }
-
-type DateMonth = {
-  /**
-   * `yyyy-MM`
-   */
-  key: string
-  /**
-   * `yyyy-MM-dd`, newest first.
-   */
-  days: string[]
-}
-
-type DateYear = DateMonth & {
-  months: DateMonth[]
-}
-
-export type DateRow = {
-  type: 'year' | 'month' | 'day'
-  /**
-   * `yyyy`, `yyyy-MM` or `yyyy-MM-dd`
-   */
-  key: string
-  days: string[]
-}
 
 /**
  * Years, months and days (`yyyy-MM-dd`) with transactions, newest first.
@@ -101,34 +78,4 @@ export const getDeselectedCounts = (tree: DateYear[], deselectedDays: Set<string
   })
 
   return counts
-}
-
-/**
- * Checked if none of the days are deselected, indeterminate if some are.
- */
-export const getCheckState = (row: DateRow, deselectedCounts: Map<string, number>) => {
-  const deselectedCount = deselectedCounts.get(row.key) ?? 0
-  return { checked: deselectedCount === 0, indeterminate: deselectedCount > 0 && deselectedCount < row.days.length }
-}
-
-/**
- * Deselects all days if all are selected, otherwise selects all.
- */
-export const toggleDays = (days: string[], deselectedDays: Set<string>) => {
-  const next = new Set(deselectedDays)
-  const isAllSelected = !days.some((day) => deselectedDays.has(day))
-  days.forEach((day) => (isAllSelected ? next.add(day) : next.delete(day)))
-  return next
-}
-
-export const toggleExpanded = (key: string, expanded: Set<string>) => {
-  const next = new Set(expanded)
-
-  if (next.has(key)) {
-    next.delete(key)
-  } else {
-    next.add(key)
-  }
-
-  return next
 }

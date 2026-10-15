@@ -3,5 +3,5 @@ import { zSyncableUser } from '@/types'
 import { parseOrThrow } from '@/lib/zod'
 
 export const syncUser = (dataToSync: User): UserAtRest => {
-  return parseOrThrow(zSyncableUser, dataToSync, 'Cannot sync User')
+  return parseOrThrow({ schema: zSyncableUser, data: dataToSync, label: 'Cannot sync User' })
 }

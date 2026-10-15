@@ -27,7 +27,8 @@ const Component = ({ file, scrollElement, search }: CsvPreviewProps) => {
   // Computed once per file, so searching only compares strings
   const searchTexts = useMemo(() => data?.map(({ rows }) => rows.map(toSearchText)), [data])
   const shownRows = useMemo(
-    () => data?.map(({ rows }, index) => filterBySearch(rows, searchTexts?.[index] ?? [], search)),
+    () =>
+      data?.map(({ rows }, index) => filterBySearch({ rows, searchTexts: searchTexts?.[index] ?? [], query: search })),
     [data, searchTexts, search],
   )
 

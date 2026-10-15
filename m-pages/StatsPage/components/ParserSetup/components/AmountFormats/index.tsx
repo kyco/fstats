@@ -3,20 +3,16 @@
 import { Alert, Box } from '@mui/material'
 import { useMemo } from 'react'
 
+import type { SetupDraft } from '@/types'
 import { Currency } from '@/types-enums'
 import { useUserPreferences } from '@/m-user/service'
 import { getCurrencySymbol } from '@/utils/Currency'
 import type { NumberFormat } from '@/utils/Parser'
 import { useTranslation } from '@/lib/i18n'
 
-import type { SetupDraft } from '../../actions'
 import FormatSelect from '../FormatSelect'
+import { NUMBER_FORMAT_LABELS } from './actions'
 import { ui } from './styled'
-
-const NUMBER_FORMAT_LABELS: Record<NumberFormat, string> = {
-  en: '1,234.56',
-  de: '1.234,56',
-}
 
 type AmountFormatsProps = {
   draft: SetupDraft

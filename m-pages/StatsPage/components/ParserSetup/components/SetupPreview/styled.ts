@@ -1,4 +1,4 @@
-import { sxCompactAlert } from '../../styled'
+import { sxCompactAlert } from '@/styles/styled'
 
 export const ui = () => {
   return {

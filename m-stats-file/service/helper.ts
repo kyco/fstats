@@ -1,14 +1,27 @@
-import type { ParsedStatsFile, StatsFile, Transaction } from '@/types'
+import { uniq } from 'lodash'
+
+import type { ParsedStatsFile, StatsFile } from '@/types'
 import { Currency, StatsFileErrorCode, StatsFileStatus } from '@/types-enums'
 import { MISC } from '@/common'
-import { parseFiles } from '@/utils/FileParser'
 import type { BankAccountId } from '@/utils/Parser'
 import { getBankAccountId, getBankAccountName, getParser, getParserCurrency, PARSER_VERSION } from '@/utils/Parser'
 
 import { getFiles, removeAllFiles, updateFiles } from '../api'
+import { parseFiles } from './parse'
 
 export const isParsed = (file: StatsFile): file is ParsedStatsFile => {
   return file.status === StatsFileStatus.PARSED
+}
+
+/**
+ * Bank and accounts of a parsed file, e.g. Comdirect with Giro and Visa.
+ */
+export const getFileAccount = (file: ParsedStatsFile) => {
+  // Files of deleted custom parsers are re-parsed on start, until then they show their parser ID
+  const parsers = uniq(file.sections.map((section) => section.parserId)).map(
+    (parserId) => getParser(parserId) ?? { bankName: parserId, accountName: parserId },
+  )
+  return { bankName: parsers[0].bankName, accountNames: parsers.map((parser) => parser.accountName) }
 }
 
 /**
@@ -81,27 +94,6 @@ export const getFileBankAccounts = (files: ParsedStatsFile[]): FileBankAccount[]
   })
 
   return Array.from(accounts.values()).sort((a, b) => a.label.localeCompare(b.label))
-}
-
-/**
- * IDs are content hashes, so identical transactions (e.g. from overlapping statements) are duplicates. The first
- * occurrence is unique, any later ones are duplicates.
- */
-export const splitDuplicates = <T extends Transaction>(transactions: T[]) => {
-  const seenIds = new Set<string>()
-  const unique: T[] = []
-  const duplicates: T[] = []
-
-  transactions.forEach((transaction) => {
-    if (seenIds.has(transaction.id)) {
-      duplicates.push(transaction)
-    } else {
-      seenIds.add(transaction.id)
-      unique.push(transaction)
-    }
-  })
-
-  return { unique, duplicates }
 }
 
 const reparseFiles = async (isOutdated: (file: StatsFile) => boolean) => {

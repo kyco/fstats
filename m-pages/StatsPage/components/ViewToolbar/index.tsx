@@ -5,12 +5,12 @@ import NextLink from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
 
+import type { CurrencyFilter, FilterOption } from '@/types'
 import { getView, getViewChange, getWorkspaceHref, WorkspaceView } from '@/common'
+import { RadioItem } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
-import type { CurrencyFilter, FilterOption } from '../Filters'
 import Filters from '../Filters'
-import RadioItem from '../RadioItem'
 import { ui } from './styled'
 
 type ViewToolbarProps = {

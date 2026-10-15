@@ -2,36 +2,13 @@
 
 import { Box } from '@mui/material'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 
-import { getColWidths, OVERSCAN, ROW_HEIGHT, splitMatches } from './actions'
-import { ui } from './styled'
+import type { VirtualTableColumn } from '@/types'
 
-export type VirtualTableColumn = {
-  label: string
-  /**
-   * Relative width, all columns always fit the table width.
-   */
-  width?: number
-  /**
-   * Width in px, overrides `width`. Use for icons. The widest relative column then takes the remaining space.
-   */
-  fixedWidth?: number
-  /**
-   * Only shown as the header's tooltip, e.g. for narrow columns.
-   */
-  hideLabel?: boolean
-  align?: 'left' | 'center' | 'right'
-  /**
-   * Cell style, by value.
-   */
-  getStyle?: (value: string) => CSSProperties | undefined
-  /**
-   * Cell content, by value. Replaces the value and its tooltip.
-   */
-  renderCell?: (value: string, rowIndex: number) => ReactNode
-}
+import { getColWidths, highlightMatches, OVERSCAN, ROW_HEIGHT } from './actions'
+import { ui } from './styled'
 
 type VirtualTableProps = {
   /**
@@ -70,11 +47,6 @@ type VirtualTableProps = {
    * Search query, highlighted in the cells (case-insensitive). Not in cells with `renderCell`.
    */
   highlight?: string
-}
-
-const highlightMatches = (text: string, query: string) => {
-  // eslint-disable-next-line react/no-array-index-key
-  return splitMatches(text, query).map((part, index) => (index % 2 ? <mark key={index}>{part}</mark> : part))
 }
 
 const Component = ({
@@ -129,14 +101,7 @@ const Component = ({
   const paddingBottom = items.length ? virtualizer.getTotalSize() - (items[items.length - 1].end - scrollMargin) : 0
 
   return (
-    <Box
-      sx={{
-        ...sx.wrapper,
-        // The header row draws the top border, see `sx.table`
-        ...(columns && !hideHeader ? sx.headerWrapper : null),
-        ...(minColumnWidth === undefined ? null : sx.scrollWrapper),
-      }}
-    >
+    <Box sx={sx.wrapper(Boolean(columns && !hideHeader), minColumnWidth !== undefined)}>
       <Box
         component="table"
         sx={sx.table}

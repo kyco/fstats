@@ -1,4 +1,4 @@
-import { sxSmallCheckbox } from '../../styled'
+import { sxSmallCheckbox } from '@/styles/styled'
 
 export const ui = () => {
   return {

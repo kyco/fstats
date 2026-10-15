@@ -5,17 +5,16 @@ import { Box, Collapse, ListItem, ListItemButton, Tooltip, Typography } from '@m
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
-import type { Transaction } from '@/types'
+import type { Transaction, TransactionCounts } from '@/types'
 import type { Currency } from '@/types-enums'
+import { TextChip } from '@/components'
+import { getStats } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { toFixedLocaleCurrency } from '@/utils/Number'
-import { getStats } from '@/utils/Stats'
 import { useTranslation } from '@/lib/i18n'
 
-import type { TransactionCounts } from '../../actions'
 import { getAmountColor } from '../../actions'
 import StatsList from '../StatsList'
-import TextChip from '../TextChip'
 import { ui } from './styled'
 
 type StatsRowProps = {
@@ -66,10 +65,7 @@ const Component = ({
   return (
     <ListItem disablePadding divider sx={sx.item}>
       <ListItemButton onClick={() => setIsExpanded((prev) => !prev)} aria-expanded={isExpanded} sx={sx.row}>
-        <Typography
-          sx={{ ...sx.title, flexGrow: chip ? 0 : 1, color: titleColor, fontWeight: isTotal || isExpanded ? 700 : 400 }}
-          title={title}
-        >
+        <Typography sx={sx.title(!!chip, titleColor, isTotal || isExpanded)} title={title}>
           {title}
         </Typography>
         {chip ? <TextChip sx={sx.chip}>{chip}</TextChip> : null}
@@ -81,7 +77,7 @@ const Component = ({
         {/* The expanded details show it as their total */}
         {stats && profit !== null && !isExpanded ? (
           <Typography sx={{ ...sx.balance, color: getAmountColor(profit) }}>
-            {toFixedLocaleCurrency(profit, stats.currency, locale)}
+            {toFixedLocaleCurrency({ value: profit, currency: stats.currency, locale })}
           </Typography>
         ) : null}
         <ExpandMore sx={{ ...sx.chevron, transform: isExpanded ? 'rotate(180deg)' : 'none' }} />

@@ -10,15 +10,15 @@ describe('search', () => {
   const searchTexts = rows.map(toSearchText)
 
   it('should filter rows case-insensitively', () => {
-    expect(filterBySearch(rows, searchTexts, toSearchQuery(' COFFEE '))).toEqual([rows[0]])
+    expect(filterBySearch({ rows, searchTexts, query: toSearchQuery(' COFFEE ') })).toEqual([rows[0]])
   })
 
   it('should keep all rows without a query', () => {
-    expect(filterBySearch(rows, searchTexts, toSearchQuery('  '))).toBe(rows)
+    expect(filterBySearch({ rows, searchTexts, query: toSearchQuery('  ') })).toBe(rows)
   })
 
   it('should not match across cells', () => {
-    expect(filterBySearch(rows, searchTexts, toSearchQuery('2024rent'))).toEqual([])
+    expect(filterBySearch({ rows, searchTexts, query: toSearchQuery('2024rent') })).toEqual([])
   })
 
   it('should split matches into odd parts', () => {
@@ -31,9 +31,9 @@ describe('search', () => {
     const names = [['Müller'], ['Straße'], ['Cafe']]
     const texts = names.map(toSearchText)
 
-    expect(filterBySearch(names, texts, toSearchQuery('MULLER'))).toEqual([names[0]])
-    expect(filterBySearch(names, texts, toSearchQuery('strasse'))).toEqual([names[1]])
-    expect(filterBySearch(names, texts, toSearchQuery('café'))).toEqual([names[2]])
+    expect(filterBySearch({ rows: names, searchTexts: texts, query: toSearchQuery('MULLER') })).toEqual([names[0]])
+    expect(filterBySearch({ rows: names, searchTexts: texts, query: toSearchQuery('strasse') })).toEqual([names[1]])
+    expect(filterBySearch({ rows: names, searchTexts: texts, query: toSearchQuery('café') })).toEqual([names[2]])
   })
 
   it('should highlight the original characters', () => {

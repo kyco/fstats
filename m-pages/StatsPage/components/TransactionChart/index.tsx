@@ -8,13 +8,12 @@ import { useDebounceCallback, useResizeObserver } from 'usehooks-ts'
 
 import type { Size, Transaction } from '@/types'
 import { Currency } from '@/types-enums'
-import { BarChart } from '@/components'
+import { BarChart, CardTitle } from '@/components'
 import { useUserPreferences } from '@/m-user/service'
 import { toDisplayDate } from '@/utils/Date'
 import { useTranslation } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
-import CardTitle from '../CardTitle'
 import { getBackgroundColour, getBarThickness, getBorderRadius, getChartOptions } from './actions'
 import { ui } from './styled'
 
@@ -50,7 +49,7 @@ const Component = ({ transactions, currency, chip }: TransactionChartProps) => {
   }
 
   const chartData: ChartData = {
-    labels: transactions.map((row) => toDisplayDate(row.date, locale, { formatTo: dateFormat })),
+    labels: transactions.map((row) => toDisplayDate({ date: row.date, locale, formatTo: dateFormat })),
     datasets: [dataset],
   }
 

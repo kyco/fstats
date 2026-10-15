@@ -1,11 +1,5 @@
-import type { StatsFile } from '@/types'
+import type { BankAccountOption, StatsFile } from '@/types'
 import { getFileBankAccounts, isParsed } from '@/m-stats-file/service'
-
-type BankAccountOption = {
-  value: string
-  label: string
-  fileIds: string[]
-}
 
 /**
  * One option per bank account of the parsed files, sorted by label.

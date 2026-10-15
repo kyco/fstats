@@ -1,49 +1,7 @@
 import { grey, indigo } from '@mui/material/colors'
 import type { ChartOptions } from 'chart.js'
-import { mean, round } from 'lodash'
 
-import type { Transaction } from '@/types'
-import { DateFormat, UserLocale } from '@/types-enums'
-import { getTransactionRangeItems, getTransactionsDateRange, RangeGranularity } from '@/hooks'
 import { getBaseChartOptions, getThemeColor } from '@/utils/Chart'
-
-/**
- * Transactions per month of the sorted transactions, `null` (a gap in the line) for months excluded by date.
- */
-export const getMonthlyCounts = ({
-  transactions,
-  excludedDays,
-  locale,
-  dateFormat,
-}: {
-  transactions: Transaction[]
-  excludedDays: Set<string>
-  locale: UserLocale
-  dateFormat: DateFormat
-}) => {
-  if (!transactions.length) {
-    return { labels: [], counts: [], average: null }
-  }
-
-  const items = getTransactionRangeItems({
-    dateRange: getTransactionsDateRange(transactions),
-    transactions,
-    locale,
-    dateFormat,
-    excludedDays,
-    granularity: RangeGranularity.MONTH,
-  })
-
-  const counts = items.map((item) => (item.isExcluded ? null : item.transactions.length))
-  // Of the shown months, including those without transactions
-  const shownCounts = counts.filter((count) => count !== null)
-
-  return {
-    labels: items.map((item) => item.label),
-    counts,
-    average: shownCounts.length ? round(mean(shownCounts), 1) : null,
-  }
-}
 
 export const getLineColors = (isDarkMode: boolean) => {
   return {
@@ -54,6 +12,12 @@ export const getLineColors = (isDarkMode: boolean) => {
   }
 }
 
+type GetChartOptionsProps = {
+  average: number | null
+  averageLabel: string
+  averageColor: string
+}
+
 /**
  * The average is a reference line rather than a series, labelled on the line itself.
  */
@@ -61,11 +25,7 @@ export const getChartOptions = ({
   average,
   averageLabel,
   averageColor,
-}: {
-  average: number | null
-  averageLabel: string
-  averageColor: string
-}): ChartOptions<'line'> => {
+}: GetChartOptionsProps): ChartOptions<'line'> => {
   return getBaseChartOptions<'line'>({
     plugins: {
       // A single series, named by the title
