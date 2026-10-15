@@ -34,6 +34,16 @@ export const ui = () => {
     closeIcon: {
       fontSize: 18,
     },
+    // On its own row below the text, closes the setup
+    savedFile: {
+      display: 'flex',
+      mx: 'auto',
+      mt: 0.5,
+      fontWeight: 700,
+      textDecoration: 'underline',
+      wordBreak: 'break-all',
+      '&:hover': { textDecoration: 'underline' },
+    },
     scroll: {
       flexGrow: 1,
       minHeight: 0,

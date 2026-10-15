@@ -7,6 +7,7 @@ import {
   disconnectColumn,
   getAmountValues,
   getConnectChanges,
+  getFormatIssueHref,
   getHeaderRowProblem,
   getPreview,
   isNamed,
@@ -170,5 +171,17 @@ describe('getAmountValues', () => {
     const { columns } = toDraft(detectMapping(amountRows))
 
     expect(getAmountValues(amountRows, 0, columns)).toEqual(['-3.50', '10.00'])
+  })
+})
+
+describe('getFormatIssueHref', () => {
+  it('should prefill the issue form with the format', () => {
+    const mapping = toMapping(toTestDraft(), rows)!
+    const url = new URL(getFormatIssueHref(mapping))
+
+    expect(url.origin + url.pathname).toBe('https://github.com/kyco/fstats/issues/new')
+    expect(url.searchParams.get('template')).toBe('new-format.yml')
+    expect(url.searchParams.get('title')).toBe('New format: My Bank – Current')
+    expect(JSON.parse(url.searchParams.get('format') ?? '')).toEqual(mapping)
   })
 })
