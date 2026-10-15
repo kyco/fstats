@@ -2,13 +2,12 @@ import { ButtonBase } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useState } from 'react'
 
-import type { NumberString } from '@/types'
+import type { NumberString, ParentCategoryWithTransactions } from '@/types'
 import { Currency } from '@/types-enums'
 import { PARENT_CATEGORY_COLORS } from '@/common'
 import { Big } from '@/lib/w-big'
 
 import { getSortedCategories } from '../../actions'
-import type { ParentCategoryWithTransactions } from '../../actions'
 import BreakdownCells from '../BreakdownCells'
 import { ui } from './styled'
 

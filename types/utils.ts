@@ -16,12 +16,4 @@ export type TransactionRangeItem = {
   isExcluded: boolean
 }
 
-export type FixedLocaleOptions = {
-  trimTrailingZeros?: boolean
-}
-
-export type FixedLocaleAmountOptions = FixedLocaleOptions & {
-  showPlusSign?: boolean
-}
-
 export type SortingPref = 'asc' | 'desc' | 'totalAsc' | 'totalDesc'

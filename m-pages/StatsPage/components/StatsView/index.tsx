@@ -4,7 +4,7 @@ import { InsertChartOutlined } from '@mui/icons-material'
 import { Box, Stack } from '@mui/material'
 import { useMemo } from 'react'
 
-import { FletchingDivider } from '@/components'
+import { FletchingDivider, SegmentedToggle } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
 import {
@@ -15,9 +15,7 @@ import {
   isMissingData,
 } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
-import { useCurrencySelect } from '../../useCurrencySelect'
-import { useTransactionFilter } from '../../useTransactionFilter'
-import SegmentedToggle from '../SegmentedToggle'
+import { useCurrencySelect, useTransactionFilter } from '../../hooks'
 import ViewEmptyState from '../ViewEmptyState'
 import ViewToolbar from '../ViewToolbar'
 import { CurrencyStats } from './components'

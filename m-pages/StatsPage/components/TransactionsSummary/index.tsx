@@ -2,9 +2,9 @@
 
 import { useMemo } from 'react'
 
+import type { TransactionFilter } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 
-import type { TransactionFilter } from '../../actions'
 import { useStatsTransactions } from '../../context'
 import StatsRow from '../StatsRow'
 import { getTransactionsByCurrency } from './actions'

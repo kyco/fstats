@@ -162,3 +162,112 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 // -------------------------------------------------------
+
+/**
+ * How the transactions of several currencies are shown on the stats page, in one table or one per currency.
+ */
+export const TransactionsLayout = {
+  COMBINED: 'combined',
+  SPLIT: 'split',
+} as const
+
+export type TransactionsLayout = (typeof TransactionsLayout)[keyof typeof TransactionsLayout]
+
+// -------------------------------------------------------
+
+/**
+ * Which transactions the stats page shows by amount, all, income or expenses.
+ */
+export const AmountFilter = {
+  ALL: 'all',
+  IN: 'in',
+  OUT: 'out',
+} as const
+
+export type AmountFilter = (typeof AmountFilter)[keyof typeof AmountFilter]
+
+// -------------------------------------------------------
+
+/**
+ * Why a view of the stats page is empty, see `getEmptyReason`.
+ */
+export const EmptyReason = {
+  NO_FILES: 'noFiles',
+  NO_SELECTION: 'noSelection',
+  NO_TRANSACTIONS: 'noTransactions',
+  NO_DATES: 'noDates',
+  NO_MATCHES: 'noMatches',
+} as const
+
+export type EmptyReason = (typeof EmptyReason)[keyof typeof EmptyReason]
+
+// -------------------------------------------------------
+
+/**
+ * Period of the columns of the profit and loss view.
+ */
+export const BreakdownPeriod = {
+  MONTH: 'month',
+  QUARTER: 'quarter',
+  YEAR: 'year',
+} as const
+
+export type BreakdownPeriod = (typeof BreakdownPeriod)[keyof typeof BreakdownPeriod]
+
+// -------------------------------------------------------
+
+/**
+ * Tag of a transaction in the transactions table that isn't counted in the stats.
+ */
+export const TransactionTag = {
+  DUPLICATE: 'duplicate',
+  DATE_EXCLUDED: 'dateExcluded',
+} as const
+
+export type TransactionTag = (typeof TransactionTag)[keyof typeof TransactionTag]
+
+// -------------------------------------------------------
+
+/**
+ * Steps of the custom parser setup. The preview is confirmed first, most files are detected correctly, otherwise the
+ * columns are fixed. The currency and number format are next to the preview.
+ */
+export const SetupStep = {
+  REVIEW: 'review',
+  FIX: 'fix',
+  NAME: 'name',
+} as const
+
+export type SetupStep = (typeof SetupStep)[keyof typeof SetupStep]
+
+// -------------------------------------------------------
+
+/**
+ * Tabs of the preview of the custom parser setup.
+ */
+export const SetupPreviewTab = {
+  PREVIEW: 'preview',
+  CSV: 'csv',
+} as const
+
+export type SetupPreviewTab = (typeof SetupPreviewTab)[keyof typeof SetupPreviewTab]
+
+// -------------------------------------------------------
+
+/**
+ * Why a row of the file can't be the header row in the custom parser setup.
+ */
+export const HeaderRowProblem = {
+  /**
+   * Fewer than two, e.g. a title.
+   */
+  NAMES: 'names',
+  /**
+   * No row below it has as many cells.
+   */
+  COLUMN_COUNT: 'columnCount',
+} as const
+
+export type HeaderRowProblem = (typeof HeaderRowProblem)[keyof typeof HeaderRowProblem]
+
+// -------------------------------------------------------

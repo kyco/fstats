@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CategoryCode, ParsedStatsFile, Transaction } from '@/types'
-import { Currency, StatsFileStatus } from '@/types-enums'
+import { BreakdownPeriod, Currency, StatsFileStatus } from '@/types-enums'
 import { i18n } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
 import { getCheckedTransactions } from '../../../actions'
-import { BreakdownPeriod, getAccountTransactions, getPeriodKey, getProfitLoss, splitTransfers } from '../actions'
+import { getAccountTransactions, getPeriodKey, getProfitLoss, splitTransfers } from '../actions'
 
 const toTransaction = (
   day: string,
@@ -93,7 +93,11 @@ describe('getProfitLoss', () => {
       toFile('b', [{ parserId: 'comdirect__giro', transactions: [{ ...groceries }, groceriesFeb] }]),
     ]
 
-    const [profitLoss] = getProfitLoss(toAccountTransactions(files), BreakdownPeriod.MONTH, i18n.t)
+    const [profitLoss] = getProfitLoss({
+      accountTransactions: toAccountTransactions(files),
+      period: BreakdownPeriod.MONTH,
+      t: i18n.t,
+    })
 
     expect(profitLoss.periods).toEqual(['2026-01', '2026-02'])
     expect(profitLoss.income.rows.map((row) => [row.key, row.total])).toEqual([['INC', '3000']])
@@ -128,7 +132,12 @@ describe('getProfitLoss', () => {
     const withoutIncoming = <T extends Transaction>(transactions: T[]) =>
       transactions.filter((transaction) => transaction.id !== incoming.id)
 
-    const [profitLoss] = getProfitLoss(toAccountTransactions(files), BreakdownPeriod.MONTH, i18n.t, withoutIncoming)
+    const [profitLoss] = getProfitLoss({
+      accountTransactions: toAccountTransactions(files),
+      period: BreakdownPeriod.MONTH,
+      t: i18n.t,
+      filter: withoutIncoming,
+    })
 
     expect(profitLoss.expenses.total.total).toBe('20')
     expect(profitLoss.transfers.count).toBe(1)
@@ -140,7 +149,14 @@ describe('getProfitLoss', () => {
       toFile('a', [{ parserId: 'ing__giro', transactions: [toTransaction('2026-01-01', '-1', 'GRO_01')] }]),
     ]
 
-    expect(getProfitLoss(toAccountTransactions(files), BreakdownPeriod.YEAR, i18n.t, () => [])).toEqual([])
+    expect(
+      getProfitLoss({
+        accountTransactions: toAccountTransactions(files),
+        period: BreakdownPeriod.YEAR,
+        t: i18n.t,
+        filter: () => [],
+      }),
+    ).toEqual([])
   })
 
   it('should return one per currency', () => {
@@ -155,7 +171,7 @@ describe('getProfitLoss', () => {
     ]
 
     expect(
-      getProfitLoss(toAccountTransactions(files), BreakdownPeriod.YEAR, i18n.t).map(
+      getProfitLoss({ accountTransactions: toAccountTransactions(files), period: BreakdownPeriod.YEAR, t: i18n.t }).map(
         (profitLoss) => profitLoss.currency,
       ),
     ).toEqual([Currency.EUR, Currency.ZAR])

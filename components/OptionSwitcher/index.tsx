@@ -5,11 +5,11 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
+import type { SwitcherOption } from '@/types'
 import { useIsMobile } from '@/hooks'
 
 import SwipeableDrawer from '../SwipeableDrawer'
 import { OptionList } from './components'
-import type { Option } from './components/OptionList'
 
 export type OptionSwitcherTriggerProps = {
   icon: ReactNode
@@ -27,7 +27,7 @@ type OptionSwitcherProps<T extends string> = {
    * Replaces the default button that opens the options.
    */
   renderTrigger?: (props: OptionSwitcherTriggerProps) => ReactNode
-  options: Option<T>[]
+  options: SwitcherOption<T>[]
   onSelect: (value: T) => void
 }
 

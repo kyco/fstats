@@ -1,10 +1,9 @@
 import { linearProgressClasses } from '@mui/material/LinearProgress'
 import type { Theme } from '@mui/material/styles'
 
+import type { BreakdownCellsSize } from '@/types'
 import { GradientColorsLightDark } from '@/types'
 import { ColorMode } from '@/types-enums'
-
-export type BreakdownCellsSize = 'md' | 'sm'
 
 const SIZES = {
   md: { fontSize: 13, barHeight: 6 },

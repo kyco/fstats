@@ -7,20 +7,17 @@ import { DateFormat, UserLocale } from '@/types-enums'
 import { getTransactionRangeItems, getTransactionsDateRange, RangeGranularity } from '@/hooks'
 import { getBaseChartOptions, getThemeColor } from '@/utils/Chart'
 
-/**
- * Transactions per month of the sorted transactions, `null` (a gap in the line) for months excluded by date.
- */
-export const getMonthlyCounts = ({
-  transactions,
-  excludedDays,
-  locale,
-  dateFormat,
-}: {
+type GetMonthlyCountsProps = {
   transactions: Transaction[]
   excludedDays: Set<string>
   locale: UserLocale
   dateFormat: DateFormat
-}) => {
+}
+
+/**
+ * Transactions per month of the sorted transactions, `null` (a gap in the line) for months excluded by date.
+ */
+export const getMonthlyCounts = ({ transactions, excludedDays, locale, dateFormat }: GetMonthlyCountsProps) => {
   if (!transactions.length) {
     return { labels: [], counts: [], average: null }
   }
@@ -54,6 +51,12 @@ export const getLineColors = (isDarkMode: boolean) => {
   }
 }
 
+type GetChartOptionsProps = {
+  average: number | null
+  averageLabel: string
+  averageColor: string
+}
+
 /**
  * The average is a reference line rather than a series, labelled on the line itself.
  */
@@ -61,11 +64,7 @@ export const getChartOptions = ({
   average,
   averageLabel,
   averageColor,
-}: {
-  average: number | null
-  averageLabel: string
-  averageColor: string
-}): ChartOptions<'line'> => {
+}: GetChartOptionsProps): ChartOptions<'line'> => {
   return getBaseChartOptions<'line'>({
     plugins: {
       // A single series, named by the title

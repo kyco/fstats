@@ -1,5 +1,6 @@
 import { uniq } from 'lodash'
 
+import type { DateRow, DateYear } from '@/types'
 import { groupInOrder } from '@/utils/Array'
 
 export const ROW_HEIGHT = 30 // px
@@ -20,30 +21,6 @@ export const OVERSCAN = 10
  * checkboxes start where the month labels start.
  */
 export const ROW_INDENT: Record<DateRow['type'], number> = { year: 4, month: 6, day: 28 }
-
-type DateMonth = {
-  /**
-   * `yyyy-MM`
-   */
-  key: string
-  /**
-   * `yyyy-MM-dd`, newest first.
-   */
-  days: string[]
-}
-
-type DateYear = DateMonth & {
-  months: DateMonth[]
-}
-
-export type DateRow = {
-  type: 'year' | 'month' | 'day'
-  /**
-   * `yyyy`, `yyyy-MM` or `yyyy-MM-dd`
-   */
-  key: string
-  days: string[]
-}
 
 /**
  * Years, months and days (`yyyy-MM-dd`) with transactions, newest first.

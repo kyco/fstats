@@ -3,16 +3,20 @@
 import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
-import type { StatsFile } from '@/types'
+import type { FileHelper, StatsFile } from '@/types'
 import { MISC } from '@/common'
 import { DEMO_FILE_ID, getDemoFile, isParsed, useFiles } from '@/m-stats-file/service'
 
 const NO_FILES: StatsFile[] = []
 
+type UseFileHelperProps = {
+  isDemoMode?: boolean
+}
+
 /**
  * The user's files and which of them are checked. In demo mode only the demo file, always checked and read-only.
  */
-export const useFileHelper = ({ isDemoMode = false }: { isDemoMode?: boolean } = {}) => {
+export const useFileHelper = ({ isDemoMode = false }: UseFileHelperProps = {}): FileHelper => {
   const [storedSelectedFileIds, setStoredSelectedFileIds] = useLocalStorage<string[]>(MISC.LS_SELECTED_FILE_IDS_KEY, [])
   const { data: storedFiles = NO_FILES, isLoading: isLoadingFiles } = useFiles()
   const files: StatsFile[] = useMemo(() => (isDemoMode ? [getDemoFile()] : storedFiles), [isDemoMode, storedFiles])

@@ -22,7 +22,9 @@
     "DATE_EXCLUDED_one": "{{count}} excluded by date",
     "DATE_EXCLUDED_other": "{{count}} excluded by date",
     "DUPLICATES_EXCLUDED_one": "{{count}} duplicate excluded",
-    "DUPLICATES_EXCLUDED_other": "{{count}} duplicates excluded"
+    "DUPLICATES_EXCLUDED_other": "{{count}} duplicates excluded",
+    "SEARCH": "Search",
+    "CLEAR_SEARCH": "Clear search"
   },
   "NAVIGATION": {
     "HOME": "Home",
@@ -151,8 +153,6 @@
       "ALSO_IN": "Also in {{files}}",
       "ROW_COUNT_one": "{{count}} row",
       "ROW_COUNT_other": "{{count}} rows",
-      "SEARCH": "Search",
-      "CLEAR_SEARCH": "Clear search",
       "SEARCH_MATCHES_one": "{{count}} match",
       "SEARCH_MATCHES_other": "{{count}} matches",
       "NO_SEARCH_RESULTS": {

@@ -1,7 +1,7 @@
 import { Grid, LinearProgress, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
-import type { GradientColorsLightDark, NumberString } from '@/types'
+import type { BreakdownCellsSize, GradientColorsLightDark, NumberString } from '@/types'
 import { Currency } from '@/types-enums'
 import { useUserPreferences } from '@/m-user/service'
 import { toFixedLocale, toFixedLocaleAmount } from '@/utils/Number'
@@ -9,7 +9,6 @@ import { getPercentage } from '@/utils/Stats'
 import { Big } from '@/lib/w-big'
 
 import { COL_SPACING, COL1, COL2, COL3, COL4 } from '../../actions'
-import type { BreakdownCellsSize } from './styled'
 import { ui } from './styled'
 
 type BreakdownCellsProps = {
@@ -27,8 +26,8 @@ const Component = ({ label, total: rawTotal, parentCategoryTotal, currency, colo
   const { locale } = useUserPreferences()
   const total = Big(rawTotal).abs()
   const percentage = getPercentage(total, parentCategoryTotal)
-  const totalDisplay = toFixedLocaleAmount(total.toString(), currency, locale)
-  const percentageDisplay = toFixedLocale(percentage.toString(), 1, locale)
+  const totalDisplay = toFixedLocaleAmount({ value: total.toString(), currency, locale })
+  const percentageDisplay = toFixedLocale({ value: percentage.toString(), round: 1, locale })
   const hasTotal = total.gt(0)
 
   return (

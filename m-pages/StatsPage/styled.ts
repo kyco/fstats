@@ -1,30 +1,3 @@
-/**
- * Compact list row, e.g. the file rows of the left column and the stats rows of the right column.
- */
-export const sxListRow = {
-  minHeight: 34,
-  py: 0,
-} as const
-
-/**
- * Single line title of a list row, truncated.
- */
-export const sxListRowTitle = {
-  flexGrow: 1,
-  minWidth: 0,
-  m: 0,
-  fontSize: 13,
-  lineHeight: 1.4,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-} as const
-
-export const sxSmallCheckbox = {
-  p: 0.5,
-  '& .MuiSvgIcon-root': { fontSize: 18 },
-} as const
-
 export const ui = () => {
   return {
     // Fills the viewport: the demo banner on top, the columns below it

@@ -4,30 +4,15 @@ import { Box } from '@mui/material'
 import { format } from 'date-fns'
 import { useMemo } from 'react'
 
-import type { RowData } from '@/types'
+import type { ColumnField, RowData, SetupDraft } from '@/types'
 import { DATE_FORMATS, getHeaderNames, getMatchingDateFormats } from '@/utils/Parser'
 import { useTranslation } from '@/lib/i18n'
 
-import type { ColumnField, SetupDraft } from '../../actions'
 import { COLUMN_FIELDS, disconnectColumn, getColumnValues, getConnectChanges, getSampleValue } from '../../actions'
 import FormatSelect from '../FormatSelect'
+import { EXAMPLE_DATE, FIELD_LABEL_KEYS } from './actions'
 import { ColumnConnector } from './components'
 import { ui } from './styled'
-
-const FIELD_LABEL_KEYS: Record<ColumnField, string> = {
-  date: 'STATS_PAGE.PARSER_SETUP.FIELD.DATE',
-  description: 'STATS_PAGE.PARSER_SETUP.FIELD.DESCRIPTION',
-  moneyIn: 'STATS_PAGE.PARSER_SETUP.FIELD.MONEY_IN',
-  moneyOut: 'STATS_PAGE.PARSER_SETUP.FIELD.MONEY_OUT',
-  balance: 'STATS_PAGE.PARSER_SETUP.FIELD.BALANCE',
-  reference: 'STATS_PAGE.PARSER_SETUP.FIELD.REFERENCE',
-  transactionType: 'STATS_PAGE.PARSER_SETUP.FIELD.TRANSACTION_TYPE',
-  category: 'STATS_PAGE.PARSER_SETUP.FIELD.CATEGORY',
-  parentCategory: 'STATS_PAGE.PARSER_SETUP.FIELD.PARENT_CATEGORY',
-}
-
-// The date formats are shown as this date. Day 31, so day and month can't be mixed up.
-const EXAMPLE_DATE = new Date(2026, 0, 31, 14, 30, 0)
 
 type ColumnMappingProps = {
   rows: RowData[]
@@ -44,7 +29,10 @@ const Component = ({ rows, draft, onChange }: ColumnMappingProps) => {
   const headerNames = useMemo(() => getHeaderNames(rows[draft.headerIndex] ?? []), [rows, draft.headerIndex])
   const [dateColumn] = draft.columns.date
   const matchingDateFormats = useMemo(
-    () => (dateColumn ? getMatchingDateFormats(getColumnValues(rows, draft.headerIndex, dateColumn)) : []),
+    () =>
+      dateColumn
+        ? getMatchingDateFormats(getColumnValues({ rows, headerIndex: draft.headerIndex, header: dateColumn }))
+        : [],
     [rows, draft.headerIndex, dateColumn],
   )
   // Only with a column, without one there's nothing to match
@@ -92,9 +80,12 @@ const Component = ({ rows, draft, onChange }: ColumnMappingProps) => {
                 : undefined,
           ...getFieldControls(field),
         }))}
-        columns={headerNames.map((name) => ({ name, sample: getSampleValue(rows, draft.headerIndex, name) }))}
+        columns={headerNames.map((name) => ({
+          name,
+          sample: getSampleValue({ rows, headerIndex: draft.headerIndex, header: name }),
+        }))}
         connections={draft.columns}
-        onConnect={(field, column) => onChange(getConnectChanges(rows, draft, field as ColumnField, column))}
+        onConnect={(field, column) => onChange(getConnectChanges({ rows, draft, field: field as ColumnField, column }))}
         onDisconnect={(column) => onChange({ columns: disconnectColumn(draft.columns, column) })}
       />
     </Box>

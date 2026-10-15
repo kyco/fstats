@@ -1,6 +1,6 @@
+import type { StatsTransactions, TransactionFilter } from '@/types'
 import type { Currency } from '@/types-enums'
 
-import type { StatsTransactions, TransactionFilter } from '../../actions'
 import { filterTransactions } from '../../actions'
 
 /**

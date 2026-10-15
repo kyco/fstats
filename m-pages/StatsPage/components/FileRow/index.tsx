@@ -7,12 +7,12 @@ import { useSearchParams } from 'next/navigation'
 import type { StatsFile } from '@/types'
 import { StatsFileStatus } from '@/types-enums'
 import { getSetupChange, getWorkspaceHref } from '@/common'
+import { TextChip } from '@/components'
 import { isConvertible, isError, isParsed, isUnknown } from '@/m-stats-file/service'
 import { useTranslation } from '@/lib/i18n'
 
 import { getFileFormat, getFileNameColor } from '../../actions'
 import FileStatusIcon from '../FileStatusIcon'
-import TextChip from '../TextChip'
 import { ui } from './styled'
 
 type FileRowProps = {
@@ -56,10 +56,7 @@ const Component = ({ file, isChecked, onToggle, disabled = false }: FileRowProps
     >
       <ListItemButton onClick={() => onToggle(file.id)} disabled={disabled} sx={sx.row}>
         <Checkbox size="small" checked={isChecked} tabIndex={-1} disableRipple sx={sx.checkbox} />
-        <Typography
-          sx={{ ...sx.name, color: getFileNameColor(file), fontWeight: isChecked ? 700 : 400 }}
-          title={file.file.name}
-        >
+        <Typography sx={sx.name(getFileNameColor(file), isChecked)} title={file.file.name}>
           {file.file.name}
         </Typography>
         {file.status === StatsFileStatus.PARSING ? (

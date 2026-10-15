@@ -23,10 +23,8 @@ import {
   StatsView,
 } from './components'
 import { WorkspaceContext } from './context'
+import { useDayFilter, useDemoState, useFileDropzone } from './hooks'
 import { ui } from './styled'
-import { useDayFilter } from './useDayFilter'
-import { useFileDropzone } from './useFileDropzone'
-import { useDemoState } from './useViewStorage'
 
 /**
  * Workspace of the stats page: file explorer, the transactions, stats, breakdown or CSV view (`view` param) in the middle column, and the file
@@ -109,7 +107,7 @@ const Component = () => {
               {index > 0 ? (
                 <Box
                   sx={sx.divider}
-                  onPointerDown={startResize((delta) => setWidths(resizeColumns(widths, index - 1, delta)))}
+                  onPointerDown={startResize((delta) => setWidths(resizeColumns({ widths, index: index - 1, delta })))}
                 />
               ) : null}
               <Box sx={{ ...sx.column, flexBasis: `${widths[index]}%` }}>{column.content}</Box>

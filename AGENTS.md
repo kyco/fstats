@@ -15,16 +15,19 @@ Privacy-focused CSV bank statement parser. All processing is client-side (Indexe
 
 ### Page Modules (`m-pages/{Name}Page/`)
 
-- One module per route (`app/{route}/page.tsx` only renders it): `index.tsx`, `actions.ts` (pure helpers), `styled.ts` (`ui()` sx objects), `components/{Component}/` (same structure, nested per component)
+- One module per route (`app/{route}/page.tsx` only renders it): `index.tsx`, `actions.ts` (pure helpers), `styled.ts` (`ui()` sx objects), `components/{Component}/` (same structure, nested per component), `hooks/` (page hooks, one per file, exported from `hooks/index.ts`)
 - `StatsPage` (`/stats`) is the main 3-column page: file explorer | data or stats view (`?view=stats`) | file sidebar; demo mode via `?demo=true`. Its `context.ts` holds synchronous UI state only (demo mode, file pickers)
 - Translations in `public/locales/{en,de}.json`, namespaced per page (e.g. `STATS_PAGE.*`); category labels in `public/locales/categories/{en,de}.json` (`categories` namespace, keyed by code, via `getCategoryLabel`); always update both files
 
 ### Component Structure (`components/`, `m-pages/`)
 
 - One React component per file: `{Component}/index.tsx`; child components go in `{Component}/components/{Child}/` (same structure)
+- Local `styled.ts` exports only `ui()` (returns the component's style objects, consumed as `const sx = ui()`) and `styled()` components; no loose style exports. Shared `sx*` styles/helpers (e.g. `sxMenuItem`) live only in the global `styles/styled.ts`
 - Styles go in `styled.ts` next to the component; small inline `sx`/`style` (1–2 props, fits on one line) is fine — move it once it has 3+ props or wraps
 - Helper functions and constants the component needs go in `actions.ts` next to it
 - Component props are typed in the component file; all other types go in the global `types/` folder — keep it flat (e.g. all page types in `types/pages.ts`)
+- Same for hooks and helper functions (anywhere in the codebase): an object parameter is typed as `{Name}Props` (e.g. `UseFileHelperProps`) directly above the function, not inline or in `types/` — unless other code uses the same type, then it goes in `types/`
+- Hooks and helper functions with 3+ parameters take a single `{Name}Props` object instead (easier to read and pass values), unless positional params are clearly more natural (e.g. callbacks matching a library signature). Exception: `styled.ts` — `ui()` and style functions keep inline positional params, no Props object
 
 ### Data Access Rules
 

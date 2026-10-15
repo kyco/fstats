@@ -7,15 +7,7 @@ import { getTransactionRangeItems, getTransactionsDateRange } from './helper'
 
 export { getTransactionRangeItems, getTransactionsDateRange, RangeGranularity } from './helper'
 
-/**
- * The transactions sorted by date, and their range items for the charts.
- */
-export const getTransactionHelper = ({
-  transactions: unsorted,
-  locale,
-  dateFormat,
-  excludedDays,
-}: {
+type GetTransactionHelperProps = {
   /**
    * Without duplicates, e.g. `StatsTransactions.shown`.
    */
@@ -26,7 +18,17 @@ export const getTransactionHelper = ({
    * Days (`yyyy-MM-dd`) whose transactions were removed, shown as gaps.
    */
   excludedDays?: Set<string>
-}): {
+}
+
+/**
+ * The transactions sorted by date, and their range items for the charts.
+ */
+export const getTransactionHelper = ({
+  transactions: unsorted,
+  locale,
+  dateFormat,
+  excludedDays,
+}: GetTransactionHelperProps): {
   transactions: Transaction[]
   transactionRangeItems: TransactionRangeItem[]
 } => {

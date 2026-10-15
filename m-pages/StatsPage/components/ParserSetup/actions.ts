@@ -1,10 +1,10 @@
 import type { TFunction } from 'i18next'
 import { mapValues, pick, without, xor } from 'lodash'
 
-import type { CustomParserMapping, RowData, Transaction } from '@/types'
-import { Currency } from '@/types-enums'
+import type { ColumnField, CustomParserMapping, RowData, SetupDraft, SetupPreviewResult } from '@/types'
+import { Currency, HeaderRowProblem, SetupStep } from '@/types-enums'
 import { CONFIG } from '@/common'
-import type { DetectedMapping, NumberFormat } from '@/utils/Parser'
+import type { DetectedMapping } from '@/utils/Parser'
 import {
   createMappingParser,
   detectNumberFormat,
@@ -15,32 +15,9 @@ import {
 } from '@/utils/Parser'
 
 /**
- * The preview is confirmed first, most files are detected correctly, otherwise the columns are fixed. The currency
- * and number format are next to the preview.
- */
-export const SetupStep = {
-  REVIEW: 'review',
-  FIX: 'fix',
-  NAME: 'name',
-} as const
-
-export type SetupStep = (typeof SetupStep)[keyof typeof SetupStep]
-
-/**
  * In order, each step is reached from the previous one.
  */
 export const SETUP_STEPS = Object.values(SetupStep)
-
-export type ColumnField =
-  | 'date'
-  | 'description'
-  | 'moneyIn'
-  | 'moneyOut'
-  | 'balance'
-  | 'reference'
-  | 'transactionType'
-  | 'category'
-  | 'parentCategory'
 
 /**
  * Can have multiple columns (e.g. money out and a fee), and share a signed amount column, see `toMapping`.
@@ -50,19 +27,6 @@ const AMOUNT_FIELDS: ColumnField[] = ['moneyIn', 'moneyOut']
 export const isAmountField = (field: ColumnField) => AMOUNT_FIELDS.includes(field)
 
 const EXTRA_FIELDS = ['balance', 'reference', 'transactionType', 'category', 'parentCategory'] as const
-
-/**
- * The form state, the connected header names per field. At most one, except for the amount fields.
- */
-export type SetupDraft = {
-  headerIndex: number
-  bankName: string
-  accountName: string
-  currency: Currency
-  dateFormat: string
-  numberFormat: NumberFormat
-  columns: Record<ColumnField, string[]>
-}
 
 const toList = (header: string | null | undefined) => (header ? [header] : [])
 
@@ -79,9 +43,14 @@ const getAmountColumns = (amount: DetectedMapping['columns']['amount']) => {
   }
 }
 
+type ToDraftProps = {
+  bankName?: string
+  accountName?: string
+}
+
 export const toDraft = (
   detected: DetectedMapping,
-  { bankName = '', accountName = '' }: { bankName?: string; accountName?: string } = {},
+  { bankName = '', accountName = '' }: ToDraftProps = {},
 ): SetupDraft => {
   return {
     headerIndex: detected.headerIndex,
@@ -107,16 +76,18 @@ export const COLUMN_FIELDS: { field: ColumnField; isRequired: boolean }[] = [
   ...EXTRA_FIELDS.map((field) => ({ field, isRequired: false })),
 ]
 
+type ConnectColumnProps = {
+  columns: SetupDraft['columns']
+  field: ColumnField
+  column: string
+}
+
 /**
  * The columns after `column` was clicked for `field`. The amount fields toggle it (they can have several), other
  * fields have only it. A column is read as one field only, so it's removed from others, except the amount fields which
  * can share a signed amount column.
  */
-export const connectColumn = (
-  columns: SetupDraft['columns'],
-  field: ColumnField,
-  column: string,
-): SetupDraft['columns'] => {
+export const connectColumn = ({ columns, field, column }: ConnectColumnProps): SetupDraft['columns'] => {
   const next = mapValues(columns, (headers, key) =>
     isAmountField(field) && isAmountField(key as ColumnField) ? headers : without(headers, column),
   )
@@ -124,39 +95,49 @@ export const connectColumn = (
   return { ...next, [field]: isAmountField(field) ? xor(columns[field], [column]) : [column] }
 }
 
+type GetConnectChangesProps = {
+  rows: RowData[]
+  draft: SetupDraft
+  field: ColumnField
+  column: string
+}
+
 /**
  * The changes after `column` was clicked for `field`, see `connectColumn`. A new date column gets a matching date
  * format, unless the current one matches already.
  */
-export const getConnectChanges = (
-  rows: RowData[],
-  draft: SetupDraft,
-  field: ColumnField,
-  column: string,
-): Partial<SetupDraft> => {
-  const columns = connectColumn(draft.columns, field, column)
+export const getConnectChanges = ({ rows, draft, field, column }: GetConnectChangesProps): Partial<SetupDraft> => {
+  const columns = connectColumn({ columns: draft.columns, field, column })
   const [dateColumn] = columns.date
 
   if (field === 'date' && dateColumn) {
-    const matching = getMatchingDateFormats(getColumnValues(rows, draft.headerIndex, dateColumn))
+    const matching = getMatchingDateFormats(
+      getColumnValues({ rows, headerIndex: draft.headerIndex, header: dateColumn }),
+    )
     return matching.length && !matching.includes(draft.dateFormat) ? { columns, dateFormat: matching[0] } : { columns }
   }
 
   // The number format of the amounts, if they tell
   if (isAmountField(field) || field === 'balance') {
-    const numberFormat = detectNumberFormat(getAmountValues(rows, draft.headerIndex, columns))
+    const numberFormat = detectNumberFormat(getAmountValues({ rows, headerIndex: draft.headerIndex, columns }))
     return numberFormat && numberFormat !== draft.numberFormat ? { columns, numberFormat } : { columns }
   }
 
   return { columns }
 }
 
+type GetAmountValuesProps = {
+  rows: RowData[]
+  headerIndex: number
+  columns: SetupDraft['columns']
+}
+
 /**
  * The values of the money in, money out and balance columns, e.g. to detect their number format.
  */
-export const getAmountValues = (rows: RowData[], headerIndex: number, columns: SetupDraft['columns']) => {
+export const getAmountValues = ({ rows, headerIndex, columns }: GetAmountValuesProps) => {
   const headers = new Set([...columns.moneyIn, ...columns.moneyOut, ...columns.balance])
-  return [...headers].flatMap((header) => getColumnValues(rows, headerIndex, header)).filter(Boolean)
+  return [...headers].flatMap((header) => getColumnValues({ rows, headerIndex, header })).filter(Boolean)
 }
 
 /**
@@ -217,17 +198,12 @@ export const toMapping = (draft: SetupDraft, rows: RowData[]): CustomParserMappi
   }
 }
 
-export type SetupPreview = {
-  transactions: Transaction[]
-  error: string | null
-}
-
 const PREVIEW_ID = 'preview'
 
 /**
  * The file parsed with the mapping, like it will be once saved.
  */
-export const getPreview = (rows: RowData[], draft: SetupDraft): SetupPreview | null => {
+export const getPreview = (rows: RowData[], draft: SetupDraft): SetupPreviewResult | null => {
   const mapping = toMapping(draft, rows)
 
   if (!mapping) {
@@ -247,7 +223,7 @@ export const getPreview = (rows: RowData[], draft: SetupDraft): SetupPreview | n
 /**
  * Why the preview has no transactions, `null` if it has.
  */
-export const getPreviewMessageKey = (preview: SetupPreview | null) => {
+export const getPreviewMessageKey = (preview: SetupPreviewResult | null) => {
   if (!preview) {
     return 'STATS_PAGE.PARSER_SETUP.PREVIEW_MISSING'
   }
@@ -262,30 +238,24 @@ export const getPreviewMessageKey = (preview: SetupPreview | null) => {
 /**
  * The preview has transactions and no errors, so the mapping can be saved.
  */
-export const isValidPreview = (preview: SetupPreview | null): preview is SetupPreview => {
+export const isValidPreview = (preview: SetupPreviewResult | null): preview is SetupPreviewResult => {
   return !!preview && !preview.error && preview.transactions.length > 0
+}
+
+type GetColumnValuesProps = {
+  rows: RowData[]
+  headerIndex: number
+  header: string
+  limit?: number
 }
 
 /**
  * The values of a column in the transactions below the header (a sample), e.g. to check the date or number format.
  */
-export const getColumnValues = (rows: RowData[], headerIndex: number, header: string, limit = 200) => {
+export const getColumnValues = ({ rows, headerIndex, header, limit = 200 }: GetColumnValuesProps) => {
   const index = (rows[headerIndex] ?? []).findIndex((cell) => cell.trim() === header)
-  return index < 0 ? [] : getTransactionRows(rows, headerIndex, limit).map((row) => row[index] ?? '')
+  return index < 0 ? [] : getTransactionRows({ rows, headerIndex, limit }).map((row) => row[index] ?? '')
 }
-
-export const HeaderRowProblem = {
-  /**
-   * Fewer than two, e.g. a title.
-   */
-  NAMES: 'names',
-  /**
-   * No row below it has as many cells.
-   */
-  COLUMN_COUNT: 'columnCount',
-} as const
-
-export type HeaderRowProblem = (typeof HeaderRowProblem)[keyof typeof HeaderRowProblem]
 
 /**
  * Why the row can't be the header, `null` if it can: it needs column names and rows below with as many cells.
@@ -295,15 +265,21 @@ export const getHeaderRowProblem = (rows: RowData[], headerIndex: number): Heade
     return HeaderRowProblem.NAMES
   }
 
-  return getDataRows(rows, headerIndex, 1).length ? null : HeaderRowProblem.COLUMN_COUNT
+  return getDataRows({ rows, headerIndex, limit: 1 }).length ? null : HeaderRowProblem.COLUMN_COUNT
+}
+
+type GetSampleValueProps = {
+  rows: RowData[]
+  headerIndex: number
+  header: string
 }
 
 /**
  * First non-empty value of a column below the header, as an example.
  */
-export const getSampleValue = (rows: RowData[], headerIndex: number, header: string) => {
+export const getSampleValue = ({ rows, headerIndex, header }: GetSampleValueProps) => {
   return (
-    getColumnValues(rows, headerIndex, header, 50)
+    getColumnValues({ rows, headerIndex, header, limit: 50 })
       .map((value) => value.trim())
       .find(Boolean) ?? ''
   )
@@ -339,13 +315,16 @@ export const getCsvRows = (rows: RowData[]) => {
   return rows.slice(0, CSV_ROWS)
 }
 
+type GetPreviewCaptionProps = {
+  preview: SetupPreviewResult | null
+  isCsv: boolean
+  rows: RowData[]
+}
+
 /**
  * Next to the title, the number of transactions or rows.
  */
-export const getPreviewCaption = (
-  { preview, isCsv, rows }: { preview: SetupPreview | null; isCsv: boolean; rows: RowData[] },
-  t: TFunction,
-) => {
+export const getPreviewCaption = ({ preview, isCsv, rows }: GetPreviewCaptionProps, t: TFunction) => {
   if (isCsv) {
     return t('STATS_PAGE.DATA_VIEW.ROW_COUNT', { count: rows.length })
   }

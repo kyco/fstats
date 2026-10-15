@@ -4,17 +4,19 @@ import { merge } from 'lodash'
 
 import type { GradientColors, GradientDirection } from '@/types'
 
+type GetGradientProps = {
+  context: ScriptableContext<'line'> | ScriptableContext<'bar'>
+  colors: GradientColors
+  direction?: GradientDirection
+  reverse?: boolean
+}
+
 export const getGradient = ({
   context,
   colors,
   direction = 'horizontal',
   reverse = false,
-}: {
-  context: ScriptableContext<'line'> | ScriptableContext<'bar'>
-  colors: GradientColors
-  direction?: GradientDirection
-  reverse?: boolean
-}): CanvasGradient | 'currentcolor' => {
+}: GetGradientProps): CanvasGradient | 'currentcolor' => {
   const { chart } = context
   const { ctx, chartArea } = chart
 

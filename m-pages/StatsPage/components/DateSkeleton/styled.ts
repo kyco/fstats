@@ -14,7 +14,7 @@ export const ui = () => {
     },
     // Why it's shown, in place of the year
     title: {
-      ...label,
+      ...label(false, true),
       flexGrow: 1,
       color: 'text.disabled',
     },

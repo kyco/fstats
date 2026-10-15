@@ -5,11 +5,11 @@ import { Box, Checkbox, Divider, IconButton, Tooltip, Typography } from '@mui/ma
 import { useState } from 'react'
 
 import { MISC } from '@/common'
+import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem, DropdownMenuSubheader } from '@/components'
 import { isConvertible, isError, isParsed, isUnknown, useMutateRemoveFiles } from '@/m-stats-file/service'
 import { useTranslation } from '@/lib/i18n'
 
 import { useWorkspace, useWorkspaceFiles } from '../../context'
-import DropdownMenu, { DropdownMenuDivider, DropdownMenuItem, DropdownMenuSubheader } from '../DropdownMenu'
 import { getBankAccountOptions, isSameSelection, toggleFileIds } from './actions'
 import { ui } from './styled'
 

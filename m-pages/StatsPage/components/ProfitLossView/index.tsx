@@ -6,7 +6,7 @@ import { mapValues } from 'lodash'
 import { useMemo } from 'react'
 
 import type { Currency } from '@/types-enums'
-import { FletchingDivider } from '@/components'
+import { FletchingDivider, SegmentedToggle } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
 import {
@@ -18,11 +18,8 @@ import {
   isMissingData,
 } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
-import { useBreakdownPeriod } from '../../useBreakdownPeriod'
-import { useCurrencySelect } from '../../useCurrencySelect'
-import { useTransactionFilter } from '../../useTransactionFilter'
+import { useBreakdownPeriod, useCurrencySelect, useTransactionFilter } from '../../hooks'
 import PreviewSection from '../PreviewSection'
-import SegmentedToggle from '../SegmentedToggle'
 import ViewEmptyState from '../ViewEmptyState'
 import ViewToolbar from '../ViewToolbar'
 import { getAccountTransactions, getBreakdownPeriodOptions, getProfitLoss } from './actions'
@@ -57,9 +54,12 @@ const Component = () => {
   const accountTransactions = useMemo(() => getAccountTransactions(selectedFiles, unique), [selectedFiles, unique])
   const profitLosses = useMemo(
     () =>
-      getProfitLoss(accountTransactions, period, t, (transactions) =>
-        filterTransactions(filterDays(transactions, deselectedDays), filter),
-      ),
+      getProfitLoss({
+        accountTransactions,
+        period,
+        t,
+        filter: (transactions) => filterTransactions(filterDays(transactions, deselectedDays), filter),
+      }),
     [accountTransactions, deselectedDays, filter, period, t],
   )
   const getCaption = (currency: Currency) => {

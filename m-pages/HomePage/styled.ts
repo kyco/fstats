@@ -1,29 +1,7 @@
 import type { Theme } from '@mui/material/styles'
 
 import { Color } from '@/styles/colors'
-
-/**
- * Styles applied only in dark mode (via CSS, so there's no flash before the colour scheme is known).
- */
-export const darkStyles = (theme: Theme, styles: Record<string, string>) =>
-  theme.applyStyles('dark', styles) as Record<string, typeof styles>
-
-/**
- * Cyan accent, lighter in dark mode.
- */
-export const accentColor = (theme: Theme) => ({
-  color: Color.cyanDark,
-  ...darkStyles(theme, { color: Color.cyan }),
-})
-
-export const ctaButton = {
-  minWidth: 200,
-  py: 1.5,
-  px: 5,
-  fontSize: 17,
-  fontWeight: 600,
-  borderRadius: 100,
-}
+import { sxAccentColor, sxDark } from '@/styles/styled'
 
 export const ui = (theme: Theme, isMobile: boolean) => {
   return {
@@ -95,7 +73,7 @@ export const ui = (theme: Theme, isMobile: boolean) => {
       fontSize: 15,
       fontWeight: 600,
       textDecoration: 'none',
-      ...accentColor(theme),
+      ...sxAccentColor(theme),
       '&:hover': { textDecoration: 'underline' },
     },
 
@@ -145,7 +123,7 @@ export const ui = (theme: Theme, isMobile: boolean) => {
       fontSize: 14,
       backgroundColor: 'rgba(0,96,100,0.1)',
       color: Color.cyanDark,
-      ...darkStyles(theme, {
+      ...sxDark(theme, {
         backgroundColor: 'rgba(0,188,212,0.15)',
         color: Color.cyan,
       }),
@@ -182,7 +160,7 @@ export const ui = (theme: Theme, isMobile: boolean) => {
     inlineLink: {
       fontWeight: 600,
       textDecoration: 'none',
-      ...accentColor(theme),
+      ...sxAccentColor(theme),
       '&:hover': { textDecoration: 'underline' },
     },
   }

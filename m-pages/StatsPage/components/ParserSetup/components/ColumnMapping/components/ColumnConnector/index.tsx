@@ -2,45 +2,14 @@
 
 import { CloseOutlined, ErrorOutlined } from '@mui/icons-material'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-  ReactNode,
-  SyntheticEvent,
-} from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
+import type { ConnectorAnchor, ConnectorColumn, ConnectorEnd, ConnectorField, ConnectorLayout } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 
-import type { Anchor, ConnectorEnd } from './actions'
-import { getCurve, isSameEnd, toAnchorId, toConnection } from './actions'
+import { getCurve, isSameEnd, preventFocus, stopPropagation, toAnchorId, toConnection } from './actions'
 import { ui } from './styled'
-
-export type ConnectorField = {
-  key: string
-  label: string
-  isRequired: boolean
-  /**
-   * Below the label, e.g. that it can have several columns.
-   */
-  note?: string
-  /**
-   * In the row before the dot, e.g. the date format. Clicks on it don't select the row.
-   */
-  action?: ReactNode
-  /**
-   * In a chip on the row's bottom edge, e.g. that the date format doesn't match the column.
-   */
-  error?: string
-}
-
-export type ConnectorColumn = {
-  name: string
-  /**
-   * Example value from the file.
-   */
-  sample: string
-}
 
 type ColumnConnectorProps = {
   fields: ConnectorField[]
@@ -56,20 +25,6 @@ type ColumnConnectorProps = {
   onDisconnect: (column: string) => void
 }
 
-type Layout = {
-  anchors: Record<string, Anchor>
-  /**
-   * Height of the fields, also the height of the columns.
-   */
-  fieldsHeight: number
-}
-
-// Clicked rows aren't focused, the focus ring would show on any key press (e.g. Shift). Rows are still focused by Tab.
-const preventFocus = (event: ReactMouseEvent) => event.preventDefault()
-
-// Events of controls in a row aren't events of the row
-const stopPropagation = (event: SyntheticEvent) => event.stopPropagation()
-
 /**
  * Fields on the left, columns of the file on the right, connected by lines. A click on a row selects it, a click on a
  * row of the other side connects them.
@@ -81,7 +36,7 @@ const Component = ({ fields, columns, connections, onConnect, onDisconnect }: Co
   const fieldsRef = useRef<HTMLDivElement>(null)
   const columnsRef = useRef<HTMLDivElement>(null)
   const rowRefs = useRef(new Map<string, HTMLElement>())
-  const [layout, setLayout] = useState<Layout | null>(null)
+  const [layout, setLayout] = useState<ConnectorLayout | null>(null)
   // The selected row, to connect to a row of the other side
   const [pending, setPending] = useState<ConnectorEnd | null>(null)
   const connectedColumns = new Set(Object.values(connections).flat())
@@ -95,7 +50,7 @@ const Component = ({ fields, columns, connections, onConnect, onDisconnect }: Co
       return
     }
 
-    const anchors: Record<string, Anchor> = {}
+    const anchors: Record<string, ConnectorAnchor> = {}
     rowRefs.current.forEach((row, id) => {
       const dot = (row.querySelector('[data-dot]') ?? row).getBoundingClientRect()
       const isField = id.startsWith('field:')
@@ -321,11 +276,7 @@ const Component = ({ fields, columns, connections, onConnect, onDisconnect }: Co
           <Box
             ref={columnsRef}
             onScroll={measure}
-            sx={{
-              ...getListSx('column'),
-              // As tall as the fields, more columns scroll
-              ...(layout ? { height: layout.fieldsHeight, overflowY: 'auto' } : null),
-            }}
+            sx={{ ...getListSx('column'), ...(layout ? sx.scrollList(layout.fieldsHeight) : null) }}
           >
             {columns.map((column) => {
               const end: ConnectorEnd = { side: 'column', key: column.name }

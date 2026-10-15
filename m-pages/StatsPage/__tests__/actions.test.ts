@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ParsedStatsFile, Transaction } from '@/types'
-import { StatsFileStatus } from '@/types-enums'
+import { AmountFilter, EmptyReason, StatsFileStatus } from '@/types-enums'
 
 import {
-  AmountFilter,
-  EmptyReason,
   filterTransactions,
   getCheckedTransactions,
   getDuplicates,
@@ -67,13 +65,20 @@ describe('getTransactionCounts', () => {
     const duplicates = getDuplicates([fileA, overlapping].flatMap((file) => file.sections[0].transactions))
 
     // On its own, the file has no duplicates
-    expect(getTransactionCounts(transactions, new Set())).toEqual({ count: 2, dateExcludedCount: 0, duplicateCount: 0 })
-    expect(getTransactionCounts(transactions, new Set(), duplicates)).toEqual({
+    expect(getTransactionCounts({ transactions, deselectedDays: new Set() })).toEqual({
+      count: 2,
+      dateExcludedCount: 0,
+      duplicateCount: 0,
+    })
+    expect(getTransactionCounts({ transactions, deselectedDays: new Set(), duplicates })).toEqual({
       count: 1,
       dateExcludedCount: 0,
       duplicateCount: 1,
     })
-    expect(getTransactionCounts(fileA.sections[0].transactions, new Set(), duplicates).duplicateCount).toBe(0)
+    expect(
+      getTransactionCounts({ transactions: fileA.sections[0].transactions, deselectedDays: new Set(), duplicates })
+        .duplicateCount,
+    ).toBe(0)
   })
 })
 

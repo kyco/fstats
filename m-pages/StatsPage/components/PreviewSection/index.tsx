@@ -4,10 +4,10 @@ import { Box, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
 
 import type { StatsFile } from '@/types'
+import { TextChip } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
 import { getFileNameColor } from '../../actions'
-import TextChip from '../TextChip'
 import { ui } from './styled'
 
 type PreviewSectionProps = {

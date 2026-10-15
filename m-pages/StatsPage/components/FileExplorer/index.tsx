@@ -30,7 +30,7 @@ const Component = () => {
   return (
     <Box sx={sx.explorer}>
       <Box ref={panesRef} sx={sx.panes}>
-        <Box sx={{ ...sx.pane, ...sx.filesPane, flexBasis: `${split}%` }}>
+        <Box sx={sx.filesPane(split)}>
           <FileToolbar />
           <List disablePadding>
             {files.map((file) => (
@@ -52,7 +52,7 @@ const Component = () => {
 
         <Box sx={sx.splitDivider} onPointerDown={startResize((delta) => setSplit(clampSplit(split + delta)))} />
 
-        <Box sx={{ ...sx.pane, ...sx.datesPane, flexBasis: `${100 - split}%` }}>
+        <Box sx={sx.datesPane(split)}>
           {/* Without checked files, the date explorer says so */}
           {isCsv && checkedFiles.length ? <DateSkeleton title={t('STATS_PAGE.CSV_DISABLED')} /> : <DateExplorer />}
         </Box>

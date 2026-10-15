@@ -1,4 +1,4 @@
-import { sxListRow, sxListRowTitle } from '../../styled'
+import { sxListRow, sxListRowTitle } from '@/styles/styled'
 
 export const ui = () => {
   return {
@@ -18,7 +18,12 @@ export const ui = () => {
     chip: {
       mr: 'auto',
     },
-    title: sxListRowTitle,
+    title: (hasChip: boolean, color: string, isBold: boolean) => ({
+      ...sxListRowTitle,
+      flexGrow: hasChip ? 0 : 1,
+      color,
+      fontWeight: isBold ? 700 : 400,
+    }),
     // Greyed out like the transactions on deselected days in the table
     dateFiltered: {
       flexShrink: 0,

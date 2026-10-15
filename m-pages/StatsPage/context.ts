@@ -2,27 +2,7 @@
 
 import { createContext, useContext } from 'react'
 
-import type { useFileHelper } from '@/hooks'
-
-import type { StatsTransactions } from './actions'
-import type { DayFilter } from './useDayFilter'
-import type { DemoState } from './useViewStorage'
-
-type WorkspaceContextValue = {
-  /**
-   * Only the read-only demo file is shown, see `getDemoFile`.
-   */
-  isDemoMode: boolean
-  onAddFiles: () => void
-  onAddFolder: () => void
-  dayFilter: DayFilter
-  demoState: DemoState
-  /**
-   * Shared, so all components get the same (memoized) values.
-   */
-  files: ReturnType<typeof useFileHelper>
-  stats: StatsTransactions
-}
+import type { WorkspaceContextValue } from '@/types'
 
 /**
  * Lets the views inside the workspace use its file picker, files and transactions. Synchronous state only.

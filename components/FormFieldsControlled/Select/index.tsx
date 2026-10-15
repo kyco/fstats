@@ -9,11 +9,12 @@ import type { Control, FieldValues, Path } from 'react-hook-form'
 
 import type { SelectOptionWithType } from '@/types'
 import { useIsMobile } from '@/hooks'
-import { sxMenuItem, sxMenuPaper } from '@/styles/styled'
+import { sxMenuItem } from '@/styles/styled'
 import { logger } from '@/utils/Logger'
 import { useTranslation } from '@/lib/i18n'
 
 import SelectMenuItem from '../SelectMenuItem'
+import { ui } from './styled'
 
 type FormControlSelectProps<T extends FieldValues, P> = Omit<SelectProps, 'onChange'> & {
   name: Path<T>
@@ -50,6 +51,7 @@ const Component = <T extends FieldValues, P>({
   const { t } = useTranslation(['GLOBAL'])
   const theme = useTheme()
   const isMobile = useIsMobile()
+  const sx = ui(theme, isMobile)
 
   return (
     <Controller
@@ -75,10 +77,7 @@ const Component = <T extends FieldValues, P>({
                 slotProps: {
                   paper: {
                     elevation: 0,
-                    sx: {
-                      ...sxMenuPaper(theme, isMobile),
-                      maxWidth: 350, // Setting maxwidth to 0 here will force it to never expand past the selectbox width
-                    },
+                    sx: sx.menuPaper,
                   },
                 },
               }}
@@ -103,20 +102,9 @@ const Component = <T extends FieldValues, P>({
                 }
 
                 return (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      pr: 0.25,
-                      mr: typeof onClear === 'function' ? 2.5 : 0,
-                    }}
-                  >
+                  <Box sx={sx.value(typeof onClear === 'function')}>
                     {startIcon}
-                    <span
-                      {...(maskData ? { 'data-notrack': true } : {})}
-                      style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                    >
+                    <span {...(maskData ? { 'data-notrack': true } : {})} style={sx.valueLabel}>
                       {selectedOption.label}
                     </span>
                   </Box>
@@ -165,7 +153,7 @@ const Component = <T extends FieldValues, P>({
             </Select>
 
             {hasErrors ? (
-              <FormHelperText error sx={{ mx: 1, pt: 0.75, fontSize: 12 }}>
+              <FormHelperText error sx={sx.error}>
                 {error}
               </FormHelperText>
             ) : null}

@@ -3,16 +3,14 @@
 import { Box, Radio } from '@mui/material'
 import { useEffect, useLayoutEffect, useState } from 'react'
 
-import type { RowData } from '@/types'
+import type { HeaderRowFrame, RowData, VirtualTableColumn } from '@/types'
 import { useTranslation } from '@/lib/i18n'
 
 import { getColumnCount, getMinColumnWidth } from '../../../CsvPreview/actions'
-import type { VirtualTableColumn } from '../../../VirtualTable'
 import VirtualTable from '../../../VirtualTable'
 import { ROW_HEIGHT } from '../../../VirtualTable/actions'
+import { RADIO_COLUMN_WIDTH } from './actions'
 import { ui } from './styled'
-
-const RADIO_COLUMN_WIDTH = 40 // px
 
 type HeaderRowPickerProps = {
   rows: RowData[]
@@ -23,11 +21,6 @@ type HeaderRowPickerProps = {
   headerIndex: number
   onChange: (headerIndex: number) => void
 }
-
-type Frame = { top: number; height: number }
-
-// Rows visible without scrolling, half a row more shows there are more
-const VISIBLE_ROWS = 8.5
 
 /**
  * Rows of the file as is (like the CSV view), one is picked as the row with the column names.
@@ -51,7 +44,7 @@ const Component = ({ rows, indices, headerIndex, onChange }: HeaderRowPickerProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollElement])
   // Around the selected row, positioned from the rendered rows (rows are virtualized, a table row can't hold it)
-  const [frame, setFrame] = useState<Frame | null>(null)
+  const [frame, setFrame] = useState<HeaderRowFrame | null>(null)
 
   useLayoutEffect(() => {
     if (!scrollElement || selected < 0) {
@@ -97,7 +90,7 @@ const Component = ({ rows, indices, headerIndex, onChange }: HeaderRowPickerProp
   ]
 
   return (
-    <Box ref={setScrollElement} sx={{ ...sx.scroll, maxHeight: VISIBLE_ROWS * ROW_HEIGHT }}>
+    <Box ref={setScrollElement} sx={sx.scroll}>
       <VirtualTable
         columns={columns}
         hideHeader
@@ -114,7 +107,7 @@ const Component = ({ rows, indices, headerIndex, onChange }: HeaderRowPickerProp
         onRowClick={(index) => onChange(indices[index])}
         scrollElement={scrollElement}
       />
-      {frame && selected >= 0 ? <Box sx={{ ...sx.frame, top: frame.top, height: frame.height }} /> : null}
+      {frame && selected >= 0 ? <Box sx={sx.frame(frame)} /> : null}
     </Box>
   )
 }

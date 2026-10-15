@@ -4,46 +4,20 @@ import { ChevronRight, TuneOutlined } from '@mui/icons-material'
 import { Badge, Box, IconButton, Popover, Radio, Switch, Tooltip } from '@mui/material'
 import { countBy, sumBy } from 'lodash'
 import { useSearchParams } from 'next/navigation'
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
 
-import type { Currency } from '@/types-enums'
+import type { CurrencyFilter, FilterOption, SelectedCurrency } from '@/types'
+import { AmountFilter } from '@/types-enums'
 import { getView, WorkspaceView } from '@/common'
+import { OutlineCheckbox } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
-import { AmountFilter, filterAmount, filterTransactions } from '../../actions'
+import { ALL_CURRENCIES, filterAmount, filterTransactions } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
-import type { SelectedCurrency } from '../../useCurrencySelect'
-import { ALL_CURRENCIES } from '../../useCurrencySelect'
-import { useTableOptions } from '../../useTableOptions'
-import { useTransactionFilter } from '../../useTransactionFilter'
-import OutlineCheckbox from '../OutlineCheckbox'
-import { getCategoryGroups, getCheckState, toggleCategories } from './actions'
+import { useTableOptions, useTransactionFilter } from '../../hooks'
+import { getCategoryGroups, getCheckState, onRowKeyDown, toggleCategories } from './actions'
 import { ui } from './styled'
-
-export type FilterOption = {
-  key: string
-  label: string
-  /**
-   * Transactions the option applies to, disabled without any.
-   */
-  count: number
-  checked: boolean
-  onChange: (checked: boolean) => void
-}
-
-export type CurrencyFilter = {
-  /**
-   * Shown currencies, one can be selected when there are several (hidden with one).
-   */
-  currencies: Currency[]
-  value: SelectedCurrency
-  onChange: (value: SelectedCurrency) => void
-  /**
-   * Shows all currencies without allowing a selection, e.g. in the split transactions layout.
-   */
-  disabled?: boolean
-}
 
 type FiltersProps = {
   /**
@@ -51,14 +25,6 @@ type FiltersProps = {
    */
   options: FilterOption[]
   currency?: CurrencyFilter
-}
-
-// Rows are buttons, like the rows of the date explorer
-const onRowKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-    event.preventDefault()
-    event.currentTarget.click()
-  }
 }
 
 /**
@@ -164,7 +130,7 @@ const Component = ({ options, currency }: FiltersProps) => {
         tabIndex={onRowClick ? 0 : -1}
         aria-disabled={isDisabled}
         onKeyDown={onRowKeyDown}
-        sx={{ ...sx.row, ...rowSx, ...(onRowClick ? null : sx.disabledRow) }}
+        sx={{ ...sx.row(!onRowClick), ...rowSx }}
       >
         {start}
         <OutlineCheckbox
@@ -173,16 +139,7 @@ const Component = ({ options, currency }: FiltersProps) => {
           onClick={(event) => event.stopPropagation()}
           onChange={() => onToggle(keys)}
         />
-        <Box
-          component="span"
-          sx={{
-            ...sx.label,
-            color: isDeselected ? 'text.disabled' : 'text.primary',
-            // Deselected parents aren't emphasized, like deselected months
-            fontWeight: isParent && !isDeselected ? 600 : 400,
-            ...labelSx,
-          }}
-        >
+        <Box component="span" sx={{ ...sx.categoryLabel(isDeselected, isParent), ...labelSx }}>
           {label}
         </Box>
         <Box component="span" sx={isDisabled ? { ...sx.count, ...sx.emptyCount } : sx.count}>
@@ -245,7 +202,7 @@ const Component = ({ options, currency }: FiltersProps) => {
                         aria-disabled={!canSelectCurrency}
                         tabIndex={canSelectCurrency ? 0 : -1}
                         onKeyDown={onRowKeyDown}
-                        sx={{ ...sx.row, ...sx.optionRow, ...(canSelectCurrency ? null : sx.disabledRow) }}
+                        sx={sx.optionRow(!canSelectCurrency)}
                       >
                         <Radio
                           size="small"
@@ -275,7 +232,7 @@ const Component = ({ options, currency }: FiltersProps) => {
                   aria-disabled={!option.count}
                   tabIndex={option.count ? 0 : -1}
                   onKeyDown={onRowKeyDown}
-                  sx={{ ...sx.row, ...sx.optionRow, ...(option.count ? null : sx.disabledRow) }}
+                  sx={sx.optionRow(!option.count)}
                 >
                   <Switch
                     size="small"

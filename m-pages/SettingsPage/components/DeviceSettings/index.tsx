@@ -9,10 +9,12 @@ import { useIsMobile } from '@/hooks'
 import { useTranslation } from '@/lib/i18n'
 
 import SettingsCard from '../SettingsCard'
+import { ui } from './styled'
 
 const Component = () => {
   const { t } = useTranslation()
   const isMobile = useIsMobile()
+  const sx = ui(isMobile)
   const { persistData, setPersistData } = useUserPreferences()
 
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -21,7 +23,7 @@ const Component = () => {
 
   return (
     <SettingsCard title={t('SETTINGS_PAGE.DEVICE.TITLE')}>
-      <Box sx={{ mb: 2, display: 'flex', gap: 0.5, alignItems: 'center' }}>
+      <Box sx={sx.switch}>
         <FormControlLabel
           control={<Switch checked={persistData} onChange={onChange} />}
           label={
@@ -34,7 +36,7 @@ const Component = () => {
         />
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1.25 : 0.5 }}>
+      <Box sx={sx.info}>
         <InfoOutlined color={persistData ? 'warning' : 'secondary'} sx={{ fontSize: 16 }} />
         <Typography variant="caption" color={persistData ? 'warning' : 'text.secondary'}>
           {persistData ? t('SETTINGS_PAGE.DEVICE.PERSIST_ON') : t('SETTINGS_PAGE.DEVICE.PERSIST_OFF')}

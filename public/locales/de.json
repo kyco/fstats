@@ -22,7 +22,9 @@
     "DATE_EXCLUDED_one": "{{count}} durch Datum ausgeschlossen",
     "DATE_EXCLUDED_other": "{{count}} durch Datum ausgeschlossen",
     "DUPLICATES_EXCLUDED_one": "{{count}} Duplikat ausgeschlossen",
-    "DUPLICATES_EXCLUDED_other": "{{count}} Duplikate ausgeschlossen"
+    "DUPLICATES_EXCLUDED_other": "{{count}} Duplikate ausgeschlossen",
+    "SEARCH": "Suchen",
+    "CLEAR_SEARCH": "Suche löschen"
   },
   "NAVIGATION": {
     "HOME": "Start",
@@ -151,8 +153,6 @@
       "ALSO_IN": "Auch in {{files}}",
       "ROW_COUNT_one": "{{count}} Zeile",
       "ROW_COUNT_other": "{{count}} Zeilen",
-      "SEARCH": "Suchen",
-      "CLEAR_SEARCH": "Suche löschen",
       "SEARCH_MATCHES_one": "{{count}} Treffer",
       "SEARCH_MATCHES_other": "{{count}} Treffer",
       "NO_SEARCH_RESULTS": {

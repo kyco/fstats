@@ -1,8 +1,8 @@
-import type { RowVariant } from '.'
+import type { ProfitLossRowVariant } from '@/types'
 
 const LABEL_WIDTH = 240 // px
 
-const INDENT: Record<RowVariant, number> = {
+const INDENT: Record<ProfitLossRowVariant, number> = {
   category: 0,
   subcategory: 3.5,
   transaction: 3.5,
@@ -89,7 +89,7 @@ export const ui = () => {
     expandable: {
       cursor: 'pointer',
     },
-    labelCell: (variant: RowVariant) => ({
+    labelCell: (variant: ProfitLossRowVariant) => ({
       ...cell,
       ...stickyLabel,
       width: LABEL_WIDTH,
@@ -103,7 +103,7 @@ export const ui = () => {
           ? 'text.secondary'
           : 'text.primary',
     }),
-    labelContent: (variant: RowVariant) => ({
+    labelContent: (variant: ProfitLossRowVariant) => ({
       // The cell's width without its padding (8px per spacing unit)
       width: LABEL_WIDTH - (2 + INDENT[variant]) * 8,
       overflow: 'hidden',
@@ -135,7 +135,7 @@ export const ui = () => {
       display: 'block',
       pl: 2,
     },
-    amount: (variant: RowVariant) => ({
+    amount: (variant: ProfitLossRowVariant) => ({
       ...cell,
       textAlign: 'right' as const,
       fontWeight: variant === 'total' || variant === 'net' ? 700 : 400,

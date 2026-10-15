@@ -13,12 +13,14 @@ import { useTranslation } from '@/lib/i18n'
 import SwipeableDrawer from '../SwipeableDrawer'
 import { FULL_WIDTH_ROUTES } from './actions'
 import { MainMenu, MenuDrawer, Sidebar } from './components'
+import { ui } from './styled'
 
 type LayoutProps = {
   children: ReactNode
 }
 
 const Component = ({ children }: LayoutProps) => {
+  const sx = ui()
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const isMobile = useIsMobile()
@@ -39,13 +41,7 @@ const Component = ({ children }: LayoutProps) => {
       <>
         <Sidebar expanded={expanded} onToggle={() => setExpanded(!expanded)} />
 
-        <Box
-          sx={{
-            pl: `${expanded ? LAYOUT.SIDEBAR_WIDTH_EXPANDED : LAYOUT.SIDEBAR_WIDTH}px`,
-            transition: 'padding-left 0.2s',
-            '@media print': { pl: 0 },
-          }}
-        >
+        <Box sx={sx.content(expanded)}>
           <Container maxWidth={isFullWidth ? false : LAYOUT.CONTAINER_MAX_WIDTH} disableGutters={isFullWidth}>
             {children}
           </Container>
@@ -69,7 +65,7 @@ const Component = ({ children }: LayoutProps) => {
         onClose={onClose}
         onOpen={onOpen}
         mainMenu
-        headerSx={{ mt: 1, py: 2, px: 4 }}
+        headerSx={sx.drawerHeader}
       >
         <MenuDrawer onClose={onClose} />
       </SwipeableDrawer>

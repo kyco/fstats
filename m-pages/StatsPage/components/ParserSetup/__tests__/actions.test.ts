@@ -66,7 +66,7 @@ describe('toMapping', () => {
     ]
     const testDraft = toDraft(detectMapping(feeRows), { bankName: 'Bank', accountName: 'Current' })
     const columns = { ...testDraft.columns, moneyIn: ['In'], moneyOut: ['Out'] }
-    const draft = { ...testDraft, columns: connectColumn(columns, 'moneyOut', 'Fee') }
+    const draft = { ...testDraft, columns: connectColumn({ columns: columns, field: 'moneyOut', column: 'Fee' }) }
 
     expect(toMapping(draft, feeRows)?.columns.amount).toEqual({
       type: 'sum',
@@ -102,16 +102,24 @@ describe('connectColumn', () => {
   it('should connect the column to one field only', () => {
     const { columns } = toTestDraft()
 
-    expect(connectColumn(columns, 'description', 'Date')).toEqual({ ...columns, date: [], description: ['Date'] })
-    expect(connectColumn(columns, 'balance', 'Details')).toEqual({ ...columns, description: [], balance: ['Details'] })
+    expect(connectColumn({ columns: columns, field: 'description', column: 'Date' })).toEqual({
+      ...columns,
+      date: [],
+      description: ['Date'],
+    })
+    expect(connectColumn({ columns: columns, field: 'balance', column: 'Details' })).toEqual({
+      ...columns,
+      description: [],
+      balance: ['Details'],
+    })
   })
 
   it('should toggle columns of money in and out, which can share a column', () => {
     const { columns } = toTestDraft()
-    const shared = connectColumn(columns, 'moneyIn', 'Paid out')
+    const shared = connectColumn({ columns: columns, field: 'moneyIn', column: 'Paid out' })
 
     expect(shared).toEqual({ ...columns, moneyIn: ['Paid in', 'Paid out'] })
-    expect(connectColumn(shared, 'moneyIn', 'Paid out')).toEqual(columns)
+    expect(connectColumn({ columns: shared, field: 'moneyIn', column: 'Paid out' })).toEqual(columns)
   })
 })
 
@@ -133,8 +141,12 @@ describe('getConnectChanges', () => {
     const draft = toDraft(detectMapping(dateRows))
 
     expect(draft.dateFormat).toBe('dd/MM/yyyy')
-    expect(getConnectChanges(dateRows, draft, 'date', 'Valued')).toMatchObject({ dateFormat: 'yyyy-MM-dd' })
-    expect(getConnectChanges(dateRows, draft, 'description', 'Details')).not.toHaveProperty('dateFormat')
+    expect(getConnectChanges({ rows: dateRows, draft: draft, field: 'date', column: 'Valued' })).toMatchObject({
+      dateFormat: 'yyyy-MM-dd',
+    })
+    expect(
+      getConnectChanges({ rows: dateRows, draft: draft, field: 'description', column: 'Details' }),
+    ).not.toHaveProperty('dateFormat')
   })
 
   it('should pick the number format of the amounts, if they tell', () => {
@@ -144,7 +156,9 @@ describe('getConnectChanges', () => {
     ]
     const draft = { ...toDraft(detectMapping(numberRows)), numberFormat: 'en' as const }
 
-    expect(getConnectChanges(numberRows, draft, 'moneyOut', 'Fee')).toMatchObject({ numberFormat: 'de' })
+    expect(getConnectChanges({ rows: numberRows, draft: draft, field: 'moneyOut', column: 'Fee' })).toMatchObject({
+      numberFormat: 'de',
+    })
   })
 })
 
@@ -170,7 +184,7 @@ describe('getAmountValues', () => {
     const amountRows = [header, ['15/01/2026', 'Coffee', '-3.50'], header, ['16/01/2026', 'Refund', '10.00']]
     const { columns } = toDraft(detectMapping(amountRows))
 
-    expect(getAmountValues(amountRows, 0, columns)).toEqual(['-3.50', '10.00'])
+    expect(getAmountValues({ rows: amountRows, headerIndex: 0, columns: columns })).toEqual(['-3.50', '10.00'])
   })
 })
 

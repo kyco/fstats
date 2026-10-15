@@ -4,14 +4,13 @@ import { AccountBalanceOutlined, CreditCardOutlined } from '@mui/icons-material'
 import { Box, Chip } from '@mui/material'
 import { useMemo } from 'react'
 
-import type { StatsFile } from '@/types'
+import type { StatsFile, TransactionFilter } from '@/types'
 import { MISC } from '@/common'
 import { getFileCurrency, getFileTransactions, isParsed } from '@/m-stats-file/service'
 import { useUserPreferences } from '@/m-user/service'
 import { toDisplayDate } from '@/utils/Date'
 import { formatFileSize } from '@/utils/File'
 
-import type { TransactionFilter } from '../../actions'
 import {
   filterDays,
   filterTransactions,
@@ -88,7 +87,7 @@ const Component = ({ file, filter }: FileDetailsProps) => {
         {renderAccount()}
         <Box sx={sx.meta}>
           {formatFileSize(file.file.size)} {MISC.CENTER_DOT}{' '}
-          {toDisplayDate(new Date(file.created), locale, { formatTo: 'd MMM yyyy, HH:mm' })}
+          {toDisplayDate({ date: new Date(file.created), locale, formatTo: 'd MMM yyyy, HH:mm' })}
         </Box>
       </Box>
     </StatsRow>

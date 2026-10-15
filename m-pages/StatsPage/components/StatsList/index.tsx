@@ -2,7 +2,7 @@
 
 import { Box, Typography } from '@mui/material'
 
-import type { Transaction } from '@/types'
+import type { Transaction, TransactionCounts } from '@/types'
 import type { Currency } from '@/types-enums'
 import { useUserPreferences } from '@/m-user/service'
 import { toFixedLocaleCurrency } from '@/utils/Number'
@@ -10,7 +10,6 @@ import { getStats } from '@/utils/Stats'
 import { useTranslation } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
-import type { TransactionCounts } from '../../actions'
 import { getAmountColor, getTransactionCountText } from '../../actions'
 import { ui } from './styled'
 
@@ -49,7 +48,7 @@ const Component = ({ transactions, currency, counts }: StatsListProps) => {
               {item.label}
             </Typography>
             <Typography component="dd" sx={{ ...sx.value, color: getAmountColor(item.value) }}>
-              {toFixedLocaleCurrency(item.value, currency, locale)}
+              {toFixedLocaleCurrency({ value: item.value, currency, locale })}
             </Typography>
           </Box>
         ))}
@@ -57,8 +56,8 @@ const Component = ({ transactions, currency, counts }: StatsListProps) => {
           <Typography component="dt" sx={{ ...sx.label, ...sx.total }}>
             {t('MISC.TOTAL')}
           </Typography>
-          <Typography component="dd" sx={{ ...sx.value, ...sx.total, color: getAmountColor(profit) }}>
-            {toFixedLocaleCurrency(profit, currency, locale)}
+          <Typography component="dd" sx={sx.totalValue(getAmountColor(profit))}>
+            {toFixedLocaleCurrency({ value: profit, currency, locale })}
           </Typography>
         </Box>
       </Box>

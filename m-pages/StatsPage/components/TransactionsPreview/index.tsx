@@ -4,13 +4,12 @@ import { uniq } from 'lodash'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 
-import type { StatsFile } from '@/types'
+import type { StatsFile, TransactionFilter } from '@/types'
 import { isParsed } from '@/m-stats-file/service'
 import { useUserPreferences } from '@/m-user/service'
 import { getTransactionDay } from '@/utils/Date'
 import { useTranslation } from '@/lib/i18n'
 
-import type { TransactionFilter } from '../../actions'
 import { filterTransactions, getTransactionCounts, getTransactionCountText } from '../../actions'
 import { useWorkspaceDayFilter } from '../../context'
 import FileMessage from '../FileMessage'
@@ -26,9 +25,7 @@ import {
   getTransactionColumns,
   getTransactionTag,
 } from './actions'
-
-// Duplicates and transactions on days deselected in the date explorer, not counted anywhere
-const EXCLUDED_ROW_STYLE = { opacity: 0.4, textDecoration: 'line-through' }
+import { ui } from './styled'
 
 type TransactionsPreviewProps = {
   files: StatsFile[]
@@ -76,6 +73,7 @@ const Component = ({
   canStick = true,
   showFileName = false,
 }: TransactionsPreviewProps) => {
+  const sx = ui()
   const { t } = useTranslation()
   const { locale, dateFormat } = useUserPreferences()
   const { deselectedDays } = useWorkspaceDayFilter()
@@ -99,11 +97,11 @@ const Component = ({
   // Duplicates are already marked, no need to look for them again
   const counts = useMemo(
     () =>
-      getTransactionCounts(
-        allTransactions,
+      getTransactionCounts({
+        transactions: allTransactions,
         deselectedDays,
-        new Set(allTransactions.filter((transaction) => transaction.isDuplicate)),
-      ),
+        duplicates: new Set(allTransactions.filter((transaction) => transaction.isDuplicate)),
+      }),
     [allTransactions, deselectedDays],
   )
   const dayTransactions = useMemo(
@@ -127,7 +125,7 @@ const Component = ({
     [isSearching, dayTransactions, cellOptions],
   )
   const transactions = useMemo(
-    () => filterBySearch(dayTransactions, searchTexts, search),
+    () => filterBySearch({ rows: dayTransactions, searchTexts, query: search }),
     [dayTransactions, searchTexts, search],
   )
   const tags = useMemo(
@@ -140,13 +138,13 @@ const Component = ({
   const columns = useMemo(() => {
     const shownTags = uniq(tags.filter((tag) => tag !== null))
 
-    return getTransactionColumns(
+    return getTransactionColumns({
       currency,
-      isCombined,
+      showSource: isCombined,
       amountFilter,
       t,
-      shownTags.length ? { shown: shownTags, getTag: (rowIndex) => tags[rowIndex] } : undefined,
-    )
+      tags: shownTags.length ? { shown: shownTags, getTag: (rowIndex) => tags[rowIndex] } : undefined,
+    })
   }, [currency, isCombined, amountFilter, t, tags])
   // Same condition as the column in `getTransactionColumns`
   const hasTagColumn = isCombined || tags.some((tag) => tag !== null)
@@ -181,12 +179,12 @@ const Component = ({
           getCells={(index) => [
             ...getTransactionCells(transactions[index], cellOptions),
             ...(hasTagColumn
-              ? [getSourceLabel(transactions[index], { showSource: isCombined, tag: tags[index] }, t)]
+              ? [getSourceLabel({ transaction: transactions[index], showSource: isCombined, tag: tags[index], t })]
               : []),
           ]}
           highlight={search}
           stickyHeaderTop={isSticky ? STICKY_HEADER_OFFSET : undefined}
-          getRowStyle={(index) => (tags[index] ? EXCLUDED_ROW_STYLE : undefined)}
+          getRowStyle={(index) => (tags[index] ? sx.excludedRow : undefined)}
           scrollElement={scrollElement}
         />
       ) : (

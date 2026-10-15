@@ -127,10 +127,16 @@ export const getMatchingDateFormats = (values: string[]): string[] => {
   return dates.length ? getDateFormats(dates) : []
 }
 
+type GetDataRowsProps = {
+  rows: RowData[]
+  headerIndex: number
+  limit?: number
+}
+
 /**
  * Rows after the header row with as many cells, like the transaction rows `createParser` reads.
  */
-export const getDataRows = (rows: RowData[], headerIndex: number, limit = Infinity): RowData[] => {
+export const getDataRows = ({ rows, headerIndex, limit = Infinity }: GetDataRowsProps): RowData[] => {
   const header = rows[headerIndex]
   const dataRows: RowData[] = []
 
@@ -147,11 +153,17 @@ export const getDataRows = (rows: RowData[], headerIndex: number, limit = Infini
   return dataRows
 }
 
+type GetTransactionRowsProps = {
+  rows: RowData[]
+  headerIndex: number
+  limit?: number
+}
+
 /**
  * The data rows (see `getDataRows`) with a date, i.e. transactions. Other rows with as many cells (e.g. a repeated
  * header row or totals) would make columns look like text. Without any dates, all data rows.
  */
-export const getTransactionRows = (rows: RowData[], headerIndex: number, limit = Infinity): RowData[] => {
+export const getTransactionRows = ({ rows, headerIndex, limit = Infinity }: GetTransactionRowsProps): RowData[] => {
   const header = rows[headerIndex]
   const dataRows: RowData[] = []
   const transactionRows: RowData[] = []
@@ -196,7 +208,9 @@ export const getHeaderCandidates = (rows: RowData[]): { index: number; score: nu
     .slice(0, MAX_HEADER_INDEX)
     .map((row, index) => ({
       index,
-      score: looksLikeHeader(row) ? getDataRows(rows, index, HEADER_SAMPLE_SIZE).filter(hasDate).length : 0,
+      score: looksLikeHeader(row)
+        ? getDataRows({ rows, headerIndex: index, limit: HEADER_SAMPLE_SIZE }).filter(hasDate).length
+        : 0,
     }))
     .filter(({ score }) => score > 0)
 }
@@ -259,15 +273,17 @@ const getSynonymRank = (key: string, synonyms: string[]) => {
   )
 }
 
+type PickColumnProps = {
+  columns: Column[]
+  synonyms: string[]
+  isCandidate: (column: Column) => boolean
+  used: Set<string>
+}
+
 /**
  * The unused column best matching the synonyms, the first one on equal rank.
  */
-const pickColumn = (
-  columns: Column[],
-  synonyms: string[],
-  isCandidate: (column: Column) => boolean,
-  used: Set<string>,
-) => {
+const pickColumn = ({ columns, synonyms, isCandidate, used }: PickColumnProps) => {
   const ranked = columns
     .filter((column) => !used.has(column.name) && isCandidate(column))
     .map((column) => ({ column, rank: getSynonymRank(column.key, synonyms) }))
@@ -348,7 +364,7 @@ const detectCurrency = (rows: RowData[]): Currency | null => {
  */
 export const detectMapping = (rows: RowData[], headerIndex = detectHeaderIndex(rows)): DetectedMapping => {
   const header = rows[headerIndex] ?? []
-  const dataRows = getTransactionRows(rows, headerIndex, COLUMN_SAMPLE_SIZE)
+  const dataRows = getTransactionRows({ rows, headerIndex, limit: COLUMN_SAMPLE_SIZE })
   const columns = toColumns(header, dataRows)
   const used = new Set<string>()
   const claim = (column: Column | null) => {
@@ -357,19 +373,21 @@ export const detectMapping = (rows: RowData[], headerIndex = detectHeaderIndex(r
   }
 
   const date = claim(
-    pickColumn(columns, DATE_SYNONYMS, (column) => column.dateFormats.length > 0, used) ??
+    pickColumn({ columns, synonyms: DATE_SYNONYMS, isCandidate: (column) => column.dateFormats.length > 0, used }) ??
       columns.find((column) => column.dateFormats.length) ??
       null,
   )
 
   const isAmountColumn = (column: Column) => column.isAmountLike
   // Both or neither, a single one is no amount
-  const moneyIn = pickColumn(columns, IN_SYNONYMS, isAmountColumn, used)
-  const moneyOut = pickColumn(columns, OUT_SYNONYMS, isAmountColumn, used)
+  const moneyIn = pickColumn({ columns, synonyms: IN_SYNONYMS, isCandidate: isAmountColumn, used })
+  const moneyOut = pickColumn({ columns, synonyms: OUT_SYNONYMS, isCandidate: isAmountColumn, used })
   const inOut = moneyIn && moneyOut ? { moneyIn: claim(moneyIn)!, moneyOut: claim(moneyOut)! } : null
-  const signed = inOut ? null : claim(pickColumn(columns, AMOUNT_SYNONYMS, (column) => column.isNumeric, used))
+  const signed = inOut
+    ? null
+    : claim(pickColumn({ columns, synonyms: AMOUNT_SYNONYMS, isCandidate: (column) => column.isNumeric, used }))
 
-  const balance = claim(pickColumn(columns, BALANCE_SYNONYMS, isAmountColumn, used))
+  const balance = claim(pickColumn({ columns, synonyms: BALANCE_SYNONYMS, isCandidate: isAmountColumn, used }))
   // Without known names, the first numeric column, preferring one with negative values
   const numeric = columns.filter((column) => column.isNumeric && !used.has(column.name))
   const fallback = inOut
@@ -377,19 +395,25 @@ export const detectMapping = (rows: RowData[], headerIndex = detectHeaderIndex(r
     : (signed ?? claim(numeric.find((column) => column.values.some((value) => value.startsWith('-'))) ?? numeric[0]))
 
   // Before the description, which could otherwise be a category column. The parent first, "Category" matches it too.
-  const parentCategory = claim(pickColumn(columns, PARENT_CATEGORY_SYNONYMS, (column) => !column.isNumeric, used))
-  const category = claim(pickColumn(columns, CATEGORY_SYNONYMS, (column) => !column.isNumeric, used))
+  const parentCategory = claim(
+    pickColumn({ columns, synonyms: PARENT_CATEGORY_SYNONYMS, isCandidate: (column) => !column.isNumeric, used }),
+  )
+  const category = claim(
+    pickColumn({ columns, synonyms: CATEGORY_SYNONYMS, isCandidate: (column) => !column.isNumeric, used }),
+  )
 
   const description = claim(
-    pickColumn(columns, DESCRIPTION_SYNONYMS, (column) => column.isText, used) ??
+    pickColumn({ columns, synonyms: DESCRIPTION_SYNONYMS, isCandidate: (column) => column.isText, used }) ??
       maxBy(
         columns.filter((column) => column.isText && !used.has(column.name)),
         (column) => meanBy(column.values, 'length'),
       ) ??
       null,
   )
-  const reference = claim(pickColumn(columns, REFERENCE_SYNONYMS, () => true, used))
-  const transactionType = claim(pickColumn(columns, TYPE_SYNONYMS, (column) => !column.isNumeric, used))
+  const reference = claim(pickColumn({ columns, synonyms: REFERENCE_SYNONYMS, isCandidate: () => true, used }))
+  const transactionType = claim(
+    pickColumn({ columns, synonyms: TYPE_SYNONYMS, isCandidate: (column) => !column.isNumeric, used }),
+  )
 
   const amount: DetectedMapping['columns']['amount'] = inOut
     ? { type: 'inOut', in: inOut.moneyIn.name, out: inOut.moneyOut.name }
