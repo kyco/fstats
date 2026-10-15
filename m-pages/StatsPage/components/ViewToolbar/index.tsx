@@ -11,6 +11,7 @@ import { RadioItem } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
 import Filters from '../Filters'
+import RulesetSelect from '../RulesetSelect'
 import { ui } from './styled'
 
 type ViewToolbarProps = {
@@ -69,6 +70,7 @@ const Component = ({ children, end, options, currency }: ViewToolbarProps) => {
       <Box sx={sx.spacer} />
       {end}
       {/* On every view, so the toolbar doesn't change when switching */}
+      <RulesetSelect />
       <Filters options={options ?? []} currency={currency} />
     </Box>
   )

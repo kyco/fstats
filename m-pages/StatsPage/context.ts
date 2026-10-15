@@ -39,3 +39,10 @@ export const useWorkspaceDayFilter = () => {
 export const useStatsTransactions = () => {
   return useWorkspace().stats
 }
+
+/**
+ * The transaction clicked in the transactions table, shown in the sidebar, see `useSelectedTransaction`.
+ */
+export const useWorkspaceSelectedTransaction = () => {
+  return useWorkspace().selectedTransaction
+}

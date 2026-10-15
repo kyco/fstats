@@ -1,3 +1,5 @@
+import type { Theme } from '@mui/material/styles'
+
 export const ui = () => {
   return {
     // Equal width digits, so numbers align across rows
@@ -22,6 +24,20 @@ export const ui = () => {
       color: 'text.secondary',
     },
 
+    // Right aligned, the conflict icon before the info icon
+    infoCell: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 0.5,
+    },
+    // Other rule sets would categorise the transaction differently
+    conflictIcon: {
+      display: 'block',
+      fontSize: 14,
+      color: 'warning.main',
+    },
+
     infoIcon: {
       display: 'block',
       fontSize: 14,
@@ -30,5 +46,9 @@ export const ui = () => {
 
     // Duplicates and transactions on days deselected in the date explorer, not counted anywhere
     excludedRow: { opacity: 0.4, textDecoration: 'line-through' },
+
+    // The selected transaction, and those matching the rule being created for it
+    selectedRow: (theme: Theme) => ({ backgroundColor: theme.vars.palette.action.selected }),
+    matchedRow: (theme: Theme) => ({ backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.08)` }),
   }
 }

@@ -26,6 +26,8 @@ export const MISC = {
   LS_STATS_BREAKDOWN_PERIOD_KEY: 'fstats__data_breakdown_period',
   LS_STATS_CURRENCY_KEY: 'fstats__data_currency',
   LS_DEMO_FIRST_VIEWED_KEY: 'fstats__demo_first_viewed',
+  LS_CATEGORY_RULESET_KEY: 'fstats__category_ruleset',
+  LS_CATEGORY_MY_RULES_KEY: 'fstats__category_my_rules',
   SS_SESSION_KEY: 'fstats__session',
   USER_KEY: 'current_user',
 } as const

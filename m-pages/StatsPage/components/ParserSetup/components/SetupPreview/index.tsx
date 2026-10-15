@@ -41,7 +41,7 @@ const Component = ({ preview, currency, dateFormat: fileDateFormat, scrollElemen
   const transactions = preview?.transactions.slice(0, PREVIEW_ROWS) ?? []
   const [dateColumn, ...otherColumns] = getTransactionColumns({
     currency,
-    showSource: false,
+    showInfo: false,
     amountFilter: AmountFilter.ALL,
     t,
   })

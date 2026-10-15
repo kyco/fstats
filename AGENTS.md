@@ -12,6 +12,7 @@ Privacy-focused CSV bank statement parser. All processing is client-side (Indexe
 
 - **API Layer** (`api/`) — LocalForage operations and persistence/runtime schema synchronization; monetary values stay decimal strings and use `Big` for calculations
 - **Service Layer** (`service/`) — TanStack Query hooks, cache management, business logic
+- `m-category` decides the categories of transactions when they're shown (never at parse time), see `resolveCategory`: override of the transaction > "My rules" (if checked) > the checked rule sets (built-in in `utils/Category/rulesets/`, or the user's; combined, longest keyword wins, then list order) > uncategorised. User rule sets, "My rules" and overrides are stored in IndexedDB, the checked rule sets in LocalStorage
 - Modules without persistence have only `service/`, e.g. `m-transaction` (filters, duplicates, counts, stats, profit and loss, date ranges); its types are in `types/services/transaction.ts`
 - Page-independent logic belongs in a module, not in a page's `actions.ts`; low-level helpers that `utils/Parser` needs stay in `utils/` (e.g. `utils/Stats`)
 
@@ -62,3 +63,7 @@ Banks are declarative definitions in `utils/Parser/banks/`. `BANKS` in `utils/Pa
 4. A file must match exactly one format. The registry test fails if a format's required headers are a subset of another format's headers — make sure `headers` lists all headers of the file.
 5. Changing how existing files are parsed or renaming a bank or format `id`: bump `PARSER_VERSION` in `utils/Parser/create-parser.ts`, so stored files are re-parsed.
 6. Add the bank to the README list under its country. The homepage "Supported banks" list derives from `BANKS` via `getSupportedBanks()` (`m-pages/HomePage/actions.ts`).
+
+## Adding a Built-in Category Rule Set
+
+Built-in rule sets are declarative definitions in `utils/Category/rulesets/` (like banks). `RULESETS` in `utils/Category/registry.ts` is the registry. Copy `utils/Category/rulesets/_template.ts` (documents every field), add it to `RULESETS` and its name to `STATS_PAGE.CATEGORY_RULES.RULESETS` in both locale files. Rule set IDs are stored as the checked rule sets — never change them. Changing rules needs no `PARSER_VERSION` bump.

@@ -130,7 +130,8 @@
     },
     "SIDEBAR": {
       "DATE_FILTERED": "Nach Datum gefiltert",
-      "FILE_DETAILS": "Dateidetails"
+      "FILE_DETAILS": "Dateidetails",
+      "TRANSACTION_DETAILS": "Transaktionsdetails"
     },
     "FILTERS": {
       "TITLE": "Filter",
@@ -291,6 +292,87 @@
       "SAVED_TITLE": "Format gespeichert",
       "SAVED_SUBTITLE": "Diese Datei kannst du jetzt ansehen: <file>{{file}}</file>",
       "SUBMIT_FORMAT": "Format auf GitHub einreichen"
+    },
+    "CATEGORY_RULES": {
+      "TITLE": "Kategorieregeln",
+      "RULESETS": {
+        "default": "Standard",
+        "minimal_germany": "Minimal – Deutschland"
+      },
+      "BUILT_IN": "Vorgegeben",
+      "CUSTOM": "Deine Regelsätze",
+      "NONE": "Kein Regelsatz",
+      "DELETE_RULESET": "Regelsatz löschen",
+      "CONFIRM_DELETE_RULESET": "Möchtest du den Regelsatz „{{name}}“ und seine Regeln wirklich löschen?",
+      "MY_RULES": "Meine Regeln",
+      "MY_RULES_DESCRIPTION": "Gelten mit jedem Regelsatz",
+      "CHANGE_CATEGORY": "Kategorie ändern",
+      "NEW_CATEGORY": "Neue Kategorie",
+      "CHOOSE_CATEGORY": "Kategorie wählen",
+      "SEARCH_CATEGORIES": "Kategorien suchen",
+      "NO_MATCHING_CATEGORIES": "Keine passenden Kategorien",
+      "APPLY_TO": "Anwenden auf",
+      "THIS_TRANSACTION": "Nur diese Transaktion",
+      "ALL_MATCHING": "Alle passenden",
+      "ONLY_THIS": "Nur diese Transaktion wird geändert.",
+      "ONLY_THIS_SIMILAR_one": "Nur diese Transaktion wird geändert, nicht die <b>{{count}}</b> andere mit gleicher Beschreibung.",
+      "ONLY_THIS_SIMILAR_other": "Nur diese Transaktion wird geändert, nicht die <b>{{count}}</b> anderen mit gleicher Beschreibung.",
+      "KEYWORD": "Enthält",
+      "CONDITION": "Beschreibung",
+      "MATCH_TYPES": {
+        "contains": "Enthält",
+        "startsWith": "Beginnt mit",
+        "equals": "Entspricht genau"
+      },
+      "IGNORE_CASE": "Groß- und Kleinschreibung ignorieren",
+      "MATCH_COUNT_one": "Passt auf <b>{{count}}</b> Transaktion",
+      "MATCH_COUNT_other": "Passt auf <b>{{count}}</b> Transaktionen",
+      "NO_MATCH": "Passt nicht auf diese Transaktion",
+      "FIELD": "Suchen in",
+      "FIELDS": {
+        "description": "Beschreibung",
+        "category": "Bankkategorie",
+        "parentCategory": "Bank-Oberkategorie"
+      },
+      "AMOUNTS": "Gilt für Beträge",
+      "SAVE_TO": "Speichern in",
+      "NEW_RULESET": "Neuer Regelsatz …",
+      "RULESET_NAME": "Name des Regelsatzes",
+      "COPY_BUILT_IN": "Mit den Regeln von „{{name}}“ beginnen",
+      "SOURCE": {
+        "override": "Nur für diese Transaktion festgelegt.",
+        "myRule": "Durch Regel <b>{{rule}}</b> aus <b>{{name}}</b> festgelegt.",
+        "customRule": "Durch Regel <b>{{rule}}</b> des Regelsatzes <b>{{name}}</b> festgelegt.",
+        "ruleset": "Über Regelsatz <b>{{name}}</b>.",
+        "preset": "In den Demodaten festgelegt.",
+        "none": "Keine Regel passt."
+      },
+      "ALSO_MATCHED": "Passt auch auf: {{matches}}",
+      "RESET": "Zurücksetzen",
+      "CONFIRM_RESET": "Möchtest du die Kategorie dieser Transaktion wirklich zurücksetzen?",
+      "DELETE_RULE": "Regel löschen",
+      "CONFIRM_DELETE_RULE": "Möchtest du Regel {{rule}} („{{keyword}}“) wirklich löschen? Sie gilt dann für keine der passenden Transaktionen mehr.",
+      "SAVE": "Speichern",
+      "CANCEL": "Abbrechen",
+      "SAVE_FAILED": "Speichern fehlgeschlagen: {{message}}"
+    },
+    "TRANSACTION_DETAILS": {
+      "CLOSE": "Schließen",
+      "ADDITIONAL_FIELDS": "Weitere Felder",
+      "BANK_PARENT_CATEGORY": "Bank-Oberkategorie",
+      "BANK_CATEGORY": "Bankkategorie",
+      "TYPE": "Art",
+      "REFERENCE": "Referenz",
+      "BALANCE": "Kontostand",
+      "STATS": "Statistik",
+      "ONLY_ONCE": "Keine andere Transaktion hat diese Beschreibung.",
+      "OCCURRENCES": "Vorkommen",
+      "OCCURRENCE_COUNT_one": "{{count}}-mal",
+      "OCCURRENCE_COUNT_other": "{{count}}-mal",
+      "TOTAL": "Summe",
+      "AVERAGE": "Durchschnitt",
+      "FIRST": "Erste",
+      "LAST": "Letzte"
     }
   },
   "SETTINGS_PAGE": {
@@ -306,15 +388,23 @@
       "FILES_other": "Dateien",
       "CUSTOM_FORMATS_one": "Eigenes Format",
       "CUSTOM_FORMATS_other": "Eigene Formate",
+      "CATEGORY_RULES_one": "Kategorieregel",
+      "CATEGORY_RULES_other": "Kategorieregeln",
       "STORAGE_USED": "Belegter Speicher",
       "NO_FILES": "Keine Dateien gespeichert.",
       "NO_FORMATS": "Noch keine eigenen Formate. Richte eines über eine nicht unterstützte Datei auf der Statistikseite ein.",
+      "NO_RULES": "Noch keine Kategorieregeln. Ändere eine Kategorie in der Transaktionstabelle auf der Statistikseite.",
+      "RULE_COUNT_one": "{{count}} Regel",
+      "RULE_COUNT_other": "{{count}} Regeln",
+      "SINGLE_TRANSACTIONS": "Einzelne Transaktionen",
       "FAILED_TO_CALCULATE": "Berechnung fehlgeschlagen",
       "CONFIRM_DELETE_FILES": "Möchtest du wirklich alle Dateien löschen?",
       "DELETE_FILES": "Dateien löschen",
       "CONFIRM_DELETE_FORMATS": "Möchtest du wirklich alle eigenen Formate löschen? Damit gelesene Dateien müssen erneut eingerichtet werden.",
       "DELETE_FORMATS": "Formate löschen",
-      "CONFIRM_DELETE_ALL": "Möchtest du wirklich alle Daten löschen? Dabei werden alle Dateien und eigenen Formate gelöscht.",
+      "CONFIRM_DELETE_RULES": "Möchtest du wirklich alle Kategorieregeln, Regelsätze und geänderten Kategorien löschen?",
+      "DELETE_RULES": "Regeln löschen",
+      "CONFIRM_DELETE_ALL": "Möchtest du wirklich alle Daten löschen? Dabei werden alle Dateien, eigenen Formate und Kategorieregeln gelöscht.",
       "DELETE_ALL_DATA": "Alle Daten löschen"
     },
     "LAYOUT": {

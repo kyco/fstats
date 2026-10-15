@@ -4,7 +4,9 @@ export const ui = () => {
     toolbar: {
       flexShrink: 0,
       display: 'flex',
-      flexWrap: 'wrap',
+      // Always a single row, the search field and then the rule set select shrink instead
+      flexWrap: 'nowrap',
+      overflow: 'hidden',
       alignItems: 'center',
       gap: 1,
       minHeight: 40,
@@ -14,6 +16,7 @@ export const ui = () => {
       borderColor: 'divider',
     },
     views: {
+      flexShrink: 0,
       display: 'flex',
       alignItems: 'center',
       gap: 2,

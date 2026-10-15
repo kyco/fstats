@@ -271,3 +271,87 @@ export const HeaderRowProblem = {
 export type HeaderRowProblem = (typeof HeaderRowProblem)[keyof typeof HeaderRowProblem]
 
 // -------------------------------------------------------
+
+/**
+ * What a category rule matches its keyword against: the description, or the category or parent category the file
+ * comes with (e.g. "Groceries"), which is only used for matching, never as the category itself.
+ */
+export const CategoryRuleField = {
+  DESCRIPTION: 'description',
+  CATEGORY: 'category',
+  PARENT_CATEGORY: 'parentCategory',
+} as const
+
+export const zCategoryRuleField = z.enum([
+  CategoryRuleField.DESCRIPTION,
+  CategoryRuleField.CATEGORY,
+  CategoryRuleField.PARENT_CATEGORY,
+] as const)
+
+export type CategoryRuleField = z.infer<typeof zCategoryRuleField>
+
+// -------------------------------------------------------
+
+/**
+ * How a category rule matches its keyword, always ignoring case: as whole words anywhere, at the start, or the whole
+ * value.
+ */
+export const CategoryRuleMatch = {
+  CONTAINS: 'contains',
+  STARTS_WITH: 'startsWith',
+  EQUALS: 'equals',
+} as const
+
+export const zCategoryRuleMatch = z.enum([
+  CategoryRuleMatch.CONTAINS,
+  CategoryRuleMatch.STARTS_WITH,
+  CategoryRuleMatch.EQUALS,
+] as const)
+
+export type CategoryRuleMatch = z.infer<typeof zCategoryRuleMatch>
+
+// -------------------------------------------------------
+
+/**
+ * Which transactions a category rule applies to: all, money in (also zero amounts) or money out.
+ */
+export const CategoryRuleDirection = {
+  ANY: 'any',
+  IN: 'in',
+  OUT: 'out',
+} as const
+
+export const zCategoryRuleDirection = z.enum([
+  CategoryRuleDirection.ANY,
+  CategoryRuleDirection.IN,
+  CategoryRuleDirection.OUT,
+] as const)
+
+export type CategoryRuleDirection = z.infer<typeof zCategoryRuleDirection>
+
+// -------------------------------------------------------
+
+/**
+ * Where the category of a transaction comes from, see `resolveCategory`. First match wins, in this order.
+ */
+export const CategorySource = {
+  /**
+   * Set for this transaction only.
+   */
+  OVERRIDE: 'override',
+  /**
+   * A rule of "My rules", applied with every rule set.
+   */
+  MY_RULE: 'myRule',
+  /**
+   * Set in the transaction data, i.e. the demo transactions. Only with a built-in rule set.
+   */
+  PRESET: 'preset',
+  /**
+   * A rule of the selected rule set.
+   */
+  RULESET: 'ruleset',
+  NONE: 'none',
+} as const
+
+export type CategorySource = (typeof CategorySource)[keyof typeof CategorySource]

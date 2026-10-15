@@ -37,6 +37,15 @@ export const INCOME_CATEGORIES: Record<ParentCategoryCode, ParentCategory> = {
     },
   },
 
+  // Of the minimal rule sets, see `utils/Category/rulesets/minimal_germany.ts`
+  SIN: {
+    code: 'SIN', // Income (minimal)
+    subcategories: {
+      SIN_01: { code: 'SIN_01' }, // Income
+      SIN_02: { code: 'SIN_02' }, // Government & Insurance
+    },
+  },
+
   TFI: {
     code: 'TFI', // Transfers & Uncategorised
     subcategories: {
@@ -136,6 +145,18 @@ export const EXPENSE_CATEGORIES: Record<ParentCategoryCode, ParentCategory> = {
       BUS_05: { code: 'BUS_05' }, // Professional Services (Accountant, legal, etc.)
       BUS_06: { code: 'BUS_06' }, // Professional Development
       BUS_07: { code: 'BUS_07' }, // Miscellaneous
+    },
+  },
+
+  // Of the minimal rule sets, see `utils/Category/rulesets/minimal_germany.ts`
+  SOU: {
+    code: 'SOU', // Expenses (minimal)
+    subcategories: {
+      SOU_01: { code: 'SOU_01' }, // Rent
+      SOU_02: { code: 'SOU_02' }, // Phone & Internet
+      SOU_03: { code: 'SOU_03' }, // Software & SaaS
+      SOU_04: { code: 'SOU_04' }, // Travel
+      SOU_05: { code: 'SOU_05' }, // Office Equipment
     },
   },
 

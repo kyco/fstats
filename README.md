@@ -37,6 +37,10 @@ By default, your files **get deleted** when you close the tab or browser window.
 - [Capitec](utils/Parser/banks/capitec.ts)
 - [FNB](utils/Parser/banks/fnb.ts)
 
+### Categories
+
+Transactions are categorised by the rule sets checked in the toolbar of the stats page: built-in ones ([Standard](utils/Category/rulesets/default.ts), [Minimal - Germany](utils/Category/rulesets/minimal_germany.ts)) and your own, combined (the longest matching keyword wins), or none. Click the category of a transaction to change it for that transaction only, or to create a rule for all matching transactions. Your rules are saved to "My rules" (applied with every rule set) or to a rule set of your own.
+
 ## Development
 
 See [DEVELOPMENT.md](DEVELOPMENT.md).
@@ -44,3 +48,4 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 ### Important files
 
 - [utils/Parser](./utils/Parser/create-parser.ts): how CSV files are parsed
+- [m-category](./m-category/service/engine.ts): how transactions are categorised

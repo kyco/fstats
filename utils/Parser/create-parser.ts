@@ -2,7 +2,6 @@ import { formatISO, isValid, parse, parseISO } from 'date-fns'
 
 import type { BankDef, ExtraField, FormatDef, Parser, RowData, Transaction } from '@/types'
 import { SortOrder } from '@/types-enums'
-import { getCategoryCode } from '@/utils/Category'
 import { getUniqueTimestamps, toDate } from '@/utils/Date'
 import { cyrb53 } from '@/utils/Hash'
 import { logger } from '@/utils/Logger'
@@ -15,10 +14,10 @@ import type { BankAccountId, ParserId } from './registry'
 const NUMERIC_EXTRA_FIELDS: ExtraField[] = ['balance']
 
 /**
- * Bump when the parse output changes (e.g. how transaction IDs are generated or transactions are categorised), so
- * stored files are re-parsed.
+ * Bump when the parse output changes (e.g. how transaction IDs are generated), so stored files are re-parsed.
+ * Categories aren't parsed, they're resolved when shown (see `m-category`).
  */
-export const PARSER_VERSION = 5
+export const PARSER_VERSION = 6
 
 type Row = {
   get: (header: string) => string
@@ -69,6 +68,13 @@ export const createParser = (bank: Pick<BankDef, 'id' | 'name' | 'currency'>, fo
           : ''
       }
     }
+  }
+
+  // Throws on amounts that aren't numbers, e.g. a wrong column
+  const getValidValue = (row: Row): string => {
+    const value = getValue(row) || '0'
+    Big(value)
+    return value
   }
 
   const getDescription = (row: Row): string => descriptionHeaders.map(row.get).find(Boolean) ?? ''
@@ -145,7 +151,7 @@ export const createParser = (bank: Pick<BankDef, 'id' | 'name' | 'currency'>, fo
       const parsedRows: Omit<Transaction, 'id'>[] = locateRows(section).rows.map((row) => ({
         date: formatISO(toDate(row.get(columns.date), { formatFrom: dateFormat })),
         description: getDescription(row),
-        value: getValue(row) || '0',
+        value: getValidValue(row),
         category: null,
         currency: bank.currency,
         extra: getExtra(row),
@@ -157,8 +163,7 @@ export const createParser = (bank: Pick<BankDef, 'id' | 'name' | 'currency'>, fo
 
       return parsedRows.map((row, index) => {
         // ID from the date as in the file, the unique timestamps depend on the other rows of the day
-        const transaction: Transaction = { ...row, id: getId(row), date: formatISO(uniqueTimestamps[index]) }
-        return { ...transaction, category: getCategoryCode(transaction) }
+        return { ...row, id: getId(row), date: formatISO(uniqueTimestamps[index]) }
       })
     },
   }

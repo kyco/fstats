@@ -1,10 +1,12 @@
 'use client'
 
+import { useTheme } from '@mui/material/styles'
 import { uniq } from 'lodash'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 
-import type { StatsFile, TransactionFilter } from '@/types'
+import type { CategoryRuleset, SourcedTransaction, StatsFile, TransactionFilter } from '@/types'
+import { compileRule, matchesRule, useCategoryEngine, useCategoryRulesets } from '@/m-category/service'
 import { isParsed } from '@/m-stats-file/service'
 import { filterTransactions, getSourcedTransactions, getTransactionCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
@@ -12,20 +14,24 @@ import { getTransactionDay } from '@/utils/Date'
 import { useTranslation } from '@/lib/i18n'
 
 import { getTransactionCountText } from '../../actions'
-import { useWorkspaceDayFilter } from '../../context'
+import { useWorkspace, useWorkspaceDayFilter, useWorkspaceSelectedTransaction } from '../../context'
 import FileMessage from '../FileMessage'
 import PreviewSection from '../PreviewSection'
 import { STICKY_HEADER_OFFSET } from '../PreviewSection/actions'
 import VirtualTable from '../VirtualTable'
-import { filterBySearch, toSearchText } from '../VirtualTable/actions'
+import { filterBySearch, highlightMatches, toSearchText } from '../VirtualTable/actions'
 import {
+  getCategoryInfo,
   getSharedCurrency,
   getSourceLabel,
   getTransactionCells,
   getTransactionColumns,
   getTransactionTag,
 } from './actions'
+import CategoryCell from './components/CategoryCell'
 import { ui } from './styled'
+
+const NO_RULESETS: CategoryRuleset[] = []
 
 type TransactionsPreviewProps = {
   files: StatsFile[]
@@ -73,10 +79,19 @@ const Component = ({
   canStick = true,
   showFileName = false,
 }: TransactionsPreviewProps) => {
+  const theme = useTheme()
   const sx = ui()
   const { t } = useTranslation()
   const { locale, dateFormat } = useUserPreferences()
   const { deselectedDays } = useWorkspaceDayFilter()
+  const selected = useWorkspaceSelectedTransaction()
+  const { engine } = useCategoryEngine()
+  const { data: rulesets = NO_RULESETS } = useCategoryRulesets()
+  const editCategory = selected.edit
+  // The demo is read-only, its categories can't be changed
+  const { isDemoMode } = useWorkspace()
+  // Rows matching the rule being created are highlighted
+  const ruleMatcher = useMemo(() => (selected.rule ? compileRule(selected.rule) : null), [selected.rule])
   const parsedFiles = useMemo(() => files.filter(isParsed), [files])
   const isCombined = parsedFiles.length > 1
   const isSticky = isCombined && canStick
@@ -135,19 +150,32 @@ const Component = ({
       ),
     [transactions, deselectedDays],
   )
+  // Where the categories are from and other rule sets that would categorise differently, for the info column
+  const categoryInfos = useMemo(
+    () => transactions.map((transaction) => getCategoryInfo({ transaction, engine, rulesets, isDemoMode, t })),
+    [transactions, engine, rulesets, isDemoMode, t],
+  )
   const columns = useMemo(() => {
     const shownTags = uniq(tags.filter((tag) => tag !== null))
 
     return getTransactionColumns({
       currency,
-      showSource: isCombined,
       amountFilter,
       t,
+      renderCategory: (label, rowIndex) => (
+        <CategoryCell
+          category={transactions[rowIndex].category}
+          label={highlightMatches(label, search)}
+          onClick={isDemoMode ? undefined : (anchor) => editCategory(transactions[rowIndex], anchor)}
+        />
+      ),
+      conflicts: {
+        isShown: categoryInfos.some((info) => info.conflicts),
+        getText: (rowIndex) => categoryInfos[rowIndex].conflicts,
+      },
       tags: shownTags.length ? { shown: shownTags, getTag: (rowIndex) => tags[rowIndex] } : undefined,
     })
-  }, [currency, isCombined, amountFilter, t, tags])
-  // Same condition as the column in `getTransactionColumns`
-  const hasTagColumn = isCombined || tags.some((tag) => tag !== null)
+  }, [currency, amountFilter, t, tags, transactions, search, isDemoMode, editCategory, categoryInfos])
 
   // Only tables with matches are shown, see `NoSearchResultsDisplay`
   if (parsedFiles.length && search && !transactions.length) {
@@ -178,13 +206,30 @@ const Component = ({
           rowCount={transactions.length}
           getCells={(index) => [
             ...getTransactionCells(transactions[index], cellOptions),
-            ...(hasTagColumn
-              ? [getSourceLabel({ transaction: transactions[index], showSource: isCombined, tag: tags[index], t })]
-              : []),
+            getSourceLabel({
+              transaction: transactions[index],
+              showSource: isCombined,
+              tag: tags[index],
+              categoryLines: categoryInfos[index].lines,
+              t,
+            }),
           ]}
           highlight={search}
           stickyHeaderTop={isSticky ? STICKY_HEADER_OFFSET : undefined}
-          getRowStyle={(index) => (tags[index] ? sx.excludedRow : undefined)}
+          onRowClick={(index) => selected.toggle(transactions[index])}
+          getRowStyle={(index) => {
+            const transaction = transactions[index]
+            const isSame = (other: SourcedTransaction | undefined) =>
+              transaction.id === other?.id && transaction.source === other.source
+            const highlight =
+              isSame(selected.transaction ?? undefined) || isSame(selected.editing?.transaction)
+                ? sx.selectedRow(theme)
+                : ruleMatcher && matchesRule(transaction, ruleMatcher)
+                  ? sx.matchedRow(theme)
+                  : undefined
+
+            return tags[index] || highlight ? { ...(tags[index] ? sx.excludedRow : null), ...highlight } : undefined
+          }}
           scrollElement={scrollElement}
         />
       ) : (

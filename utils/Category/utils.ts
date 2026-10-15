@@ -3,32 +3,17 @@ import type { TFunction } from 'i18next'
 import type { CategoryCode, ParentCategoryCode, Transaction } from '@/types'
 import { isExpense } from '@/utils/Stats'
 
-import { EXPENSE_KEYWORD_RULES, INCOME_KEYWORD_RULES } from './keyword-rules'
+/**
+ * Category of transactions no rule matches, by direction. Zero amounts are income.
+ */
+export const getUncategorisedCode = (row: Pick<Transaction, 'value'>): CategoryCode => {
+  return isExpense(row) ? 'TFO_02' : 'TFI_02'
+}
 
-export const getCategoryCode = (row: Pick<Transaction, 'description' | 'value'>): CategoryCode => {
-  // Zero amounts are categorised as income
-  const isIncomeOrZero = !isExpense(row)
-  const keywordRules = isIncomeOrZero ? INCOME_KEYWORD_RULES : EXPENSE_KEYWORD_RULES
+const UNCATEGORISED_CODES: CategoryCode[] = ['TFI_02', 'TFO_02']
 
-  let matchedCategory: CategoryCode | null = null
-  let matchedKeywordLength = -1
-
-  for (const rule of keywordRules) {
-    for (const { pattern, length } of rule.keywords) {
-      // Prefer the most specific (longest) matching keyword over shorter matches
-      if (length > matchedKeywordLength && pattern.test(row.description)) {
-        matchedCategory = rule.category
-        matchedKeywordLength = length
-      }
-    }
-  }
-
-  if (matchedCategory) {
-    return matchedCategory
-  }
-
-  // Uncategorised
-  return isIncomeOrZero ? 'TFI_02' : 'TFO_02'
+export const isUncategorisedCode = (code: CategoryCode | null) => {
+  return !code || UNCATEGORISED_CODES.includes(code)
 }
 
 /**

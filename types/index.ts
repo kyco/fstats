@@ -1,5 +1,6 @@
 export * from './global'
 export * from './lib/react-dropzone'
+export * from './services/category-rule'
 export * from './services/custom-parser'
 export * from './services/stats-file'
 export * from './services/transaction'

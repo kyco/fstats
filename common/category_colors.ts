@@ -1,4 +1,5 @@
 import {
+  amber,
   blue,
   blueGrey,
   brown,
@@ -6,6 +7,7 @@ import {
   green,
   indigo,
   lightGreen,
+  lime,
   orange,
   pink,
   purple,
@@ -28,6 +30,10 @@ export const PARENT_CATEGORY_COLORS: Record<ParentCategoryCode, GradientColorsLi
   OTH: {
     light: { start: lightGreen[700], end: lightGreen[300] },
     dark: { start: lightGreen[900], end: lightGreen[400] },
+  },
+  SIN: {
+    light: { start: lime[800], end: lime[400] },
+    dark: { start: lime[900], end: lime[500] },
   },
   TFI: {
     light: { start: cyan[700], end: cyan[300] },
@@ -61,6 +67,10 @@ export const PARENT_CATEGORY_COLORS: Record<ParentCategoryCode, GradientColorsLi
   BUS: {
     light: { start: brown[700], end: brown[300] },
     dark: { start: brown[900], end: brown[400] },
+  },
+  SOU: {
+    light: { start: amber[800], end: amber[400] },
+    dark: { start: amber[900], end: amber[500] },
   },
   TFO: {
     light: { start: blueGrey[700], end: blueGrey[300] },

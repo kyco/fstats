@@ -151,6 +151,20 @@ export type SourcedTransaction = Transaction & {
   isDuplicate: boolean
 }
 
+/**
+ * Transactions with the same description, see `getSimilarTransactions`.
+ */
+export type SimilarTransactions = {
+  count: number
+  total: NumberString
+  average: NumberString
+  /**
+   * Dates of the oldest and newest, `null` without any.
+   */
+  first: string | null
+  last: string | null
+}
+
 // -------------------------------------------------------
 // Profit and loss
 // -------------------------------------------------------

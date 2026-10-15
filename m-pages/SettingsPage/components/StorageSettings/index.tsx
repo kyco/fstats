@@ -4,6 +4,7 @@ import {
   DeleteOutlined,
   ExpandMoreRounded,
   FolderOutlined,
+  RuleOutlined,
   StorageRounded,
   TableChartOutlined,
 } from '@mui/icons-material'
@@ -11,8 +12,15 @@ import { Box, Button, ButtonBase, Typography } from '@mui/material'
 import { useState } from 'react'
 
 import type { StorageDeleteAction, StorageListTab } from '@/types'
+import {
+  useCategoryOverrides,
+  useCategoryRulesets,
+  useCategoryStorageSize,
+  useMutateRemoveAllCategoryData,
+} from '@/m-category/service'
 import { useCustomParsers, useCustomParsersSize, useMutateRemoveAllCustomParsers } from '@/m-custom-parser/service'
 import { useFiles, useMutateRemoveAllFiles, useStorageSize } from '@/m-stats-file/service'
+import { MY_RULES_ID } from '@/utils/Category'
 import { formatFileSize } from '@/utils/File'
 import { useTranslation } from '@/lib/i18n'
 
@@ -32,21 +40,28 @@ const Component = () => {
   const { data: parsers = [], isLoading: isLoadingParsers } = useCustomParsers()
   const { mutateAsync: removeAllFiles } = useMutateRemoveAllFiles()
   const { mutateAsync: removeAllCustomParsers } = useMutateRemoveAllCustomParsers()
+  const { data: rulesets = [], isLoading: isLoadingRulesets } = useCategoryRulesets()
+  const { data: overrides = [], isLoading: isLoadingOverrides } = useCategoryOverrides()
+  const { mutateAsync: removeAllCategoryData } = useMutateRemoveAllCategoryData()
   // One at a time, the others are disabled meanwhile
   const [running, setRunning] = useState<StorageDeleteAction | null>(null)
   // The list shown below the stats, a second click hides it
   const [tab, setTab] = useState<StorageListTab | null>(null)
   const { data: filesSize = 0, isLoading: isCalculatingFiles, isError: isFilesError } = useStorageSize()
   const { data: parsersSize = 0, isLoading: isCalculatingParsers, isError: isParsersError } = useCustomParsersSize()
-  const isCalculating = isCalculatingFiles || isCalculatingParsers
+  const { data: rulesSize = 0, isLoading: isCalculatingRules, isError: isRulesError } = useCategoryStorageSize()
+  const isCalculating = isCalculatingFiles || isCalculatingParsers || isCalculatingRules
   const storageSize =
-    isFilesError || isParsersError
+    isFilesError || isParsersError || isRulesError
       ? t('SETTINGS_PAGE.STORAGE.FAILED_TO_CALCULATE')
-      : formatFileSize(filesSize + parsersSize)
+      : formatFileSize(filesSize + parsersSize + rulesSize)
 
   const fileCount = files.length
   const hasFiles = fileCount > 0
   const hasParsers = parsers.length > 0
+  // Rules of all rule sets and the categories changed for single transactions
+  const ruleCount = rulesets.reduce((count, ruleset) => count + ruleset.rules.length, 0) + overrides.length
+  const hasRules = rulesets.length > 0 || overrides.length > 0
 
   const runDelete = async ({ action, confirmKey, remove }: RunDeleteProps) => {
     if (!confirm(t(confirmKey))) {
@@ -72,23 +87,56 @@ const Component = () => {
   // Shows the stat expands its list, flipped while it's shown
   const getChevronSx = (value: StorageListTab) => ({ ...sx.chevron, ...(tab === value ? sx.chevronOpen : null) })
 
-  const renderList = () => {
+  const renderList = (shownTab: StorageListTab) => {
     const items =
-      tab === 'files'
+      shownTab === 'files'
         ? files.map((file) => ({ id: file.id, label: file.file.name }))
-        : parsers.map((parser) => ({
-            id: parser.id,
-            label: (
-              <>
-                <strong>{parser.bankName}</strong> {parser.accountName} ({parser.currency})
-              </>
-            ),
-          }))
+        : shownTab === 'formats'
+          ? parsers.map((parser) => ({
+              id: parser.id,
+              label: (
+                <>
+                  <strong>{parser.bankName}</strong> {parser.accountName} ({parser.currency})
+                </>
+              ),
+            }))
+          : [
+              ...rulesets.map((ruleset) => ({
+                id: ruleset.id,
+                label: (
+                  <>
+                    <strong>
+                      {ruleset.id === MY_RULES_ID ? t('STATS_PAGE.CATEGORY_RULES.MY_RULES') : ruleset.name}
+                    </strong>{' '}
+                    {t('SETTINGS_PAGE.STORAGE.RULE_COUNT', { count: ruleset.rules.length })}
+                  </>
+                ),
+              })),
+              ...(overrides.length
+                ? [
+                    {
+                      id: 'overrides',
+                      label: (
+                        <>
+                          <strong>{t('SETTINGS_PAGE.STORAGE.SINGLE_TRANSACTIONS')}</strong>{' '}
+                          {t('MISC.TRANSACTION_COUNT', { count: overrides.length })}
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+            ]
 
     if (!items.length) {
+      const emptyKeys: Record<StorageListTab, string> = {
+        files: 'SETTINGS_PAGE.STORAGE.NO_FILES',
+        formats: 'SETTINGS_PAGE.STORAGE.NO_FORMATS',
+        rules: 'SETTINGS_PAGE.STORAGE.NO_RULES',
+      }
+
       return (
         <Typography component="p" sx={sx.listEmpty}>
-          {t(tab === 'files' ? 'SETTINGS_PAGE.STORAGE.NO_FILES' : 'SETTINGS_PAGE.STORAGE.NO_FORMATS')}
+          {t(emptyKeys[shownTab])}
         </Typography>
       )
     }
@@ -133,6 +181,17 @@ const Component = () => {
             <ExpandMoreRounded sx={getChevronSx('formats')} />
           </ButtonBase>
 
+          <ButtonBase {...getTabProps('rules')}>
+            <RuleOutlined sx={sx.statIcon} />
+            <Box sx={sx.statText}>
+              <Typography sx={sx.statValue(isLoadingRulesets || isLoadingOverrides)}>{ruleCount}</Typography>
+              <Typography variant="caption" sx={sx.statLabel}>
+                {t('SETTINGS_PAGE.STORAGE.CATEGORY_RULES', { count: ruleCount })}
+              </Typography>
+            </Box>
+            <ExpandMoreRounded sx={getChevronSx('rules')} />
+          </ButtonBase>
+
           <Box sx={sx.statItem}>
             <StorageRounded sx={sx.statIcon} />
             <Box sx={sx.statText}>
@@ -143,7 +202,7 @@ const Component = () => {
             </Box>
           </Box>
         </Box>
-        {tab ? renderList() : null}
+        {tab ? renderList(tab) : null}
       </Box>
 
       <Box sx={sx.actions}>
@@ -179,6 +238,21 @@ const Component = () => {
         </Button>
         <Button
           color="error"
+          variant="outlined"
+          startIcon={<DeleteOutlined />}
+          onClick={() =>
+            runDelete({
+              action: 'rules',
+              confirmKey: 'SETTINGS_PAGE.STORAGE.CONFIRM_DELETE_RULES',
+              remove: removeAllCategoryData,
+            })
+          }
+          {...getButtonProps('rules', hasRules)}
+        >
+          {t('SETTINGS_PAGE.STORAGE.DELETE_RULES')}
+        </Button>
+        <Button
+          color="error"
           variant="contained"
           startIcon={<DeleteOutlined />}
           onClick={() =>
@@ -189,10 +263,11 @@ const Component = () => {
                 // Files first, so there's nothing to re-parse once the formats are gone
                 await removeAllFiles()
                 await removeAllCustomParsers()
+                await removeAllCategoryData()
               },
             })
           }
-          {...getButtonProps('all', hasFiles || hasParsers)}
+          {...getButtonProps('all', hasFiles || hasParsers || hasRules)}
         >
           {t('SETTINGS_PAGE.STORAGE.DELETE_ALL_DATA')}
         </Button>

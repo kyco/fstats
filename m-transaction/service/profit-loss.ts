@@ -13,7 +13,7 @@ import type {
 import { BreakdownPeriod } from '@/types-enums'
 import type { Currency } from '@/types-enums'
 import { EXPENSE_CATEGORIES } from '@/common'
-import { getCategoryLabel, getParentCategoryCode } from '@/utils/Category'
+import { getCategoryLabel, getParentCategoryCode, isUncategorisedCode } from '@/utils/Category'
 import { getTransactionDay } from '@/utils/Date'
 import { getBankAccountId } from '@/utils/Parser'
 import { getPercentage, isExpense, isIncome, sumValues } from '@/utils/Stats'
@@ -23,8 +23,6 @@ import { Big } from '@/lib/w-big'
  * Categorised as an internal transfer by the keyword rules.
  */
 const TRANSFER_CATEGORIES: CategoryCode[] = ['TFI_01', 'TFO_01']
-
-const UNCATEGORISED_CATEGORIES: CategoryCode[] = ['TFI_02', 'TFO_02']
 
 /**
  * Bank transfers can take a few days, e.g. over a weekend.
@@ -138,7 +136,7 @@ const sortRows = (rows: ProfitLossRow[]) => {
 }
 
 const isUncategorised = (transaction: Transaction) => {
-  return !transaction.category || UNCATEGORISED_CATEGORIES.includes(transaction.category)
+  return isUncategorisedCode(transaction.category)
 }
 
 type GetCategoryRowsProps = {

@@ -130,7 +130,8 @@
     },
     "SIDEBAR": {
       "DATE_FILTERED": "Filtered by date",
-      "FILE_DETAILS": "File details"
+      "FILE_DETAILS": "File details",
+      "TRANSACTION_DETAILS": "Transaction details"
     },
     "FILTERS": {
       "TITLE": "Filters",
@@ -291,6 +292,87 @@
       "SAVED_TITLE": "Format saved",
       "SAVED_SUBTITLE": "You can now view <file>{{file}}</file>",
       "SUBMIT_FORMAT": "Submit format to GitHub"
+    },
+    "CATEGORY_RULES": {
+      "TITLE": "Category rules",
+      "RULESETS": {
+        "default": "Standard",
+        "minimal_germany": "Minimal - Germany"
+      },
+      "BUILT_IN": "Built-in",
+      "CUSTOM": "Your rule sets",
+      "NONE": "No rule set",
+      "DELETE_RULESET": "Delete rule set",
+      "CONFIRM_DELETE_RULESET": "Are you sure you want to delete the rule set \"{{name}}\" and its rules?",
+      "MY_RULES": "My rules",
+      "MY_RULES_DESCRIPTION": "Apply with every rule set",
+      "CHANGE_CATEGORY": "Change category",
+      "NEW_CATEGORY": "New category",
+      "CHOOSE_CATEGORY": "Choose a category",
+      "SEARCH_CATEGORIES": "Search categories",
+      "NO_MATCHING_CATEGORIES": "No matching categories",
+      "APPLY_TO": "Apply to",
+      "THIS_TRANSACTION": "This transaction only",
+      "ALL_MATCHING": "All matching",
+      "ONLY_THIS": "Only this transaction is changed.",
+      "ONLY_THIS_SIMILAR_one": "Only this transaction is changed, not the <b>{{count}}</b> other with the same description.",
+      "ONLY_THIS_SIMILAR_other": "Only this transaction is changed, not the <b>{{count}}</b> others with the same description.",
+      "KEYWORD": "Contains",
+      "CONDITION": "Description",
+      "MATCH_TYPES": {
+        "contains": "Contains",
+        "startsWith": "Starts with",
+        "equals": "Matches exactly"
+      },
+      "IGNORE_CASE": "Ignore upper and lower case",
+      "MATCH_COUNT_one": "Matches <b>{{count}}</b> transaction",
+      "MATCH_COUNT_other": "Matches <b>{{count}}</b> transactions",
+      "NO_MATCH": "Doesn't match this transaction",
+      "FIELD": "Search in",
+      "FIELDS": {
+        "description": "Description",
+        "category": "Bank category",
+        "parentCategory": "Bank parent category"
+      },
+      "AMOUNTS": "Applies to amounts",
+      "SAVE_TO": "Save to",
+      "NEW_RULESET": "New rule set…",
+      "RULESET_NAME": "Rule set name",
+      "COPY_BUILT_IN": "Start with the \"{{name}}\" rules",
+      "SOURCE": {
+        "override": "Set for this transaction only.",
+        "myRule": "Set by rule <b>{{rule}}</b> of <b>{{name}}</b>.",
+        "customRule": "Set by rule <b>{{rule}}</b> of the <b>{{name}}</b> rule set.",
+        "ruleset": "Via <b>{{name}}</b> rule set.",
+        "preset": "Set in the demo data.",
+        "none": "No rule matches."
+      },
+      "ALSO_MATCHED": "Also matched: {{matches}}",
+      "RESET": "Reset",
+      "CONFIRM_RESET": "Are you sure you want to reset the category of this transaction?",
+      "DELETE_RULE": "Delete rule",
+      "CONFIRM_DELETE_RULE": "Are you sure you want to delete rule {{rule}} (\"{{keyword}}\")? It no longer applies to any of the transactions it matches.",
+      "SAVE": "Save",
+      "CANCEL": "Cancel",
+      "SAVE_FAILED": "Saving failed: {{message}}"
+    },
+    "TRANSACTION_DETAILS": {
+      "CLOSE": "Close",
+      "ADDITIONAL_FIELDS": "Additional fields",
+      "BANK_PARENT_CATEGORY": "Bank parent category",
+      "BANK_CATEGORY": "Bank category",
+      "TYPE": "Type",
+      "REFERENCE": "Reference",
+      "BALANCE": "Balance",
+      "STATS": "Stats",
+      "ONLY_ONCE": "No other transaction has this description.",
+      "OCCURRENCES": "Occurrences",
+      "OCCURRENCE_COUNT_one": "{{count}} time",
+      "OCCURRENCE_COUNT_other": "{{count}} times",
+      "TOTAL": "Total",
+      "AVERAGE": "Average",
+      "FIRST": "First",
+      "LAST": "Last"
     }
   },
   "SETTINGS_PAGE": {
@@ -306,15 +388,23 @@
       "FILES_other": "Files",
       "CUSTOM_FORMATS_one": "Custom format",
       "CUSTOM_FORMATS_other": "Custom formats",
+      "CATEGORY_RULES_one": "Category rule",
+      "CATEGORY_RULES_other": "Category rules",
       "STORAGE_USED": "Storage used",
       "NO_FILES": "No files stored.",
       "NO_FORMATS": "No custom formats yet. Set one up from an unsupported file on the stats page.",
+      "NO_RULES": "No category rules yet. Change a category in the transactions table on the stats page.",
+      "RULE_COUNT_one": "{{count}} rule",
+      "RULE_COUNT_other": "{{count}} rules",
+      "SINGLE_TRANSACTIONS": "Single transactions",
       "FAILED_TO_CALCULATE": "Failed to calculate",
       "CONFIRM_DELETE_FILES": "Are you sure you want to delete all files?",
       "DELETE_FILES": "Delete files",
       "CONFIRM_DELETE_FORMATS": "Are you sure you want to delete all custom formats? Files read with them will need to be set up again.",
       "DELETE_FORMATS": "Delete formats",
-      "CONFIRM_DELETE_ALL": "Are you sure you want to delete all data? This deletes all files and custom formats.",
+      "CONFIRM_DELETE_RULES": "Are you sure you want to delete all category rules, rule sets and changed categories?",
+      "DELETE_RULES": "Delete rules",
+      "CONFIRM_DELETE_ALL": "Are you sure you want to delete all data? This deletes all files, custom formats and category rules.",
       "DELETE_ALL_DATA": "Delete all data"
     },
     "LAYOUT": {

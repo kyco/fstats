@@ -13,6 +13,7 @@ import { getCheckedTransactions, getStatsTransactions } from '@/m-transaction/se
 import { useStatsLayout } from '@/hooks'
 
 import {
+  CategoryEditorMenu,
   DataView,
   DemoBanner,
   DropOverlay,
@@ -25,7 +26,7 @@ import {
 } from './components'
 import { resizePanes } from './components/ResizeDivider/actions'
 import { WorkspaceContext } from './context'
-import { useDayFilter, useDemoState, useFileDropzone, useFileHelper } from './hooks'
+import { useDayFilter, useDemoState, useFileDropzone, useFileHelper, useSelectedTransaction } from './hooks'
 import { ui } from './styled'
 
 /**
@@ -52,6 +53,8 @@ const Component = () => {
     [checkedTransactions, dayFilter.deselectedDays],
   )
   const demoState = useDemoState(isDemoMode)
+  // Selected in the transactions table
+  const selectedTransaction = useSelectedTransaction({ isEnabled: !setupFile && view === WorkspaceView.TRANSACTIONS })
   const { columnWidths: widths, setColumnWidths: setWidths } = useStatsLayout()
   // Leave demo mode once real files are added, so they are shown
   const { dropzone, addFolder } = useFileDropzone({
@@ -95,7 +98,16 @@ const Component = () => {
 
   return (
     <WorkspaceContext.Provider
-      value={{ isDemoMode, onAddFiles: dropzone.open, onAddFolder: addFolder, dayFilter, demoState, files, stats }}
+      value={{
+        isDemoMode,
+        onAddFiles: dropzone.open,
+        onAddFolder: addFolder,
+        dayFilter,
+        demoState,
+        files,
+        stats,
+        selectedTransaction,
+      }}
     >
       <Box {...dropzone.getRootProps()} sx={sx.dropzone}>
         <input {...dropzone.getInputProps()} />
@@ -115,6 +127,7 @@ const Component = () => {
           ))}
         </Box>
         {dropzone.isDragActive ? <DropOverlay /> : null}
+        <CategoryEditorMenu />
       </Box>
     </WorkspaceContext.Provider>
   )

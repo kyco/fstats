@@ -5,6 +5,7 @@ import { useLocalStorage } from 'usehooks-ts'
 
 import type { FileHelper, StatsFile } from '@/types'
 import { MISC } from '@/common'
+import { categoriseFiles, useCategoryEngine } from '@/m-category/service'
 import { DEMO_FILE_ID, getDemoFile, isParsed, useFiles } from '@/m-stats-file/service'
 
 const NO_FILES: StatsFile[] = []
@@ -14,12 +15,18 @@ type UseFileHelperProps = {
 }
 
 /**
- * The user's files and which of them are checked. In demo mode only the demo file, always checked and read-only.
+ * The user's files and which of them are checked, with the categories of their transactions resolved (see
+ * `categoriseFiles`). In demo mode only the demo file, always checked and read-only.
  */
 export const useFileHelper = ({ isDemoMode = false }: UseFileHelperProps = {}): FileHelper => {
   const [storedSelectedFileIds, setStoredSelectedFileIds] = useLocalStorage<string[]>(MISC.LS_SELECTED_FILE_IDS_KEY, [])
-  const { data: storedFiles = NO_FILES, isLoading: isLoadingFiles } = useFiles()
-  const files: StatsFile[] = useMemo(() => (isDemoMode ? [getDemoFile()] : storedFiles), [isDemoMode, storedFiles])
+  const { data: storedFiles = NO_FILES, isLoading: isLoadingStoredFiles } = useFiles()
+  const { engine, isLoading: isLoadingCategories } = useCategoryEngine()
+  const isLoadingFiles = isLoadingStoredFiles || isLoadingCategories
+  const files: StatsFile[] = useMemo(
+    () => categoriseFiles(isDemoMode ? [getDemoFile()] : storedFiles, engine),
+    [isDemoMode, storedFiles, engine],
+  )
   const selectedFileIds = useMemo(
     () => (isDemoMode ? [DEMO_FILE_ID] : storedSelectedFileIds),
     [isDemoMode, storedSelectedFileIds],

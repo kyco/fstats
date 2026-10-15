@@ -1,3 +1,4 @@
+export { default as CategoryEditorMenu } from './CategoryEditorMenu'
 export { default as DataView } from './DataView'
 export { default as DemoBanner } from './DemoBanner'
 export { default as DropOverlay } from './DropOverlay'

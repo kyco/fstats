@@ -48,6 +48,24 @@ export const sxSubheaderText = {
 } as const
 
 /**
+ * Tooltip like the chart tooltips (see `getBaseChartOptions`): a white box with a grey border like the cards. Pass as
+ * `slotProps={{ tooltip: { sx: sxChartTooltip } }}`.
+ */
+export const sxChartTooltip = {
+  bgcolor: 'background.paper',
+  color: 'text.primary',
+  border: 1,
+  borderColor: 'divider',
+  borderRadius: '6px',
+  px: 1.25,
+  py: 1,
+  fontSize: 12,
+  fontWeight: 400,
+  lineHeight: 1.5,
+  boxShadow: 'none',
+} as const
+
+/**
  * Compact list row, e.g. the file rows of the left column and the stats rows of the right column.
  */
 export const sxListRow = {

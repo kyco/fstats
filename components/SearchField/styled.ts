@@ -1,9 +1,11 @@
 export const ui = () => {
   return {
-    // Same height as the segmented toggles
+    // Same height as the segmented toggles. Shrinks first in a toolbar (before e.g. selects whose text would be cut off),
+    // to about its icon and placeholder.
     field: {
+      flex: '0 1000 200px',
+      minWidth: 80,
       height: 28,
-      width: 200,
       pl: 0.75,
       pr: 0.25,
       gap: 0.5,

@@ -1,24 +1,39 @@
-import { InfoOutlined } from '@mui/icons-material'
+import { CallSplit, InfoOutlined } from '@mui/icons-material'
 import { Box, Tooltip } from '@mui/material'
 import type { TFunction } from 'i18next'
 import { uniq } from 'lodash'
+import type { ReactNode } from 'react'
 
-import type { ParsedStatsFile, SourcedTransaction, Transaction, VirtualTableColumn } from '@/types'
+import type {
+  CategoryEngine,
+  CategoryRuleset,
+  ParsedStatsFile,
+  SourcedTransaction,
+  Transaction,
+  VirtualTableColumn,
+} from '@/types'
 import { AmountFilter, TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
+import { getCategoryConflicts, resolveCategory } from '@/m-category/service'
 import { getFileCurrency } from '@/m-stats-file/service'
+import { sxChartTooltip } from '@/styles/styled'
 import { getCategoryLabel } from '@/utils/Category'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
 import { toFixedLocaleAmount, toFixedLocaleCurrency } from '@/utils/Number'
 import { Big } from '@/lib/w-big'
 
+import { getSourceText } from '../CategoryEditor/actions'
+import { getRulesetName } from '../RulesetSelect/actions'
 import { ui } from './styled'
 
 const TAG_LABEL_KEYS: Record<TransactionTag, string> = {
   [TransactionTag.DUPLICATE]: 'STATS_PAGE.DATA_VIEW.DUPLICATE_TAG',
   [TransactionTag.DATE_EXCLUDED]: 'STATS_PAGE.DATA_VIEW.DATE_EXCLUDED_TAG',
 }
+
+// Room for the icon showing other rule sets would categorise differently
+const CONFLICT_ICON_WIDTH = 20
 
 // Wide enough for the longest label, e.g. "Ausgeschlossen"
 const TAG_COLUMN_WIDTHS: Record<TransactionTag, number> = {
@@ -41,17 +56,22 @@ type GetSourceLabelProps = {
   transaction: SourcedTransaction
   showSource: boolean
   tag: TransactionTag | null
+  /**
+   * Where the category is from, see `getCategoryInfo`.
+   */
+  categoryLines: string[]
   t: TFunction
 }
 
 /**
- * Tooltip of the source column: the file and where else the transaction is (only with multiple files), and why it's
- * excluded. Empty when there is nothing to show.
+ * Tooltip of the info column: the file and where else the transaction is (only with multiple files), where its category
+ * is from, and why it's excluded.
  */
 export const getSourceLabel = ({
   transaction: { source, sources, isDuplicate },
   showSource,
   tag,
+  categoryLines,
   t,
 }: GetSourceLabelProps) => {
   const otherSources = sources.filter((name) => name !== source)
@@ -64,7 +84,43 @@ export const getSourceLabel = ({
         : [source]
   const tagLines = tag === TransactionTag.DATE_EXCLUDED ? [t('STATS_PAGE.DATA_VIEW.EXCLUDED_BY_DATE')] : []
 
-  return [...sourceLines, ...tagLines].join('\n')
+  return [...sourceLines, ...categoryLines, ...tagLines].join('\n')
+}
+
+type GetCategoryInfoProps = {
+  transaction: SourcedTransaction
+  engine: CategoryEngine
+  rulesets: CategoryRuleset[]
+  /**
+   * Categories of the demo data are only in the transaction.
+   */
+  isDemoMode: boolean
+  t: TFunction
+}
+
+/**
+ * Where the category of the transaction is from, and the other rule sets that would give it a different one.
+ */
+export const getCategoryInfo = ({ transaction, engine, rulesets, isDemoMode, t }: GetCategoryInfoProps) => {
+  const resolved = resolveCategory({ transaction, engine, preset: isDemoMode ? transaction.category : null })
+  const conflicts = getCategoryConflicts({ transaction, engine, resolved })
+  const { i18nKey, values } = getSourceText({ resolved, rulesets, t })
+  // Plain text in the tooltip
+  const sourceLine = t(i18nKey, values).replace(/<\/?b>/g, '')
+
+  return {
+    lines: [sourceLine],
+    conflicts: conflicts.length
+      ? t('STATS_PAGE.CATEGORY_RULES.ALSO_MATCHED', {
+          matches: conflicts
+            .map(
+              ({ rulesetId, category }) =>
+                `${getRulesetName({ id: rulesetId, rulesets, t })} (${getCategoryLabel(category, t)})`,
+            )
+            .join(', '),
+        })
+      : null,
+  }
 }
 
 /**
@@ -77,9 +133,23 @@ export const getSharedCurrency = (files: ParsedStatsFile[]): Currency | null => 
 
 type GetTransactionColumnsProps = {
   currency: Currency | null
-  showSource: boolean
+  /**
+   * The info column (file, category source, tags), not in previews of not yet stored transactions.
+   */
+  showInfo?: boolean
   amountFilter: AmountFilter
   t: TFunction
+  /**
+   * Category cell, by its label, e.g. a chip to change it.
+   */
+  renderCategory?: (label: string, rowIndex: number) => ReactNode
+  /**
+   * Other rule sets that would give the transaction a different category (shown with an icon), `null` without.
+   */
+  conflicts?: {
+    isShown: boolean
+    getText: (rowIndex: number) => string | null
+  }
   /**
    * Tags shown next to the source (e.g. "Duplicate"), only when some are shown. Shows the column without sources.
    */
@@ -91,9 +161,11 @@ type GetTransactionColumnsProps = {
 
 export const getTransactionColumns = ({
   currency,
-  showSource,
+  showInfo = true,
   amountFilter,
   t,
+  renderCategory,
+  conflicts,
   tags,
 }: GetTransactionColumnsProps): VirtualTableColumn[] => {
   const sx = ui()
@@ -112,33 +184,43 @@ export const getTransactionColumns = ({
           ? { ...sx.tabularNums, fontWeight: 600 }
           : sx.tabularNums,
     },
-    { label: t('MISC.CATEGORY'), width: 160 },
-    ...(showSource || tags
+    { label: t('MISC.CATEGORY'), width: 160, renderCell: renderCategory },
+    ...(showInfo
       ? [
           {
             label: t('MISC.SOURCE'),
-            fixedWidth: Math.max(32, ...(tags?.shown ?? []).map((tag) => TAG_COLUMN_WIDTHS[tag])),
+            fixedWidth:
+              Math.max(32, ...(tags?.shown ?? []).map((tag) => TAG_COLUMN_WIDTHS[tag])) +
+              (conflicts?.isShown ? CONFLICT_ICON_WIDTH : 0),
             hideLabel: true,
             align: 'right' as const,
             renderCell: (label: string, rowIndex: number) => {
               const tag = tags?.getTag(rowIndex) ?? null
+              const conflictText = conflicts?.getText(rowIndex) ?? null
 
-              if (!label) {
-                return null
-              }
-
-              // Tagged rows show the tag with the icon
               return (
-                <Tooltip title={<Box sx={{ whiteSpace: 'pre-line' }}>{label}</Box>} placement="left">
-                  {tag ? (
-                    <Box component="span" sx={sx.tag}>
-                      {t(TAG_LABEL_KEYS[tag])}
+                <Box component="span" sx={sx.infoCell}>
+                  {conflictText ? (
+                    <Tooltip title={conflictText} placement="left" slotProps={{ tooltip: { sx: sxChartTooltip } }}>
+                      <CallSplit sx={sx.conflictIcon} aria-label={conflictText} />
+                    </Tooltip>
+                  ) : null}
+                  {/* Tagged rows show the tag with the icon */}
+                  <Tooltip
+                    title={<Box sx={{ whiteSpace: 'pre-line' }}>{label}</Box>}
+                    placement="left"
+                    slotProps={{ tooltip: { sx: sxChartTooltip } }}
+                  >
+                    {tag ? (
+                      <Box component="span" sx={sx.tag}>
+                        {t(TAG_LABEL_KEYS[tag])}
+                        <InfoOutlined sx={sx.infoIcon} />
+                      </Box>
+                    ) : (
                       <InfoOutlined sx={sx.infoIcon} />
-                    </Box>
-                  ) : (
-                    <InfoOutlined sx={{ ...sx.infoIcon, ml: 'auto' }} />
-                  )}
-                </Tooltip>
+                    )}
+                  </Tooltip>
+                </Box>
               )
             },
           },

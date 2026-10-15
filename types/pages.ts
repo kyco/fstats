@@ -4,8 +4,16 @@ import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from 'react'
 import type { Currency } from '@/types-enums'
 
 import type { NumberString } from './global'
+import type { CategoryRuleDraft } from './services/category-rule'
 import type { ParsedStatsFile, StatsFile } from './services/stats-file'
-import type { Category, CategoryCode, ParentCategory, StatsTransactions, Transaction } from './services/transaction'
+import type {
+  Category,
+  CategoryCode,
+  ParentCategory,
+  SourcedTransaction,
+  StatsTransactions,
+  Transaction,
+} from './services/transaction'
 
 // -------------------------------------------------------
 // Layout
@@ -38,9 +46,9 @@ export type SwitcherOption<T extends string> = {
 // Settings page
 // -------------------------------------------------------
 
-export type StorageDeleteAction = 'files' | 'formats' | 'all'
+export type StorageDeleteAction = 'files' | 'formats' | 'rules' | 'all'
 
-export type StorageListTab = 'files' | 'formats'
+export type StorageListTab = 'files' | 'formats' | 'rules'
 
 // -------------------------------------------------------
 // Stats page: workspace
@@ -60,6 +68,31 @@ export type WorkspaceContextValue = {
    */
   files: FileHelper
   stats: StatsTransactions
+  selectedTransaction: SelectedTransaction
+}
+
+/**
+ * The transaction clicked in the transactions table (shown in the sidebar), the one whose category is changed in the
+ * category editor menu, and the rule being created there, see `useSelectedTransaction`.
+ */
+export type SelectedTransaction = {
+  transaction: SourcedTransaction | null
+  /**
+   * Selects the transaction, or deselects it when selected.
+   */
+  toggle: (transaction: SourcedTransaction) => void
+  close: () => void
+  /**
+   * The menu is anchored to the element it was opened from, e.g. the category in the table.
+   */
+  editing: { transaction: SourcedTransaction; anchor: HTMLElement } | null
+  edit: (transaction: SourcedTransaction, anchor: HTMLElement) => void
+  closeEditor: () => void
+  /**
+   * Its matches are highlighted in the transactions table.
+   */
+  rule: CategoryRuleDraft | null
+  setRule: (rule: CategoryRuleDraft | null) => void
 }
 
 /**
@@ -317,4 +350,24 @@ export type VirtualTableColumn = {
    * Cell content, by value. Replaces the value and its tooltip.
    */
   renderCell?: (value: string, rowIndex: number) => ReactNode
+}
+
+/**
+ * Option of a compact select in a toolbar menu style, see `MenuSelect`.
+ */
+export type MenuSelectOption = {
+  value: string
+  label: string
+  /**
+   * Next to the label, e.g. what the option does.
+   */
+  description?: string
+  /**
+   * Options are grouped under a subheader by it, in order.
+   */
+  group?: string
+  /**
+   * Before the label, e.g. a colour dot.
+   */
+  start?: ReactNode
 }
