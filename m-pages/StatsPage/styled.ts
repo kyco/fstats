@@ -21,24 +21,5 @@ export const ui = () => {
       height: '100%',
       overflow: 'auto',
     },
-    divider: {
-      position: 'relative',
-      zIndex: 1,
-      flexShrink: 0,
-      width: '1px',
-      cursor: 'col-resize',
-      bgcolor: 'divider',
-      touchAction: 'none',
-      // Wider hit zone, centered on the line
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: -3,
-        right: -3,
-      },
-      '&:hover::before, &:active::before': { bgcolor: 'action.hover' },
-    },
   }
 }
