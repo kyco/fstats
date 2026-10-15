@@ -79,33 +79,3 @@ export const getDeselectedCounts = (tree: DateYear[], deselectedDays: Set<string
 
   return counts
 }
-
-/**
- * Checked if none of the days are deselected, indeterminate if some are.
- */
-export const getCheckState = (row: DateRow, deselectedCounts: Map<string, number>) => {
-  const deselectedCount = deselectedCounts.get(row.key) ?? 0
-  return { checked: deselectedCount === 0, indeterminate: deselectedCount > 0 && deselectedCount < row.days.length }
-}
-
-/**
- * Deselects all days if all are selected, otherwise selects all.
- */
-export const toggleDays = (days: string[], deselectedDays: Set<string>) => {
-  const next = new Set(deselectedDays)
-  const isAllSelected = !days.some((day) => deselectedDays.has(day))
-  days.forEach((day) => (isAllSelected ? next.add(day) : next.delete(day)))
-  return next
-}
-
-export const toggleExpanded = (key: string, expanded: Set<string>) => {
-  const next = new Set(expanded)
-
-  if (next.has(key)) {
-    next.delete(key)
-  } else {
-    next.add(key)
-  }
-
-  return next
-}

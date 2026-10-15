@@ -4,11 +4,10 @@ import { CheckCircleOutlined, GitHub } from '@mui/icons-material'
 import { Button } from '@mui/material'
 
 import type { CustomParserMapping, StatsFile } from '@/types'
+import { EmptyDisplay } from '@/components'
+import { getFormatIssueHref } from '@/m-custom-parser/service'
 import { Trans, useTranslation } from '@/lib/i18n'
 
-import { EmptyDisplay } from '@/components'
-
-import { getFormatIssueHref } from '../../actions'
 import { ui } from './styled'
 
 type SavedFormatProps = {

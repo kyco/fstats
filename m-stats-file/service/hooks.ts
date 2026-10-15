@@ -4,13 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 
 import type { NewStatsFile, RowData, StatsFile, StatsFileState } from '@/types'
-import { readCsvRows } from '@/utils/FileParser'
 import type { FileRows } from '@/utils/Parser'
 import { extractFileRows } from '@/utils/Parser'
 
 import { addFiles, getFiles, getStorageSize, removeAllFiles, removeFiles, updateFiles } from '../api'
 import { isParsed, isRejected } from './helper'
 import { statsFileKey } from './keys'
+import { readCsvRows } from './parse'
 
 /**
  * Header and transaction rows of a file as is, one entry per section. Files that weren't parsed have no known header,

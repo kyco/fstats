@@ -10,7 +10,7 @@ import { getEndDemoHref, getSetupFileId, getView, isDemo, WorkspaceView } from '
 import { PageWrapper } from '@/components'
 import { isConvertible } from '@/m-stats-file/service'
 import { getCheckedTransactions, getStatsTransactions } from '@/m-transaction/service'
-import { useFileHelper, useResizeHandle, useStatsLayout } from '@/hooks'
+import { useResizeHandle, useStatsLayout } from '@/hooks'
 
 import { resizeColumns } from './actions'
 import {
@@ -24,7 +24,7 @@ import {
   StatsView,
 } from './components'
 import { WorkspaceContext } from './context'
-import { useDayFilter, useDemoState, useFileDropzone } from './hooks'
+import { useDayFilter, useDemoState, useFileDropzone, useFileHelper } from './hooks'
 import { ui } from './styled'
 
 /**

@@ -12,12 +12,14 @@ import { AmountFilter } from '@/types-enums'
 import { getView, WorkspaceView } from '@/common'
 import { OutlineCheckbox } from '@/components'
 import { filterAmount, filterTransactions } from '@/m-transaction/service'
+import { onRowKeyDown } from '@/utils/Event'
+import { countIn, getCheckState, toggleKey, toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
 import { ALL_CURRENCIES } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useTableOptions, useTransactionFilter } from '../../hooks'
-import { getCategoryGroups, getCheckState, onRowKeyDown, toggleCategories } from './actions'
+import { getCategoryGroups } from './actions'
 import { ui } from './styled'
 
 type FiltersProps = {
@@ -84,17 +86,11 @@ const Component = ({ options, currency }: FiltersProps) => {
   const isActive =
     selectedCurrency !== ALL_CURRENCIES ||
     options.some((option) => option.checked && option.count) ||
-    !getCheckState(excluded, allKeys).checked
+    countIn(excluded, allKeys) > 0
 
-  const onToggle = (keys: string[]) => setExcludedCategories(toggleCategories(excluded, keys))
+  const onToggle = (keys: string[]) => setExcludedCategories(toggleKeys(excluded, keys))
 
-  const toggleExpanded = (key: string) => {
-    const next = new Set(expanded)
-    if (!next.delete(key)) {
-      next.add(key)
-    }
-    setExpanded(next)
-  }
+  const toggleExpanded = (key: string) => setExpanded(toggleKey(expanded, key))
 
   const renderCategoryRow = ({
     key,
@@ -119,7 +115,9 @@ const Component = ({ options, currency }: FiltersProps) => {
   }) => {
     // Without transactions, parents can still be expanded
     const isDisabled = !count
-    const state = isDisabled ? { checked: false, indeterminate: false } : getCheckState(excluded, keys)
+    const state = isDisabled
+      ? { checked: false, indeterminate: false }
+      : getCheckState(countIn(excluded, keys), keys.length)
     const isDeselected = !state.checked && !state.indeterminate
     const onRowClick = onClick ?? (isDisabled ? undefined : () => onToggle(keys))
 

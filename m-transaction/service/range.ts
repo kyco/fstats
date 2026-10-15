@@ -1,9 +1,11 @@
 import { differenceInCalendarDays, eachDayOfInterval, parseISO, startOfMonth, startOfWeek } from 'date-fns'
+import { mean, round } from 'lodash'
 
 import type { DateRange, Transaction, TransactionRangeItem } from '@/types'
 import { DateFormat, UserLocale } from '@/types-enums'
 import { groupInOrder } from '@/utils/Array'
 import { getTransactionDay, toDayKey, toDisplayDate } from '@/utils/Date'
+import { Big } from '@/lib/w-big'
 
 export const RangeGranularity = {
   DAY: 'day',
@@ -132,4 +134,51 @@ export const getTransactionHelper = ({
     transactions,
     transactionRangeItems,
   }
+}
+
+type GetMonthlyCountsProps = {
+  transactions: Transaction[]
+  excludedDays: Set<string>
+  locale: UserLocale
+  dateFormat: DateFormat
+}
+
+/**
+ * Transactions per month of the sorted transactions, `null` (a gap in the line) for months excluded by date.
+ */
+export const getMonthlyCounts = ({ transactions, excludedDays, locale, dateFormat }: GetMonthlyCountsProps) => {
+  if (!transactions.length) {
+    return { labels: [], counts: [], average: null }
+  }
+
+  const items = getTransactionRangeItems({
+    dateRange: getTransactionsDateRange(transactions),
+    transactions,
+    locale,
+    dateFormat,
+    excludedDays,
+    granularity: RangeGranularity.MONTH,
+  })
+
+  const counts = items.map((item) => (item.isExcluded ? null : item.transactions.length))
+  // Of the shown months, including those without transactions
+  const shownCounts = counts.filter((count) => count !== null)
+
+  return {
+    labels: items.map((item) => item.label),
+    counts,
+    average: shownCounts.length ? round(mean(shownCounts), 1) : null,
+  }
+}
+
+/**
+ * Running balance, `null` (a gap in the line) for items excluded by date.
+ */
+export const accumulateValues = (transactionRangeItems: TransactionRangeItem[]): (number | null)[] => {
+  let total = Big(0)
+
+  return transactionRangeItems.map((item) => {
+    total = item.transactions.reduce((acc, transaction) => acc.add(transaction.value), total)
+    return item.isExcluded ? null : total.toNumber()
+  })
 }

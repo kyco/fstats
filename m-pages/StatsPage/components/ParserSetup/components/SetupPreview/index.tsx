@@ -6,12 +6,13 @@ import { format, parseISO } from 'date-fns'
 import type { SetupPreviewResult } from '@/types'
 import { AmountFilter } from '@/types-enums'
 import type { Currency } from '@/types-enums'
+import { isValidPreview } from '@/m-custom-parser/service'
 import { useUserPreferences } from '@/m-user/service'
 import { useTranslation } from '@/lib/i18n'
 
 import { getTransactionCells, getTransactionColumns } from '../../../TransactionsPreview/actions'
 import VirtualTable from '../../../VirtualTable'
-import { isValidPreview, PREVIEW_ROWS } from '../../actions'
+import { PREVIEW_ROWS } from '../../actions'
 import { ui } from './styled'
 
 type SetupPreviewProps = {

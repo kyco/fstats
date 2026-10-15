@@ -6,7 +6,7 @@ import { useMemo } from 'react'
 
 import type { StatsFile, TransactionFilter } from '@/types'
 import { isParsed } from '@/m-stats-file/service'
-import { filterTransactions, getTransactionCounts } from '@/m-transaction/service'
+import { filterTransactions, getSourcedTransactions, getTransactionCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { getTransactionDay } from '@/utils/Date'
 import { useTranslation } from '@/lib/i18n'
@@ -20,7 +20,6 @@ import VirtualTable from '../VirtualTable'
 import { filterBySearch, toSearchText } from '../VirtualTable/actions'
 import {
   getSharedCurrency,
-  getSourcedTransactions,
   getSourceLabel,
   getTransactionCells,
   getTransactionColumns,

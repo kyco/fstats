@@ -3,6 +3,7 @@ import { groupBy, mapValues, uniq } from 'lodash'
 import type {
   CheckedTransactions,
   ParsedStatsFile,
+  SourcedTransaction,
   StatsTransactions,
   Transaction,
   TransactionCounts,
@@ -166,4 +167,25 @@ export const getTransactionsByCurrency = ({ byCurrency, count }: StatsTransactio
     transactions: filterTransactions(shown, filter),
     counts: count(filterTransactions(all, filter)),
   }))
+}
+
+/**
+ * Transactions of all files in a single list, newest first like the date explorer. Stable, so the order of files is
+ * kept for equal dates. The first occurrence of a transaction in multiple files is the original, the others are
+ * duplicates.
+ */
+export const getSourcedTransactions = (files: ParsedStatsFile[]): SourcedTransaction[] => {
+  const transactions = files.flatMap((file) =>
+    getFileTransactions(file).map((transaction) => ({ ...transaction, source: file.file.name })),
+  )
+  const duplicates = getDuplicates(transactions)
+  const sourcesById = groupBy(transactions, 'id')
+
+  return transactions
+    .map((transaction) => ({
+      ...transaction,
+      sources: sourcesById[transaction.id].map(({ source }) => source),
+      isDuplicate: duplicates.has(transaction),
+    }))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 }

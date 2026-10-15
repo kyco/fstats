@@ -6,24 +6,22 @@ import { Fragment, useMemo, useState } from 'react'
 
 import type { CustomParserMapping, RowData, SetupDraft, StatsFile } from '@/types'
 import { SetupPreviewTab, SetupStep } from '@/types-enums'
-import { useMutateAddCustomParser } from '@/m-custom-parser/service'
+import {
+  getAmountValues,
+  getHeaderRowProblem,
+  getPreview,
+  isNamed,
+  isValidPreview,
+  toDraft,
+  toMapping,
+  useMutateAddCustomParser,
+} from '@/m-custom-parser/service'
 import { detectMapping, getMatchingNumberFormats, looksLikeHeader } from '@/utils/Parser'
 import { useTranslation } from '@/lib/i18n'
 
 import { useWorkspaceFiles } from '../../../../context'
 import PreviewSection from '../../../PreviewSection'
-import {
-  getAmountValues,
-  getHeaderRowProblem,
-  getPreview,
-  getPreviewCaption,
-  getPreviewMessageKey,
-  isNamed,
-  isValidPreview,
-  SETUP_STEPS,
-  toDraft,
-  toMapping,
-} from '../../actions'
+import { getPreviewCaption, getPreviewMessageKey, SETUP_STEPS } from '../../actions'
 import AccountForm from '../AccountForm'
 import AmountFormats from '../AmountFormats'
 import ColumnMapping from '../ColumnMapping'

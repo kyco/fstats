@@ -1,13 +1,12 @@
 import { InfoOutlined } from '@mui/icons-material'
 import { Box, Tooltip } from '@mui/material'
 import type { TFunction } from 'i18next'
-import { groupBy, uniq } from 'lodash'
+import { uniq } from 'lodash'
 
 import type { ParsedStatsFile, SourcedTransaction, Transaction, VirtualTableColumn } from '@/types'
 import { AmountFilter, TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
-import { getFileCurrency, getFileTransactions } from '@/m-stats-file/service'
-import { getDuplicates } from '@/m-transaction/service'
+import { getFileCurrency } from '@/m-stats-file/service'
 import { getCategoryLabel } from '@/utils/Category'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
@@ -25,27 +24,6 @@ const TAG_LABEL_KEYS: Record<TransactionTag, string> = {
 const TAG_COLUMN_WIDTHS: Record<TransactionTag, number> = {
   [TransactionTag.DUPLICATE]: 96,
   [TransactionTag.DATE_EXCLUDED]: 128,
-}
-
-/**
- * Transactions of all files in a single list, newest first like the date explorer. Stable, so the order of files is
- * kept for equal dates. The first occurrence of a transaction in multiple files is the original, the others are
- * duplicates.
- */
-export const getSourcedTransactions = (files: ParsedStatsFile[]): SourcedTransaction[] => {
-  const transactions = files.flatMap((file) =>
-    getFileTransactions(file).map((transaction) => ({ ...transaction, source: file.file.name })),
-  )
-  const duplicates = getDuplicates(transactions)
-  const sourcesById = groupBy(transactions, 'id')
-
-  return transactions
-    .map((transaction) => ({
-      ...transaction,
-      sources: sourcesById[transaction.id].map(({ source }) => source),
-      isDuplicate: duplicates.has(transaction),
-    }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 }
 
 /**

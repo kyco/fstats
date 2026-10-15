@@ -1,18 +1,8 @@
-import { uniq } from 'lodash'
-
-import type {
-  NumberString,
-  ParsedStatsFile,
-  StatsFile,
-  Transaction,
-  TransactionCounts,
-  TransactionFilter,
-} from '@/types'
+import type { NumberString, StatsFile, Transaction, TransactionCounts, TransactionFilter } from '@/types'
 import { AmountFilter, EmptyReason, StatsFileStatus, TransactionsLayout } from '@/types-enums'
 import { MISC } from '@/common'
-import { isConvertible, isError, isParsed, isUnknown } from '@/m-stats-file/service'
+import { getFileAccount, isConvertible, isError, isParsed, isUnknown } from '@/m-stats-file/service'
 import { filterTransactions } from '@/m-transaction/service'
-import { getParser } from '@/utils/Parser'
 import { i18n } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
@@ -20,17 +10,6 @@ import { Big } from '@/lib/w-big'
  * Currency selection of all currencies, see `useCurrencySelect`.
  */
 export const ALL_CURRENCIES = 'all'
-
-/**
- * Bank and accounts of a parsed file, e.g. Comdirect with Giro and Visa.
- */
-export const getFileAccount = (file: ParsedStatsFile) => {
-  // Files of deleted custom parsers are re-parsed on start, until then they show their parser ID
-  const parsers = uniq(file.sections.map((section) => section.parserId)).map(
-    (parserId) => getParser(parserId) ?? { bankName: parserId, accountName: parserId },
-  )
-  return { bankName: parsers[0].bankName, accountNames: parsers.map((parser) => parser.accountName) }
-}
 
 /**
  * Same colors as `FileStatusIcon`.

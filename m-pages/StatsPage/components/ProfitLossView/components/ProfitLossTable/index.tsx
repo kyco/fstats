@@ -12,6 +12,7 @@ import { useUserPreferences } from '@/m-user/service'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
 import { toFixedLocale, toFixedLocaleAmount } from '@/utils/Number'
+import { toggleKey } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
@@ -36,17 +37,7 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
   const { currency, periods, income, expenses, net, netMargin, transfers } = profitLoss
   const columnCount = periods.length + 2
 
-  const toggle = (key: string) => {
-    setExpandedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
-  }
+  const toggle = (key: string) => setExpandedKeys((prev) => toggleKey(prev, key))
 
   const formatAmount = (value: NumberString | undefined) => {
     return value === undefined || Big(value).eq(0) ? EMPTY_AMOUNT : toFixedLocaleAmount({ value, currency, locale })

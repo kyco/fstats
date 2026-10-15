@@ -1,9 +1,7 @@
 import { grey } from '@mui/material/colors'
 import type { ChartOptions } from 'chart.js'
 
-import type { TransactionRangeItem } from '@/types'
 import { getBaseChartOptions, getThemeColor } from '@/utils/Chart'
-import { Big } from '@/lib/w-big'
 
 export const getLineColor = (isDarkMode: boolean) => {
   return isDarkMode ? grey[300] : grey[800]
@@ -52,17 +50,5 @@ export const getChartOptions = (): ChartOptions<'line'> => {
         },
       },
     },
-  })
-}
-
-/**
- * Running balance, `null` (a gap in the line) for items excluded by date.
- */
-export const accumulateValues = (transactionRangeItems: TransactionRangeItem[]): (number | null)[] => {
-  let total = Big(0)
-
-  return transactionRangeItems.map((item) => {
-    total = item.transactions.reduce((acc, transaction) => acc.add(transaction.value), total)
-    return item.isExcluded ? null : total.toNumber()
   })
 }

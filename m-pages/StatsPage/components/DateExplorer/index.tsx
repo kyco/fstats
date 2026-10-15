@@ -9,13 +9,14 @@ import type { DateRow } from '@/types'
 import { OutlineCheckbox } from '@/components'
 import { useUserPreferences } from '@/m-user/service'
 import { getTransactionDay, toDisplayDate } from '@/utils/Date'
+import { onRowKeyDown } from '@/utils/Event'
+import { getCheckState, toggleKey, toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
 import { EMPTY_REASON_TITLE_KEYS, getEmptyReason } from '../../actions'
 import { useStatsTransactions, useWorkspaceDayFilter, useWorkspaceFiles } from '../../context'
 import DateSkeleton from '../DateSkeleton'
 import {
-  getCheckState,
   getDateTree,
   getDefaultExpanded,
   getDeselectedCounts,
@@ -23,8 +24,6 @@ import {
   getVisibleRows,
   OVERSCAN,
   ROW_INDENT,
-  toggleDays,
-  toggleExpanded,
 } from './actions'
 import { ui } from './styled'
 
@@ -70,11 +69,11 @@ const Component = () => {
   }
 
   const toggleRow = (row: DateRow) => {
-    setDeselectedDays(toggleDays(row.days, deselectedDays))
+    setDeselectedDays(toggleKeys(deselectedDays, row.days))
   }
 
   const toggleRowExpanded = (row: DateRow) => {
-    setExpandedKeys(toggleExpanded(row.key, expanded))
+    setExpandedKeys(toggleKey(expanded, row.key))
   }
 
   // Only an indicator, the whole row expands
@@ -106,7 +105,7 @@ const Component = () => {
           const row = rows[item.index]
           const isExpandable = row.type !== 'day'
           const isExpanded = expanded.has(row.key)
-          const checkState = getCheckState(row, deselectedCounts)
+          const checkState = getCheckState(deselectedCounts.get(row.key) ?? 0, row.days.length)
           const isDeselected = !checkState.checked && !checkState.indeterminate
 
           return (
@@ -117,12 +116,7 @@ const Component = () => {
               role="button"
               tabIndex={0}
               aria-expanded={isExpandable ? isExpanded : undefined}
-              onKeyDown={(event) => {
-                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                  event.preventDefault()
-                  event.currentTarget.click()
-                }
-              }}
+              onKeyDown={onRowKeyDown}
               sx={sx.row}
               style={sx.rowPosition(item.start, item.size, ROW_INDENT[row.type])}
             >

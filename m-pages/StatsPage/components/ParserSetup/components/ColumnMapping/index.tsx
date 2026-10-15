@@ -5,10 +5,16 @@ import { format } from 'date-fns'
 import { useMemo } from 'react'
 
 import type { ColumnField, RowData, SetupDraft } from '@/types'
+import {
+  COLUMN_FIELDS,
+  disconnectColumn,
+  getColumnValues,
+  getConnectChanges,
+  getSampleValue,
+} from '@/m-custom-parser/service'
 import { DATE_FORMATS, getHeaderNames, getMatchingDateFormats } from '@/utils/Parser'
 import { useTranslation } from '@/lib/i18n'
 
-import { COLUMN_FIELDS, disconnectColumn, getColumnValues, getConnectChanges, getSampleValue } from '../../actions'
 import FormatSelect from '../FormatSelect'
 import { EXAMPLE_DATE, FIELD_LABEL_KEYS } from './actions'
 import { ColumnConnector } from './components'

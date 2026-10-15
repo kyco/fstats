@@ -13,7 +13,7 @@ import {
   isNamed,
   toDraft,
   toMapping,
-} from '../actions'
+} from '../setup'
 
 const rows = [
   ['Export', ''],

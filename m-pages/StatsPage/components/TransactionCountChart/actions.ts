@@ -1,46 +1,7 @@
 import { grey, indigo } from '@mui/material/colors'
 import type { ChartOptions } from 'chart.js'
-import { mean, round } from 'lodash'
 
-import type { Transaction } from '@/types'
-import { DateFormat, UserLocale } from '@/types-enums'
-import { getTransactionRangeItems, getTransactionsDateRange, RangeGranularity } from '@/m-transaction/service'
 import { getBaseChartOptions, getThemeColor } from '@/utils/Chart'
-
-type GetMonthlyCountsProps = {
-  transactions: Transaction[]
-  excludedDays: Set<string>
-  locale: UserLocale
-  dateFormat: DateFormat
-}
-
-/**
- * Transactions per month of the sorted transactions, `null` (a gap in the line) for months excluded by date.
- */
-export const getMonthlyCounts = ({ transactions, excludedDays, locale, dateFormat }: GetMonthlyCountsProps) => {
-  if (!transactions.length) {
-    return { labels: [], counts: [], average: null }
-  }
-
-  const items = getTransactionRangeItems({
-    dateRange: getTransactionsDateRange(transactions),
-    transactions,
-    locale,
-    dateFormat,
-    excludedDays,
-    granularity: RangeGranularity.MONTH,
-  })
-
-  const counts = items.map((item) => (item.isExcluded ? null : item.transactions.length))
-  // Of the shown months, including those without transactions
-  const shownCounts = counts.filter((count) => count !== null)
-
-  return {
-    labels: items.map((item) => item.label),
-    counts,
-    average: shownCounts.length ? round(mean(shownCounts), 1) : null,
-  }
-}
 
 export const getLineColors = (isDarkMode: boolean) => {
   return {

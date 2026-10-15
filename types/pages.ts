@@ -4,7 +4,6 @@ import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from 'react'
 import type { Currency } from '@/types-enums'
 
 import type { NumberString } from './global'
-import type { CustomParserMapping } from './services/custom-parser'
 import type { ParsedStatsFile, StatsFile } from './services/stats-file'
 import type { Category, CategoryCode, ParentCategory, StatsTransactions, Transaction } from './services/transaction'
 
@@ -205,38 +204,6 @@ export type ProfitLossRowVariant = 'category' | 'subcategory' | 'transaction' | 
 // Stats page: parser setup
 // -------------------------------------------------------
 
-export type ColumnField =
-  | 'date'
-  | 'description'
-  | 'moneyIn'
-  | 'moneyOut'
-  | 'balance'
-  | 'reference'
-  | 'transactionType'
-  | 'category'
-  | 'parentCategory'
-
-/**
- * The form state, the connected header names per field. At most one, except for the amount fields.
- */
-export type SetupDraft = {
-  headerIndex: number
-  bankName: string
-  accountName: string
-  currency: Currency
-  dateFormat: string
-  numberFormat: CustomParserMapping['numberFormat']
-  columns: Record<ColumnField, string[]>
-}
-
-/**
- * The file parsed with the mapping of the setup, see `getPreview`.
- */
-export type SetupPreviewResult = {
-  transactions: Transaction[]
-  error: string | null
-}
-
 /**
  * Position of the frame around the header row in the header row picker.
  */
@@ -325,21 +292,6 @@ export type BankAccountOption = {
   value: string
   label: string
   fileIds: string[]
-}
-
-export type SourcedTransaction = Transaction & {
-  /**
-   * Name of the file the transaction is from.
-   */
-  source: string
-  /**
-   * Names of all files containing the transaction, in file order.
-   */
-  sources: string[]
-  /**
-   * The same transaction is also in an earlier file (e.g. overlapping statements).
-   */
-  isDuplicate: boolean
 }
 
 export type VirtualTableColumn = {

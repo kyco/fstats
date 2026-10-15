@@ -3,12 +3,13 @@ import { Box } from '@mui/material'
 import type { TransactionRangeItem } from '@/types'
 import { MISC } from '@/common'
 import { CardTitle, LineChart } from '@/components'
+import { accumulateValues } from '@/m-transaction/service'
 import { useIsDarkMode } from '@/hooks'
 import { Color } from '@/styles/colors'
 import { getAreaFill, getThemeColor } from '@/utils/Chart'
 import { useTranslation } from '@/lib/i18n'
 
-import { accumulateValues, getChartOptions, getLineColor } from './actions'
+import { getChartOptions, getLineColor } from './actions'
 import { ui } from './styled'
 
 type BalanceChartProps = {

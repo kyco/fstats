@@ -1,6 +1,5 @@
 export * from './useDarkModeMetaTagUpdater'
 export * from './useStatsLayout'
-export * from './useFileHelper'
 export * from './useIsDarkMode'
 export * from './useIsMobile'
 export * from './useResizeHandle'

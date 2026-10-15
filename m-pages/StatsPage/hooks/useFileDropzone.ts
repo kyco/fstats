@@ -7,11 +7,10 @@ import type { FileRejection } from 'react-dropzone'
 import type { NewStatsFile, RDZFileWithPath } from '@/types'
 import { StatsFileStatus } from '@/types-enums'
 import { MISC } from '@/common'
-import { isParsed, useMutateAddFiles, useMutateUpdateFiles } from '@/m-stats-file/service'
-import { useFileHelper } from '@/hooks'
-import { parseFiles } from '@/utils/FileParser'
+import { isParsed, parseFiles, useMutateAddFiles, useMutateUpdateFiles } from '@/m-stats-file/service'
 
 import { openFolderPicker, setInputFiles } from '../actions'
+import { useFileHelper } from './useFileHelper'
 
 type UseFileDropzoneProps = {
   onAdded?: () => void

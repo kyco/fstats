@@ -1,6 +1,5 @@
 import type { TFunction } from 'i18next'
 import { countBy, sumBy } from 'lodash'
-import type { KeyboardEvent } from 'react'
 
 import type { CategoryGroup, ParentCategory, ParentCategoryCode, ParentCategoryOption, Transaction } from '@/types'
 import { ALL_CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
@@ -61,30 +60,4 @@ export const getCategoryGroups = (transactions: Transaction[], t: TFunction): Ca
       parents: [...toParentOptions({ categories: EXPENSE_CATEGORIES, counts, t }), ...otherOptions],
     },
   ]
-}
-
-/**
- * Checked when none of the keys are excluded, indeterminate when some are.
- */
-export const getCheckState = (excluded: Set<string>, keys: string[]) => {
-  const excludedCount = keys.filter((key) => excluded.has(key)).length
-  return { checked: !excludedCount, indeterminate: excludedCount > 0 && excludedCount < keys.length }
-}
-
-/**
- * Includes all keys if any is excluded, otherwise excludes them.
- */
-export const toggleCategories = (excluded: Set<string>, keys: string[]) => {
-  const isIncluding = keys.some((key) => excluded.has(key))
-  const next = new Set(excluded)
-  keys.forEach((key) => (isIncluding ? next.delete(key) : next.add(key)))
-  return next
-}
-
-// Rows are buttons, like the rows of the date explorer
-export const onRowKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-    event.preventDefault()
-    event.currentTarget.click()
-  }
 }

@@ -4,6 +4,7 @@ import { Box } from '@mui/material'
 
 import type { Transaction, TransactionCounts } from '@/types'
 import { CardTitle, LineChart } from '@/components'
+import { getMonthlyCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { useIsDarkMode } from '@/hooks'
 import { getAreaFill, getThemeColor } from '@/utils/Chart'
@@ -11,7 +12,7 @@ import { useTranslation } from '@/lib/i18n'
 
 import { getTransactionCountText } from '../../actions'
 import { ui } from '../BalanceChart/styled'
-import { getChartOptions, getLineColors, getMonthlyCounts } from './actions'
+import { getChartOptions, getLineColors } from './actions'
 
 type TransactionCountChartProps = {
   /**

@@ -136,6 +136,21 @@ export type TransactionCounts = {
   duplicateCount: number
 }
 
+export type SourcedTransaction = Transaction & {
+  /**
+   * Name of the file the transaction is from.
+   */
+  source: string
+  /**
+   * Names of all files containing the transaction, in file order.
+   */
+  sources: string[]
+  /**
+   * The same transaction is also in an earlier file (e.g. overlapping statements).
+   */
+  isDuplicate: boolean
+}
+
 // -------------------------------------------------------
 // Profit and loss
 // -------------------------------------------------------
