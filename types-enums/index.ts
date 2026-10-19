@@ -178,10 +178,14 @@ export type TransactionsLayout = (typeof TransactionsLayout)[keyof typeof Transa
 /**
  * Which transactions the stats page shows by amount, all, income or expenses.
  */
+/**
+ * Money in and out shown by the amount filter (by the sign, unlike the income and expense categories).
+ */
 export const AmountFilter = {
   ALL: 'all',
   IN: 'in',
   OUT: 'out',
+  NONE: 'none',
 } as const
 
 export type AmountFilter = (typeof AmountFilter)[keyof typeof AmountFilter]

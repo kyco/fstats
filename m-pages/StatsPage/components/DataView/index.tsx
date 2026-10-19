@@ -10,13 +10,7 @@ import { FletchingDivider, SearchField, SegmentedToggle } from '@/components'
 import { filterTransactions, getFilteredCurrencies, groupFilesByCurrency } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
-import {
-  ALL_CURRENCIES,
-  EMPTY_REASON_TITLE_KEYS,
-  getAmountFilterOptions,
-  getEmptyReason,
-  getTransactionsLayoutOptions,
-} from '../../actions'
+import { ALL_CURRENCIES, getEmptyReason, getTransactionsLayoutOptions } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles, useWorkspaceSearch } from '../../context'
 import { useCurrencySelect, useTableOptions, useTransactionFilter } from '../../hooks'
 import CsvPreview from '../CsvPreview'
@@ -47,7 +41,7 @@ const Component = () => {
     includeDateExcluded,
     setIncludeDateExcluded,
   } = useTableOptions()
-  const { filter, amountFilter, setAmountFilter } = useTransactionFilter()
+  const { filter } = useTransactionFilter()
   const { all, unique, shown, count } = useStatsTransactions()
   // All transactions, those on days deselected in the date explorer are greyed out or hidden
   const { files, checkedFiles, selectedFiles: checkedParsedFiles } = useWorkspaceFiles()
@@ -140,20 +134,6 @@ const Component = () => {
             : undefined
         }
       >
-        {/* Always shown, so the toolbar doesn't change when switching views */}
-        <SegmentedToggle
-          value={amountFilter}
-          options={getAmountFilterOptions()}
-          onChange={setAmountFilter}
-          disabled={!isTransactionsView}
-          disabledTooltip={
-            !checkedFiles.length && emptyReason
-              ? t(EMPTY_REASON_TITLE_KEYS[emptyReason])
-              : !isTransactions
-                ? t('STATS_PAGE.CSV_DISABLED')
-                : undefined
-          }
-        />
         {isTransactionsView && isCombined ? (
           <SegmentedToggle
             value={transactionsLayout}

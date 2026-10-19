@@ -35,7 +35,7 @@ const Component = ({ currency, transactions: { all, shown }, chip }: CurrencySta
   const sx = ui()
   const { locale, dateFormat } = useUserPreferences()
   const { deselectedDays, excludedDayCount, count } = useStatsTransactions()
-  const { filter, amountFilter } = useTransactionFilter()
+  const { filter, direction } = useTransactionFilter()
   const { transactions, transactionRangeItems } = useMemo(
     () =>
       getTransactionHelper({
@@ -63,7 +63,7 @@ const Component = ({ currency, transactions: { all, shown }, chip }: CurrencySta
       </Box>
 
       <Box sx={sx.section}>
-        <CategoryBreakdown transactions={transactions} currency={currency} amountFilter={amountFilter} chip={chip} />
+        <CategoryBreakdown transactions={transactions} currency={currency} direction={direction} chip={chip} />
       </Box>
     </Stack>
   )

@@ -14,14 +14,17 @@ import { BreakdownTable } from './components'
 type CategoryBreakdownProps = {
   transactions: Transaction[]
   currency: Currency
-  amountFilter: AmountFilter
+  /**
+   * Of the category filter, only its table is shown.
+   */
+  direction: AmountFilter | null
   /**
    * Next to the title, e.g. the currency when several are shown.
    */
   chip?: string
 }
 
-const Component = ({ transactions, currency, amountFilter, chip }: CategoryBreakdownProps) => {
+const Component = ({ transactions, currency, direction, chip }: CategoryBreakdownProps) => {
   const { t } = useTranslation()
   const { totalIncome, totalExpense } = getStats(transactions)
   const groupedTransactions = getTransactionsGroupedByCategory(transactions, t)
@@ -45,9 +48,9 @@ const Component = ({ transactions, currency, amountFilter, chip }: CategoryBreak
         {t('STATS_PAGE.STATS_VIEW.BREAKDOWN_BY_CATEGORY')}
       </CardTitle>
 
-      {/* Only the table matching the amount filter */}
-      {amountFilter !== AmountFilter.OUT ? (
-        <Box sx={amountFilter === AmountFilter.ALL ? { mb: 3 } : undefined}>
+      {/* Only the table matching the direction */}
+      {direction !== AmountFilter.OUT ? (
+        <Box sx={direction !== AmountFilter.IN ? { mb: 3 } : undefined}>
           <BreakdownTable
             title={t('MISC.INCOME')}
             emptyText={t('STATS_PAGE.STATS_VIEW.NO_INCOME')}
@@ -59,7 +62,7 @@ const Component = ({ transactions, currency, amountFilter, chip }: CategoryBreak
         </Box>
       ) : null}
 
-      {amountFilter !== AmountFilter.IN ? (
+      {direction !== AmountFilter.IN ? (
         <BreakdownTable
           title={t('MISC.EXPENSES')}
           emptyText={t('STATS_PAGE.STATS_VIEW.NO_EXPENSES')}

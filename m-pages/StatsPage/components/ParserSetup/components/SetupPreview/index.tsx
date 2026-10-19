@@ -4,7 +4,6 @@ import { Alert, Box } from '@mui/material'
 import { format, parseISO } from 'date-fns'
 
 import type { SetupPreviewResult } from '@/types'
-import { AmountFilter } from '@/types-enums'
 import type { Currency } from '@/types-enums'
 import { isValidPreview } from '@/m-custom-parser/service'
 import { useUserPreferences } from '@/m-user/service'
@@ -42,7 +41,6 @@ const Component = ({ preview, currency, dateFormat: fileDateFormat, scrollElemen
   const [dateColumn, ...otherColumns] = getTransactionColumns({
     currency,
     showInfo: false,
-    amountFilter: AmountFilter.ALL,
     t,
   })
   // Wider, the file's dates can have a time
@@ -60,7 +58,6 @@ const Component = ({ preview, currency, dateFormat: fileDateFormat, scrollElemen
           const transaction = transactions[index]
           const [, ...cells] = getTransactionCells(transaction, {
             currency,
-            amountFilter: AmountFilter.ALL,
             locale,
             dateFormat,
             t,

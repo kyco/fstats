@@ -2,6 +2,7 @@ import { groupBy, mapValues, uniq } from 'lodash'
 
 import type {
   CheckedTransactions,
+  ParentCategory,
   ParsedStatsFile,
   SourcedTransaction,
   StatsTransactions,
@@ -11,20 +12,10 @@ import type {
 } from '@/types'
 import type { Currency } from '@/types-enums'
 import { AmountFilter } from '@/types-enums'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
 import { getFileCurrency, getFileTransactions } from '@/m-stats-file/service'
 import { getTransactionDay } from '@/utils/Date'
 import { isExpense, isIncome } from '@/utils/Stats'
-
-export const filterAmount = <T extends Transaction>(transactions: T[], filter: AmountFilter) => {
-  switch (filter) {
-    case AmountFilter.IN:
-      return transactions.filter(isIncome)
-    case AmountFilter.OUT:
-      return transactions.filter(isExpense)
-    default:
-      return transactions
-  }
-}
 
 /**
  * Category filter key of transactions without a category.
@@ -35,6 +26,30 @@ export const getCategoryKey = (transaction: Transaction) => {
   return transaction.category ?? NO_CATEGORY
 }
 
+export const filterAmount = <T extends Transaction>(transactions: T[], filter: AmountFilter) => {
+  switch (filter) {
+    case AmountFilter.IN:
+      return transactions.filter(isIncome)
+    case AmountFilter.OUT:
+      return transactions.filter(isExpense)
+    case AmountFilter.NONE:
+      return []
+    default:
+      return transactions
+  }
+}
+
+/**
+ * The amount filter of money in and out being shown.
+ */
+export const toAmountFilter = (isInShown: boolean, isOutShown: boolean): AmountFilter => {
+  if (isInShown && isOutShown) {
+    return AmountFilter.ALL
+  }
+
+  return isInShown ? AmountFilter.IN : isOutShown ? AmountFilter.OUT : AmountFilter.NONE
+}
+
 export const filterTransactions = <T extends Transaction>(
   transactions: T[],
   { amount, excludedCategories }: TransactionFilter,
@@ -43,6 +58,37 @@ export const filterTransactions = <T extends Transaction>(
   return excludedCategories.size
     ? amountTransactions.filter((transaction) => !excludedCategories.has(getCategoryKey(transaction)))
     : amountTransactions
+}
+
+const getSubcategoryKeys = (categories: Record<string, ParentCategory>) => {
+  return Object.values(categories).flatMap((parent) => Object.keys(parent.subcategories))
+}
+
+/**
+ * Category filter keys of the income and expense categories (and transactions without a category, like the filters).
+ */
+const DIRECTION_KEYS = {
+  [AmountFilter.IN]: getSubcategoryKeys(INCOME_CATEGORIES),
+  [AmountFilter.OUT]: [...getSubcategoryKeys(EXPENSE_CATEGORIES), NO_CATEGORY],
+}
+
+const isAllExcluded = (excludedCategories: Set<string>, direction: keyof typeof DIRECTION_KEYS) => {
+  return DIRECTION_KEYS[direction].every((key) => excludedCategories.has(key))
+}
+
+/**
+ * Direction shown by the category filter: income or expenses when all categories of the other are excluded, all when
+ * neither, `null` when both.
+ */
+export const getDirection = (excludedCategories: Set<string>): AmountFilter | null => {
+  const isInExcluded = isAllExcluded(excludedCategories, AmountFilter.IN)
+  const isOutExcluded = isAllExcluded(excludedCategories, AmountFilter.OUT)
+
+  if (isInExcluded && isOutExcluded) {
+    return null
+  }
+
+  return isOutExcluded ? AmountFilter.IN : isInExcluded ? AmountFilter.OUT : AmountFilter.ALL
 }
 
 /**

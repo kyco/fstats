@@ -4,11 +4,11 @@ import { InsertChartOutlined } from '@mui/icons-material'
 import { Box, Stack } from '@mui/material'
 import { useMemo } from 'react'
 
-import { FletchingDivider, SegmentedToggle } from '@/components'
+import { FletchingDivider } from '@/components'
 import { getFilteredCurrencies } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
-import { EMPTY_REASON_TITLE_KEYS, getAmountFilterOptions, getEmptyReason, isMissingData } from '../../actions'
+import { getEmptyReason } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useCurrencySelect, useTransactionFilter } from '../../hooks'
 import ViewEmptyState from '../ViewEmptyState'
@@ -24,7 +24,7 @@ const Component = () => {
   const { t } = useTranslation()
   const { files, checkedFiles } = useWorkspaceFiles()
   const { all, shown, byCurrency } = useStatsTransactions()
-  const { filter, amountFilter, setAmountFilter } = useTransactionFilter()
+  const { filter } = useTransactionFilter()
   const emptyReason = useMemo(
     () =>
       getEmptyReason({
@@ -40,15 +40,7 @@ const Component = () => {
 
   return (
     <>
-      <ViewToolbar currency={{ currencies, value: selected, onChange: setSelected }}>
-        <SegmentedToggle
-          value={amountFilter}
-          options={getAmountFilterOptions()}
-          onChange={setAmountFilter}
-          disabled={isMissingData(emptyReason)}
-          disabledTooltip={emptyReason ? t(EMPTY_REASON_TITLE_KEYS[emptyReason]) : undefined}
-        />
-      </ViewToolbar>
+      <ViewToolbar currency={{ currencies, value: selected, onChange: setSelected }} />
       <Box sx={sx.scroll}>
         {emptyReason ? (
           <ViewEmptyState

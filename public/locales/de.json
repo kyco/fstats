@@ -137,11 +137,11 @@
       "TITLE": "Filter",
       "TABLE": "Tabelle",
       "CURRENCY": "Währung",
+      "AMOUNTS": "Beträge",
+      "AMOUNTS_NETTED": "Die Gewinn- und Verlustrechnung zeigt Ein- und Ausgänge immer zusammen",
+      "TABLE_ONLY": "Nur in der Umsatzansicht",
       "ALL_CURRENCIES": "Alle",
-      "DIRECTION": "Richtung",
-      "DIRECTION_ALL": "Alle",
-      "DIRECTION_IN": "Einnahmen",
-      "DIRECTION_OUT": "Ausgaben"
+      "IN_OUT": "{{in}} Eingänge, {{out}} Ausgänge"
     },
     "DEMO": {
       "BANNER": "Du siehst Demodaten",
@@ -174,11 +174,7 @@
         "SPLIT_TITLE": "Eine Tabelle pro Datei"
       },
       "AMOUNT_FILTER": {
-        "ALL": "Alle",
-        "ALL_TITLE": "Alle Umsätze",
-        "IN": "Ein",
         "IN_TITLE": "Geldeingänge",
-        "OUT": "Aus",
         "OUT_TITLE": "Geldausgänge"
       }
     },

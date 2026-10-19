@@ -35,25 +35,25 @@ export const ui = () => {
       fontSize: 18,
     },
     // Like `DropdownMenu`, wide enough for the columns
-    paper: (hasOptions: boolean) => ({
-      width: `min(${hasOptions ? 840 : 560}px, calc(100vw - 32px))`,
+    paper: {
+      width: 'min(840px, calc(100vw - 32px))',
       mt: 0.5,
       borderRadius: '6px',
       border: 1,
       borderColor: 'divider',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
-    }),
+    },
     // Options, money in and money out side by side in equal columns, stacked on small screens
-    columns: (hasOptions: boolean) => ({
+    columns: {
       display: 'grid',
-      gridTemplateColumns: { xs: '1fr', sm: hasOptions ? 'repeat(3, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))' },
+      gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
       '& > * + *': {
         borderLeft: { xs: 0, sm: 1 },
         borderTop: { xs: 1, sm: 0 },
         // Responsive, so it's set after the responsive `border*` shorthands, which reset the color to `currentColor`
         borderColor: { xs: 'divider', sm: 'divider' },
       },
-    }),
+    },
     column: {
       display: 'flex',
       flexDirection: 'column',
@@ -73,6 +73,23 @@ export const ui = () => {
       color: 'text.secondary',
     },
     // Currencies above the switches
+    // Why the options of a section don't apply to the view
+    sectionNote: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 0.75,
+      px: 1.5,
+      mt: -0.5,
+      mb: 0.5,
+      fontSize: 12,
+      color: 'text.disabled',
+    },
+    // Aligned with the first line of the note
+    noteIcon: {
+      flexShrink: 0,
+      mt: '2px',
+      fontSize: 14,
+    },
     section: {
       display: 'flex',
       flexDirection: 'column',
@@ -116,6 +133,20 @@ export const ui = () => {
       // Deselected parents aren't emphasized, like deselected months
       fontWeight: isParent && !isDeselected ? 600 : 400,
     }),
+    // Counts of money in and out of a category with both, next to its count
+    flows: {
+      display: 'flex',
+      alignItems: 'center',
+      flexShrink: 0,
+      ml: 1,
+      fontSize: 11,
+      color: 'text.disabled',
+      fontVariantNumeric: 'tabular-nums',
+    },
+    flowIcon: {
+      fontSize: 11,
+      '&:not(:first-of-type)': { ml: 0.5 },
+    },
     count: {
       flexShrink: 0,
       ml: 1,

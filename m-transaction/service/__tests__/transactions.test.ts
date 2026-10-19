@@ -2,20 +2,23 @@ import { describe, expect, it } from 'vitest'
 
 import type { ParsedStatsFile, Transaction } from '@/types'
 import { AmountFilter, StatsFileStatus } from '@/types-enums'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
 
 import {
   filterTransactions,
   getCheckedTransactions,
+  getDirection,
   getDuplicates,
   getStatsTransactions,
   getTransactionCounts,
   NO_CATEGORY,
+  toAmountFilter,
 } from '..'
 
 const toTransaction = (date: string, value: string, category: string | null = null) =>
   ({ id: `${date}-${value}`, date, value, category, currency: 'EUR' }) as Transaction
 
-const toFilter = (amount: AmountFilter, excludedCategories: string[] = []) => ({
+const toFilter = (excludedCategories: string[] = [], amount: AmountFilter = AmountFilter.ALL) => ({
   amount,
   excludedCategories: new Set(excludedCategories),
 })
@@ -89,10 +92,32 @@ describe('filterTransactions', () => {
       toTransaction('2026-01-03T00:00:00+00:00', '-3'),
     ]
 
-    expect(filterTransactions(transactions, toFilter(AmountFilter.ALL, ['HOU_01']))).toEqual([
-      transactions[0],
-      transactions[2],
-    ])
-    expect(filterTransactions(transactions, toFilter(AmountFilter.OUT, [NO_CATEGORY]))).toEqual([transactions[1]])
+    expect(filterTransactions(transactions, toFilter(['HOU_01']))).toEqual([transactions[0], transactions[2]])
+    expect(filterTransactions(transactions, toFilter([NO_CATEGORY]))).toEqual([transactions[0], transactions[1]])
+    expect(filterTransactions(transactions, toFilter([NO_CATEGORY], AmountFilter.OUT))).toEqual([transactions[1]])
+    expect(filterTransactions(transactions, toFilter([], AmountFilter.NONE))).toEqual([])
+  })
+
+  it('should combine the shown money in and out', () => {
+    expect(toAmountFilter(true, true)).toBe(AmountFilter.ALL)
+    expect(toAmountFilter(true, false)).toBe(AmountFilter.IN)
+    expect(toAmountFilter(false, true)).toBe(AmountFilter.OUT)
+    expect(toAmountFilter(false, false)).toBe(AmountFilter.NONE)
+  })
+})
+
+describe('getDirection', () => {
+  const incomeKeys = Object.values(INCOME_CATEGORIES).flatMap((parent) => Object.keys(parent.subcategories))
+  const expenseKeys = [
+    ...Object.values(EXPENSE_CATEGORIES).flatMap((parent) => Object.keys(parent.subcategories)),
+    NO_CATEGORY,
+  ]
+
+  it('should follow the type of the excluded categories', () => {
+    expect(getDirection(new Set())).toBe(AmountFilter.ALL)
+    expect(getDirection(new Set(['HOU_01']))).toBe(AmountFilter.ALL)
+    expect(getDirection(new Set(incomeKeys))).toBe(AmountFilter.OUT)
+    expect(getDirection(new Set(expenseKeys))).toBe(AmountFilter.IN)
+    expect(getDirection(new Set([...incomeKeys, ...expenseKeys]))).toBeNull()
   })
 })

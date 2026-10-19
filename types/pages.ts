@@ -230,6 +230,10 @@ export type CategoryOption = {
   key: string
   label: string
   count: number
+  /**
+   * Of `count`, those with money in (the others are money out).
+   */
+  inCount: number
 }
 
 export type ParentCategoryOption = CategoryOption & {

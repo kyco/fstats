@@ -29,7 +29,7 @@ const Component = () => {
   const { files, checkedFiles, selectedFiles } = useWorkspaceFiles()
   const { all, unique, shown, byCurrency, deselectedDays, count } = useStatsTransactions()
   const { period, setPeriod } = useBreakdownPeriod()
-  // Income and expenses are both part of it, so the amount filter doesn't apply
+  // Income and expenses are netted, so the amount filter doesn't apply
   const { categoryFilter: filter } = useTransactionFilter()
   const emptyReason = useMemo(
     () =>

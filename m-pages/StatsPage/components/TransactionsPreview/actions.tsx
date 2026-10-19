@@ -15,7 +15,7 @@ import type {
   Transaction,
   VirtualTableColumn,
 } from '@/types'
-import { AmountFilter, TransactionTag } from '@/types-enums'
+import { TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
 import { getCategoryConflicts, resolveCategory } from '@/m-category/service'
 import { getFileCurrency } from '@/m-stats-file/service'
@@ -24,7 +24,6 @@ import { getCategoryLabel } from '@/utils/Category'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
 import { toFixedLocaleAmount, toFixedLocaleCurrency } from '@/utils/Number'
-import { Big } from '@/lib/w-big'
 
 import { getSourceText } from '../CategoryEditor/actions'
 import { getRulesetName } from '../RulesetSelect/actions'
@@ -140,7 +139,6 @@ type GetTransactionColumnsProps = {
    * The info column (file, category source, tags), not in previews of not yet stored transactions.
    */
   showInfo?: boolean
-  amountFilter: AmountFilter
   t: TFunction
   /**
    * Category cell, by its label, e.g. a chip to change it.
@@ -169,7 +167,6 @@ type GetTransactionColumnsProps = {
 export const getTransactionColumns = ({
   currency,
   showInfo = true,
-  amountFilter,
   t,
   renderCategory,
   getDescriptionHighlights,
@@ -186,11 +183,8 @@ export const getTransactionColumns = ({
       label: currency ? t('MISC.AMOUNT_WITH_CURRENCY', { currency: getCurrencySymbol(currency) }) : t('MISC.AMOUNT'),
       width: 120,
       align: 'right',
-      // Only highlight money in when both directions are shown
-      getStyle: (value) =>
-        amountFilter === AmountFilter.ALL && value.startsWith('+')
-          ? { ...sx.tabularNums, fontWeight: 600 }
-          : sx.tabularNums,
+      // Money in is highlighted
+      getStyle: (value) => (value.startsWith('+') ? { ...sx.tabularNums, fontWeight: 600 } : sx.tabularNums),
     },
     { label: t('MISC.CATEGORY'), width: 160, renderCell: renderCategory },
     ...(showInfo
@@ -239,7 +233,6 @@ export const getTransactionColumns = ({
 
 type GetTransactionCellsProps = {
   currency: Currency | null
-  amountFilter: AmountFilter
   locale: UserLocale
   dateFormat: DateFormat
   t: TFunction
@@ -250,18 +243,15 @@ type GetTransactionCellsProps = {
  */
 export const getTransactionCells = (
   transaction: Transaction,
-  { currency, amountFilter, locale, dateFormat, t }: GetTransactionCellsProps,
+  { currency, locale, dateFormat, t }: GetTransactionCellsProps,
 ) => {
-  // Signs are redundant when only one direction is shown
-  const isSigned = amountFilter === AmountFilter.ALL
-  const displayValue = isSigned ? transaction.value : Big(transaction.value).abs().toString()
   // Mixed currencies show the symbol per amount
   const formatAmount = currency ? toFixedLocaleAmount : toFixedLocaleCurrency
 
   return [
     toDisplayDate({ date: transaction.date, locale, formatTo: dateFormat }),
     transaction.description,
-    formatAmount({ value: displayValue, currency: transaction.currency, locale, showPlusSign: isSigned }),
+    formatAmount({ value: transaction.value, currency: transaction.currency, locale, showPlusSign: true }),
     getCategoryLabel(transaction.category, t),
   ]
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, TuneOutlined } from '@mui/icons-material'
+import { ArrowDownward, ArrowUpward, ChevronRight, InfoOutlined, TuneOutlined } from '@mui/icons-material'
 import { Badge, Box, IconButton, Popover, Radio, Switch, Tooltip } from '@mui/material'
 import { countBy, sumBy } from 'lodash'
 import { useSearchParams } from 'next/navigation'
@@ -11,12 +11,12 @@ import type { CurrencyFilter, FilterOption, SelectedCurrency } from '@/types'
 import { AmountFilter } from '@/types-enums'
 import { getView, WorkspaceView } from '@/common'
 import { OutlineCheckbox } from '@/components'
-import { filterAmount, filterTransactions } from '@/m-transaction/service'
+import { filterAmount, filterTransactions, toAmountFilter } from '@/m-transaction/service'
 import { onRowKeyDown } from '@/utils/Event'
 import { countIn, getCheckState, toggleKey, toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
-import { ALL_CURRENCIES, getAmountFilterOptions } from '../../actions'
+import { ALL_CURRENCIES } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useTableOptions, useTransactionFilter } from '../../hooks'
 import { getCategoryGroups } from './actions'
@@ -43,11 +43,11 @@ const Component = ({ options, currency }: FiltersProps) => {
   const view = getView(useSearchParams())
   const { checkedFiles } = useWorkspaceFiles()
   const { unique, shown } = useStatsTransactions()
-  const { includeDateExcluded } = useTableOptions()
+  const { includeDateExcluded, includeDuplicates } = useTableOptions()
   const { amountFilter, setAmountFilter, excludedCategories: excluded, setExcludedCategories } = useTransactionFilter()
-  // The breakdown shows income and expenses, so the amount filter doesn't apply
-  const hasDirection = view !== WorkspaceView.BREAKDOWN
-  const amount = hasDirection ? amountFilter : AmountFilter.ALL
+  // The profit and loss nets money in and out, so the amount filter doesn't apply
+  const hasAmount = view !== WorkspaceView.BREAKDOWN
+  const amount = hasAmount ? amountFilter : AmountFilter.ALL
   // The counted transactions (without duplicates, on selected days) matching the amount filter
   const transactions = useMemo(() => filterAmount(shown, amount), [shown, amount])
   const groups = useMemo(() => getCategoryGroups(transactions, t), [transactions, t])
@@ -61,17 +61,46 @@ const Component = ({ options, currency }: FiltersProps) => {
       ),
     [viewTransactions, amount, excluded],
   )
-  const directionOptions = useMemo(
-    () =>
-      hasDirection
-        ? getAmountFilterOptions().map((option) => ({
-            ...option,
-            label: t(`STATS_PAGE.FILTERS.DIRECTION_${option.value.toUpperCase()}`),
-            count: filterTransactions(viewTransactions, { amount: option.value, excludedCategories: excluded }).length,
-          }))
-        : [],
-    [hasDirection, viewTransactions, excluded, t],
-  )
+  const isInShown = amountFilter === AmountFilter.ALL || amountFilter === AmountFilter.IN
+  const isOutShown = amountFilter === AmountFilter.ALL || amountFilter === AmountFilter.OUT
+  const getAmountCount = (value: AmountFilter) =>
+    hasAmount ? filterTransactions(viewTransactions, { amount: value, excludedCategories: excluded }).length : 0
+  const amountOptions: FilterOption[] = [
+    {
+      key: 'in',
+      label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN_TITLE'),
+      count: getAmountCount(AmountFilter.IN),
+      checked: isInShown,
+      onChange: (checked) => setAmountFilter(toAmountFilter(checked, isOutShown)),
+    },
+    {
+      key: 'out',
+      label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT_TITLE'),
+      count: getAmountCount(AmountFilter.OUT),
+      checked: isOutShown,
+      onChange: (checked) => setAmountFilter(toAmountFilter(isInShown, checked)),
+    },
+  ]
+  // Shown (disabled) in all views, so the panel looks the same
+  const hasTable = options.length > 0
+  const tableOptions: FilterOption[] = hasTable
+    ? options
+    : [
+        {
+          key: 'dateExcluded',
+          label: t('STATS_PAGE.DATA_VIEW.SHOW_DATE_EXCLUDED'),
+          count: 0,
+          checked: includeDateExcluded,
+          onChange: () => undefined,
+        },
+        {
+          key: 'duplicates',
+          label: t('STATS_PAGE.DATA_VIEW.SHOW_DUPLICATES'),
+          count: 0,
+          checked: includeDuplicates,
+          onChange: () => undefined,
+        },
+      ]
   const disabled = !checkedFiles.length || view === WorkspaceView.CSV
   const currencies = currency?.currencies ?? []
   // Hidden with a single currency
@@ -91,7 +120,6 @@ const Component = ({ options, currency }: FiltersProps) => {
           : []),
       ]
     : []
-  const hasOptions = options.length > 0 || currencyOptions.length > 0 || directionOptions.length > 0
   const allKeys = groups.flatMap((group) => group.parents.flatMap((parent) => parent.keys))
   const isActive =
     selectedCurrency !== ALL_CURRENCIES ||
@@ -103,10 +131,12 @@ const Component = ({ options, currency }: FiltersProps) => {
 
   const toggleExpanded = (key: string) => setExpanded(toggleKey(expanded, key))
 
+  // With both money in and out, their counts are shown next to the count
   const renderCategoryRow = ({
     key,
     label,
     count,
+    inCount,
     keys,
     start,
     isParent = false,
@@ -117,6 +147,7 @@ const Component = ({ options, currency }: FiltersProps) => {
     key: string
     label: ReactNode
     count: number
+    inCount: number
     keys: string[]
     start?: ReactNode
     isParent?: boolean
@@ -150,9 +181,57 @@ const Component = ({ options, currency }: FiltersProps) => {
         <Box component="span" sx={{ ...sx.categoryLabel(isDeselected || isDisabled, isParent), ...labelSx }}>
           {label}
         </Box>
+        {inCount > 0 && inCount < count ? (
+          <Tooltip title={t('STATS_PAGE.FILTERS.IN_OUT', { in: inCount, out: count - inCount })}>
+            <Box component="span" sx={sx.flows}>
+              <ArrowUpward sx={sx.flowIcon} />
+              {inCount}
+              <ArrowDownward sx={sx.flowIcon} />
+              {count - inCount}
+            </Box>
+          </Tooltip>
+        ) : null}
         <Box component="span" sx={isDisabled ? { ...sx.count, ...sx.emptyCount } : sx.count}>
           {count}
         </Box>
+      </Box>
+    )
+  }
+
+  type RenderSwitchRowProps = {
+    /**
+     * Enabled also without transactions, e.g. so a hidden direction can be shown again.
+     */
+    isAlwaysEnabled?: boolean
+    /**
+     * Doesn't apply to the view, shown without its count.
+     */
+    isInapplicable?: boolean
+  }
+
+  const renderSwitchRow = (option: FilterOption, { isAlwaysEnabled, isInapplicable }: RenderSwitchRowProps = {}) => {
+    const isDisabled = isInapplicable || (!isAlwaysEnabled && !option.count)
+
+    return (
+      <Box
+        key={option.key}
+        onClick={isDisabled ? undefined : () => option.onChange(!option.checked)}
+        role="switch"
+        aria-checked={option.checked}
+        aria-disabled={isDisabled}
+        tabIndex={isDisabled ? -1 : 0}
+        onKeyDown={onRowKeyDown}
+        sx={sx.optionRow(isDisabled)}
+      >
+        <Switch size="small" checked={option.checked} disabled={isDisabled} tabIndex={-1} sx={sx.switch} />
+        <Box component="span" sx={sx.label}>
+          {option.label}
+        </Box>
+        {isInapplicable ? null : (
+          <Box component="span" sx={sx.count}>
+            {option.count}
+          </Box>
+        )}
       </Box>
     )
   }
@@ -225,79 +304,55 @@ const Component = ({ options, currency }: FiltersProps) => {
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: sx.paper(hasOptions) } }}
+        slotProps={{ paper: { sx: sx.paper } }}
       >
-        <Box sx={sx.columns(hasOptions)}>
-          {hasOptions ? (
-            <Box sx={sx.column}>
-              {currencyOptions.length ? (
-                <Box role="radiogroup" aria-label={t('STATS_PAGE.FILTERS.CURRENCY')} sx={sx.section}>
-                  <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.CURRENCY')}</Box>
-                  {currencyOptions.map((option) =>
-                    renderRadioRow({
-                      key: option.value,
-                      label: option.label,
-                      count: option.count,
-                      checked: option.value === selectedCurrency,
-                      isDisabled: !canSelectCurrency,
-                      onSelect: () => currency?.onChange(option.value),
-                    }),
-                  )}
+        <Box sx={sx.columns}>
+          <Box sx={sx.column}>
+            {currencyOptions.length ? (
+              <Box role="radiogroup" aria-label={t('STATS_PAGE.FILTERS.CURRENCY')} sx={sx.section}>
+                <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.CURRENCY')}</Box>
+                {currencyOptions.map((option) =>
+                  renderRadioRow({
+                    key: option.value,
+                    label: option.label,
+                    count: option.count,
+                    checked: option.value === selectedCurrency,
+                    isDisabled: !canSelectCurrency,
+                    onSelect: () => currency?.onChange(option.value),
+                  }),
+                )}
+              </Box>
+            ) : null}
+            <Box sx={sx.section}>
+              <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.TABLE')}</Box>
+              {hasTable ? null : (
+                <Box sx={sx.sectionNote}>
+                  <InfoOutlined sx={sx.noteIcon} />
+                  {t('STATS_PAGE.FILTERS.TABLE_ONLY')}
                 </Box>
-              ) : null}
-              {options.length ? (
-                <Box sx={sx.section}>
-                  <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.TABLE')}</Box>
-                  {options.map((option) => (
-                    <Box
-                      key={option.key}
-                      onClick={option.count ? () => option.onChange(!option.checked) : undefined}
-                      role="switch"
-                      aria-checked={option.checked}
-                      aria-disabled={!option.count}
-                      tabIndex={option.count ? 0 : -1}
-                      onKeyDown={onRowKeyDown}
-                      sx={sx.optionRow(!option.count)}
-                    >
-                      <Switch
-                        size="small"
-                        checked={option.checked}
-                        disabled={!option.count}
-                        tabIndex={-1}
-                        sx={sx.switch}
-                      />
-                      <Box component="span" sx={sx.label}>
-                        {option.label}
-                      </Box>
-                      <Box component="span" sx={sx.count}>
-                        {option.count}
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              ) : null}
-              {directionOptions.length ? (
-                <Box role="radiogroup" aria-label={t('STATS_PAGE.FILTERS.DIRECTION')} sx={sx.section}>
-                  <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.DIRECTION')}</Box>
-                  {directionOptions.map((option) =>
-                    renderRadioRow({
-                      key: option.value,
-                      label: option.label,
-                      count: option.count,
-                      checked: option.value === amountFilter,
-                      onSelect: () => setAmountFilter(option.value),
-                    }),
-                  )}
-                </Box>
-              ) : null}
+              )}
+              {tableOptions.map((option) => renderSwitchRow(option, { isInapplicable: !hasTable }))}
             </Box>
-          ) : null}
+            <Box sx={sx.section}>
+              <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.AMOUNTS')}</Box>
+              {hasAmount ? null : (
+                <Box sx={sx.sectionNote}>
+                  <InfoOutlined sx={sx.noteIcon} />
+                  {t('STATS_PAGE.FILTERS.AMOUNTS_NETTED')}
+                </Box>
+              )}
+              {amountOptions.map((option) =>
+                renderSwitchRow(option, { isAlwaysEnabled: true, isInapplicable: !hasAmount }),
+              )}
+            </Box>
+          </Box>
           {groups.map((group) => (
             <Box key={group.key} sx={sx.column}>
               {renderCategoryRow({
                 key: group.key,
                 label: group.label,
                 count: sumBy(group.parents, 'count'),
+                inCount: sumBy(group.parents, 'inCount'),
                 keys: group.parents.flatMap((parent) => parent.keys),
                 rowSx: sx.groupRow,
                 labelSx: sx.groupLabel,
@@ -312,6 +367,7 @@ const Component = ({ options, currency }: FiltersProps) => {
                       key: parent.key,
                       label: parent.label,
                       count: parent.count,
+                      inCount: parent.inCount,
                       keys: parent.keys,
                       isParent: hasChildren,
                       // Parents expand like the months of the date explorer, their checkbox toggles them
@@ -331,6 +387,7 @@ const Component = ({ options, currency }: FiltersProps) => {
                             key: child.key,
                             label: child.label,
                             count: child.count,
+                            inCount: child.inCount,
                             keys: [child.key],
                             start: <Box sx={sx.expandSpacer} />,
                             rowSx: sx.childRow,

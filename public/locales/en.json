@@ -137,11 +137,11 @@
       "TITLE": "Filters",
       "TABLE": "Table",
       "CURRENCY": "Currency",
+      "AMOUNTS": "Amounts",
+      "AMOUNTS_NETTED": "Profit and loss always shows money in and out together",
+      "TABLE_ONLY": "Only in the transactions view",
       "ALL_CURRENCIES": "All",
-      "DIRECTION": "Direction",
-      "DIRECTION_ALL": "All",
-      "DIRECTION_IN": "Income",
-      "DIRECTION_OUT": "Expenses"
+      "IN_OUT": "{{in}} money in, {{out}} money out"
     },
     "DEMO": {
       "BANNER": "You are viewing demo data",
@@ -174,11 +174,7 @@
         "SPLIT_TITLE": "One table per file"
       },
       "AMOUNT_FILTER": {
-        "ALL": "All",
-        "ALL_TITLE": "All transactions",
-        "IN": "In",
         "IN_TITLE": "Money in",
-        "OUT": "Out",
         "OUT_TITLE": "Money out"
       }
     },

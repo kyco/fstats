@@ -6,7 +6,7 @@ import { NO_CATEGORY } from '@/m-transaction/service'
 
 import { getEmptyReason } from '../actions'
 
-const toFilter = (amount: AmountFilter, excludedCategories: string[] = []) => ({
+const toFilter = (excludedCategories: string[] = [], amount: AmountFilter = AmountFilter.ALL) => ({
   amount,
   excludedCategories: new Set(excludedCategories),
 })
@@ -35,12 +35,12 @@ describe('getEmptyReason', () => {
   })
 
   it('should tell deselected days from filters without matches', () => {
-    expect(getEmptyReason(toInput({ all, shown: [], filter: toFilter(AmountFilter.ALL) }))).toBe(EmptyReason.NO_DATES)
-    expect(getEmptyReason(toInput({ all, shown: all, filter: toFilter(AmountFilter.IN) }))).toBe(EmptyReason.NO_MATCHES)
-    expect(getEmptyReason(toInput({ all, shown: all, filter: toFilter(AmountFilter.OUT) }))).toBeNull()
-    expect(getEmptyReason(toInput({ all, shown: all, filter: toFilter(AmountFilter.OUT, [NO_CATEGORY]) }))).toBe(
+    expect(getEmptyReason(toInput({ all, shown: [], filter: toFilter() }))).toBe(EmptyReason.NO_DATES)
+    expect(getEmptyReason(toInput({ all, shown: all, filter: toFilter() }))).toBeNull()
+    expect(getEmptyReason(toInput({ all, shown: all, filter: toFilter([], AmountFilter.IN) }))).toBe(
       EmptyReason.NO_MATCHES,
     )
+    expect(getEmptyReason(toInput({ all, shown: all, filter: toFilter([NO_CATEGORY]) }))).toBe(EmptyReason.NO_MATCHES)
     expect(getEmptyReason(toInput({ all, shown: all }))).toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 import type { NumberString, StatsFile, Transaction, TransactionCounts, TransactionFilter } from '@/types'
-import { AmountFilter, EmptyReason, StatsFileStatus, TransactionsLayout } from '@/types-enums'
+import { EmptyReason, StatsFileStatus, TransactionsLayout } from '@/types-enums'
 import { MISC } from '@/common'
 import { getFileAccount, isConvertible, isError, isParsed, isUnknown } from '@/m-stats-file/service'
 import { filterTransactions } from '@/m-transaction/service'
@@ -118,24 +118,6 @@ export const getTransactionsLayoutOptions = () => [
     value: TransactionsLayout.SPLIT,
     label: i18n.t('STATS_PAGE.DATA_VIEW.TRANSACTIONS_LAYOUT.SPLIT'),
     title: i18n.t('STATS_PAGE.DATA_VIEW.TRANSACTIONS_LAYOUT.SPLIT_TITLE'),
-  },
-]
-
-export const getAmountFilterOptions = () => [
-  {
-    value: AmountFilter.ALL,
-    label: i18n.t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.ALL'),
-    title: i18n.t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.ALL_TITLE'),
-  },
-  {
-    value: AmountFilter.IN,
-    label: i18n.t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN'),
-    title: i18n.t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN_TITLE'),
-  },
-  {
-    value: AmountFilter.OUT,
-    label: i18n.t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT'),
-    title: i18n.t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT_TITLE'),
   },
 ]
 

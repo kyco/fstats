@@ -114,7 +114,6 @@ const Component = ({
   // Also a file that couldn't be parsed, with its status
   const titleFile = showFileName || !parsedFiles.length ? singleFile : undefined
   const currency = useMemo(() => getSharedCurrency(parsedFiles), [parsedFiles])
-  const amountFilter = filter.amount
   const allTransactions = useMemo(
     () => filterTransactions(getSourcedTransactions(parsedFiles), filter),
     [parsedFiles, filter],
@@ -140,10 +139,7 @@ const Component = ({
         : shownTransactions.filter((transaction) => !deselectedDays.has(getTransactionDay(transaction))),
     [shownTransactions, includeDateExcluded, deselectedDays],
   )
-  const cellOptions = useMemo(
-    () => ({ currency, amountFilter, locale, dateFormat, t }),
-    [currency, amountFilter, locale, dateFormat, t],
-  )
+  const cellOptions = useMemo(() => ({ currency, locale, dateFormat, t }), [currency, locale, dateFormat, t])
   // Computed once a search starts, so typing only compares strings
   const isSearching = !!search
   const searchTexts = useMemo(
@@ -197,7 +193,6 @@ const Component = ({
 
     return getTransactionColumns({
       currency,
-      amountFilter,
       t,
       renderCategory: (label, rowIndex) => (
         <CategoryCell
@@ -224,7 +219,6 @@ const Component = ({
     })
   }, [
     currency,
-    amountFilter,
     t,
     tags,
     transactions,
