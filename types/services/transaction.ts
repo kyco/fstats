@@ -171,6 +171,8 @@ export type SimilarTransactions = {
 
 export type AccountTransaction = Transaction & { bankAccountId: BankAccountId }
 
+export type ProfitLossAmounts = Pick<ProfitLossRow, 'values' | 'total'>
+
 export type ProfitLossRow = {
   key: string
   label: string
@@ -180,6 +182,11 @@ export type ProfitLossRow = {
   values: Record<string, NumberString>
   total: NumberString
   children: ProfitLossRow[]
+  /**
+   * Sums of the incoming and outgoing transactions (not negated), only rows without children that have both, e.g. a
+   * medical aid payout to a medical expense.
+   */
+  flows?: { incoming: ProfitLossAmounts; outgoing: ProfitLossAmounts }
   /**
    * Only rows of a single transaction.
    */

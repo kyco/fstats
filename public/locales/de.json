@@ -214,7 +214,14 @@
       "TRANSFERS_NOTE_other": "{{count}} Buchungen zwischen deinen Konten, nicht als Einnahmen oder Ausgaben gezählt",
       "TRANSFERS_IN": "Eingehende Umbuchungen",
       "TRANSFERS_OUT": "Ausgehende Umbuchungen",
-      "TRANSFERS_NET": "Umbuchungen netto"
+      "TRANSFERS_NET": "Umbuchungen netto",
+      "FLOWS": {
+        "IN": "Eingänge",
+        "OUT": "Ausgänge",
+        "NET": "Netto",
+        "HINT": "Ein- und Ausgänge anzeigen",
+        "CLOSE": "Schließen"
+      }
     },
     "PARSER_SETUP": {
       "SET_UP": "Einrichten",

@@ -118,6 +118,29 @@ describe('getProfitLoss', () => {
     expect(profitLoss.transfers.net.total).toBe('0')
   })
 
+  it('should sum incoming and outgoing transactions of subcategories with both', () => {
+    const doctor = toTransaction('2026-01-05', '-1000', 'HLT_01')
+    const payout = toTransaction('2026-02-10', '600', 'HLT_01')
+    const groceries = toTransaction('2026-01-10', '-200', 'GRO_01')
+    const files = [toFile('a', [{ parserId: 'comdirect__giro', transactions: [doctor, payout, groceries] }])]
+
+    const [profitLoss] = getProfitLoss({
+      accountTransactions: toAccountTransactions(files),
+      period: BreakdownPeriod.MONTH,
+      t: i18n.t,
+    })
+    const [health, grocery] = profitLoss.expenses.rows
+
+    expect(health.total).toBe('400')
+    expect(health.flows).toBeUndefined()
+    expect(health.children[0].flows).toEqual({
+      incoming: { values: { '2026-02': '600' }, total: '600' },
+      outgoing: { values: { '2026-01': '-1000' }, total: '-1000' },
+    })
+    expect(grocery.children[0].flows).toBeUndefined()
+    expect(profitLoss.expenses.total.flows).toBeUndefined()
+  })
+
   it('should pair transfers before filtering', () => {
     const outgoing = toTransaction('2026-01-01', '-500', 'FIN_02')
     const incoming = toTransaction('2026-01-02', '500', 'TFI_02')

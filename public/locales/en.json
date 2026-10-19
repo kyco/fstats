@@ -214,7 +214,14 @@
       "TRANSFERS_NOTE_other": "{{count}} transactions between your accounts, not counted as income or expenses",
       "TRANSFERS_IN": "Transfers in",
       "TRANSFERS_OUT": "Transfers out",
-      "TRANSFERS_NET": "Net transfers"
+      "TRANSFERS_NET": "Net transfers",
+      "FLOWS": {
+        "IN": "Money in",
+        "OUT": "Money out",
+        "NET": "Net",
+        "HINT": "Show money in and out",
+        "CLOSE": "Close"
+      }
     },
     "PARSER_SETUP": {
       "SET_UP": "Set up",

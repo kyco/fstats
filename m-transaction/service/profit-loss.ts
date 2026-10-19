@@ -113,19 +113,40 @@ type ToRowProps = {
   period: BreakdownPeriod
   negate?: boolean
   children?: ProfitLossRow[]
+  withFlows?: boolean
 }
 
 /**
- * Sums of the transactions per period, negated for expenses so they're shown as positive amounts.
+ * Sums of the transactions per period, negated for expenses so they're shown as positive amounts. With `withFlows`, a
+ * row with both incoming and outgoing transactions (e.g. a medical aid payout to a medical expense) gets their sums too
+ * (not negated).
  */
-const toRow = ({ key, label, transactions, period, negate = false, children = [] }: ToRowProps): ProfitLossRow => {
+const toRow = ({
+  key,
+  label,
+  transactions,
+  period,
+  negate = false,
+  children = [],
+  withFlows = false,
+}: ToRowProps): ProfitLossRow => {
   const sign = negate ? -1 : 1
   const byPeriod = groupBy(transactions, (transaction) => getPeriodKey(transaction, period))
   const values = Object.fromEntries(
     Object.entries(byPeriod).map(([periodKey, items]) => [periodKey, sumValues(items).times(sign).toString()]),
   )
+  const incoming = transactions.filter(isIncome)
+  const outgoing = transactions.filter((transaction) => !isIncome(transaction))
+  const toFlow = (items: Transaction[]) => {
+    const { values: flowValues, total } = toRow({ key, label, transactions: items, period })
+    return { values: flowValues, total }
+  }
+  const flows: ProfitLossRow['flows'] =
+    withFlows && incoming.length && outgoing.length
+      ? { incoming: toFlow(incoming), outgoing: toFlow(outgoing) }
+      : undefined
 
-  return { key, label, values, total: sumValues(transactions).times(sign).toString(), children }
+  return { key, label, values, total: sumValues(transactions).times(sign).toString(), children, flows }
 }
 
 /**
@@ -158,7 +179,7 @@ const getCategoryRows = ({ transactions, period, negate, t }: GetCategoryRowsPro
 
   const rows = Object.entries(byParent).map(([parentCode, items]) => {
     const children = Object.entries(groupBy(items, (transaction) => transaction.category)).map(([code, subItems]) =>
-      toRow({ key: code, label: getCategoryLabel(code, t), transactions: subItems, period, negate }),
+      toRow({ key: code, label: getCategoryLabel(code, t), transactions: subItems, period, negate, withFlows: true }),
     )
 
     return toRow({
@@ -181,6 +202,7 @@ const getCategoryRows = ({ transactions, period, negate, t }: GetCategoryRowsPro
             transactions: uncategorised,
             period,
             negate,
+            withFlows: true,
           }),
         ]
       : []),

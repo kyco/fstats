@@ -19,6 +19,7 @@ import { Big } from '@/lib/w-big'
 import { getAmountColor } from '../../../../actions'
 import { getPeriodLabel } from '../../actions'
 import { EMPTY_AMOUNT } from './actions'
+import { FlowsTooltip } from './components'
 import { ui } from './styled'
 
 type ProfitLossTableProps = {
@@ -47,17 +48,36 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
     return value === undefined ? EMPTY_AMOUNT : `${toFixedLocale({ value, round: 1, locale })}%`
   }
 
-  const renderAmount = (value: NumberString | undefined, key: string, variant: ProfitLossRowVariant) => (
-    <Box
-      component="td"
-      key={key}
-      sx={{ ...sx.amount(variant), color: value ? getAmountColor(value) : 'text.disabled' }}
-    >
-      {variant === 'rate' ? formatPercent(value) : formatAmount(value)}
-    </Box>
-  )
+  // With `flow`, the incoming and outgoing amounts are shown in a tooltip, if there are both in the period
+  const renderAmount = (
+    value: NumberString | undefined,
+    key: string,
+    variant: ProfitLossRowVariant,
+    flow?: { title: string; incoming?: NumberString; outgoing?: NumberString },
+  ) => {
+    const color = value ? getAmountColor(value) : 'text.disabled'
+
+    return (
+      <Box component="td" key={key} sx={{ ...sx.amount(variant), color }}>
+        {flow?.incoming && flow.outgoing ? (
+          <FlowsTooltip
+            title={flow.title}
+            incoming={formatAmount(flow.incoming)}
+            outgoing={formatAmount(Big(flow.outgoing).abs().toString())}
+            net={formatAmount(value)}
+            netColor={color}
+          />
+        ) : variant === 'rate' ? (
+          formatPercent(value)
+        ) : (
+          formatAmount(value)
+        )}
+      </Box>
+    )
+  }
 
   const renderRow = (row: ProfitLossRow, variant: ProfitLossRowVariant, parentKey = ''): ReactNode => {
+    const { flows } = row
     const key = `${parentKey}${row.key}`
     const isExpandable = row.children.length > 0
     const isExpanded = expandedKeys.has(key)
@@ -93,8 +113,28 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
               )}
             </Box>
           </Box>
-          {periods.map((periodKey) => renderAmount(row.values[periodKey], periodKey, variant))}
-          {renderAmount(row.total, 'total', variant)}
+          {periods.map((periodKey) =>
+            renderAmount(
+              row.values[periodKey],
+              periodKey,
+              variant,
+              flows && {
+                title: `${row.label} ${MISC.CENTER_DOT} ${getPeriodLabel({ key: periodKey, period, locale })}`,
+                incoming: flows.incoming.values[periodKey],
+                outgoing: flows.outgoing.values[periodKey],
+              },
+            ),
+          )}
+          {renderAmount(
+            row.total,
+            'total',
+            variant,
+            flows && {
+              title: `${row.label} ${MISC.CENTER_DOT} ${t('MISC.TOTAL')}`,
+              incoming: flows.incoming.total,
+              outgoing: flows.outgoing.total,
+            },
+          )}
         </Box>
         {isExpandable && isExpanded ? row.children.map((child) => renderRow(child, childVariant, `${key}/`)) : null}
       </Fragment>
