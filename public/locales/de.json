@@ -137,7 +137,11 @@
       "TITLE": "Filter",
       "TABLE": "Tabelle",
       "CURRENCY": "Währung",
-      "ALL_CURRENCIES": "Alle"
+      "ALL_CURRENCIES": "Alle",
+      "DIRECTION": "Richtung",
+      "DIRECTION_ALL": "Alle",
+      "DIRECTION_IN": "Einnahmen",
+      "DIRECTION_OUT": "Ausgaben"
     },
     "DEMO": {
       "BANNER": "Du siehst Demodaten",

@@ -124,6 +124,7 @@ export const ui = () => {
       font: 'inherit',
       color: 'inherit',
       textAlign: 'left',
+      '&.Mui-focusVisible': { outline: 2, outlineColor: 'primary.main', outlineOffset: 1, borderRadius: 0.5 },
     },
     chevron: {
       flexShrink: 0,

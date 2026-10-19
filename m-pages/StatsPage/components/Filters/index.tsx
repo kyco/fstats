@@ -16,7 +16,7 @@ import { onRowKeyDown } from '@/utils/Event'
 import { countIn, getCheckState, toggleKey, toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
-import { ALL_CURRENCIES } from '../../actions'
+import { ALL_CURRENCIES, getAmountFilterOptions } from '../../actions'
 import { useStatsTransactions, useWorkspaceFiles } from '../../context'
 import { useTableOptions, useTransactionFilter } from '../../hooks'
 import { getCategoryGroups } from './actions'
@@ -31,8 +31,8 @@ type FiltersProps = {
 }
 
 /**
- * Filters button on the right of the toolbar, with a panel of the currencies, switches for the transactions table and
- * the money in and out categories (of the shown files) as trees, styled like the date explorer. Marked while a filter is on. Disabled in
+ * Filters button on the right of the toolbar, with a panel of the currencies, switches for the transactions table, the
+ * direction (same as the toolbar toggle, not in the breakdown) and the income and expense categories (of the shown files) as trees, styled like the date explorer. Marked while a filter is on. Disabled in
  * the CSV view and without checked files.
  */
 const Component = ({ options, currency }: FiltersProps) => {
@@ -44,23 +44,33 @@ const Component = ({ options, currency }: FiltersProps) => {
   const { checkedFiles } = useWorkspaceFiles()
   const { unique, shown } = useStatsTransactions()
   const { includeDateExcluded } = useTableOptions()
-  const { amountFilter, excludedCategories: excluded, setExcludedCategories } = useTransactionFilter()
+  const { amountFilter, setAmountFilter, excludedCategories: excluded, setExcludedCategories } = useTransactionFilter()
   // The breakdown shows income and expenses, so the amount filter doesn't apply
-  const amount = view === WorkspaceView.BREAKDOWN ? AmountFilter.ALL : amountFilter
+  const hasDirection = view !== WorkspaceView.BREAKDOWN
+  const amount = hasDirection ? amountFilter : AmountFilter.ALL
   // The counted transactions (without duplicates, on selected days) matching the amount filter
   const transactions = useMemo(() => filterAmount(shown, amount), [shown, amount])
   const groups = useMemo(() => getCategoryGroups(transactions, t), [transactions, t])
   // Those the view shows, also with the category filter
+  const viewTransactions = view === WorkspaceView.TRANSACTIONS && includeDateExcluded ? unique : shown
   const currencyCounts = useMemo(
     () =>
       countBy(
-        filterTransactions(view === WorkspaceView.TRANSACTIONS && includeDateExcluded ? unique : shown, {
-          amount,
-          excludedCategories: excluded,
-        }),
+        filterTransactions(viewTransactions, { amount, excludedCategories: excluded }),
         (transaction) => transaction.currency,
       ),
-    [view, includeDateExcluded, unique, shown, amount, excluded],
+    [viewTransactions, amount, excluded],
+  )
+  const directionOptions = useMemo(
+    () =>
+      hasDirection
+        ? getAmountFilterOptions().map((option) => ({
+            ...option,
+            label: t(`STATS_PAGE.FILTERS.DIRECTION_${option.value.toUpperCase()}`),
+            count: filterTransactions(viewTransactions, { amount: option.value, excludedCategories: excluded }).length,
+          }))
+        : [],
+    [hasDirection, viewTransactions, excluded, t],
   )
   const disabled = !checkedFiles.length || view === WorkspaceView.CSV
   const currencies = currency?.currencies ?? []
@@ -81,10 +91,11 @@ const Component = ({ options, currency }: FiltersProps) => {
           : []),
       ]
     : []
-  const hasOptions = options.length > 0 || currencyOptions.length > 0
+  const hasOptions = options.length > 0 || currencyOptions.length > 0 || directionOptions.length > 0
   const allKeys = groups.flatMap((group) => group.parents.flatMap((parent) => parent.keys))
   const isActive =
     selectedCurrency !== ALL_CURRENCIES ||
+    amount !== AmountFilter.ALL ||
     options.some((option) => option.checked && option.count) ||
     countIn(excluded, allKeys) > 0
 
@@ -113,11 +124,9 @@ const Component = ({ options, currency }: FiltersProps) => {
     rowSx?: object
     labelSx?: object
   }) => {
-    // Without transactions, parents can still be expanded
+    // Without transactions, parents can still be expanded. The check state shows the selection, whatever the counts
     const isDisabled = !count
-    const state = isDisabled
-      ? { checked: false, indeterminate: false }
-      : getCheckState(countIn(excluded, keys), keys.length)
+    const state = getCheckState(countIn(excluded, keys), keys.length)
     const isDeselected = !state.checked && !state.indeterminate
     const onRowClick = onClick ?? (isDisabled ? undefined : () => onToggle(keys))
 
@@ -138,7 +147,7 @@ const Component = ({ options, currency }: FiltersProps) => {
           onClick={(event) => event.stopPropagation()}
           onChange={() => onToggle(keys)}
         />
-        <Box component="span" sx={{ ...sx.categoryLabel(isDeselected, isParent), ...labelSx }}>
+        <Box component="span" sx={{ ...sx.categoryLabel(isDeselected || isDisabled, isParent), ...labelSx }}>
           {label}
         </Box>
         <Box component="span" sx={isDisabled ? { ...sx.count, ...sx.emptyCount } : sx.count}>
@@ -147,6 +156,41 @@ const Component = ({ options, currency }: FiltersProps) => {
       </Box>
     )
   }
+
+  const renderRadioRow = ({
+    key,
+    label,
+    count,
+    checked,
+    isDisabled = false,
+    onSelect,
+  }: {
+    key: string
+    label: string
+    count: number
+    checked: boolean
+    isDisabled?: boolean
+    onSelect: () => void
+  }) => (
+    <Box
+      key={key}
+      onClick={isDisabled ? undefined : onSelect}
+      role="radio"
+      aria-checked={checked}
+      aria-disabled={isDisabled}
+      tabIndex={isDisabled ? -1 : 0}
+      onKeyDown={onRowKeyDown}
+      sx={sx.optionRow(isDisabled)}
+    >
+      <Radio size="small" checked={checked} disabled={isDisabled} tabIndex={-1} sx={sx.radio} />
+      <Box component="span" sx={sx.label}>
+        {label}
+      </Box>
+      <Box component="span" sx={sx.count}>
+        {count}
+      </Box>
+    </Box>
+  )
 
   return (
     <>
@@ -189,65 +233,63 @@ const Component = ({ options, currency }: FiltersProps) => {
               {currencyOptions.length ? (
                 <Box role="radiogroup" aria-label={t('STATS_PAGE.FILTERS.CURRENCY')} sx={sx.section}>
                   <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.CURRENCY')}</Box>
-                  {currencyOptions.map((option) => {
-                    const isChecked = option.value === selectedCurrency
-
-                    return (
-                      <Box
-                        key={option.value}
-                        onClick={canSelectCurrency ? () => currency?.onChange(option.value) : undefined}
-                        role="radio"
-                        aria-checked={isChecked}
-                        aria-disabled={!canSelectCurrency}
-                        tabIndex={canSelectCurrency ? 0 : -1}
-                        onKeyDown={onRowKeyDown}
-                        sx={sx.optionRow(!canSelectCurrency)}
-                      >
-                        <Radio
-                          size="small"
-                          checked={isChecked}
-                          disabled={!canSelectCurrency}
-                          tabIndex={-1}
-                          sx={sx.radio}
-                        />
-                        <Box component="span" sx={sx.label}>
-                          {option.label}
-                        </Box>
-                        <Box component="span" sx={sx.count}>
-                          {option.count}
-                        </Box>
-                      </Box>
-                    )
-                  })}
+                  {currencyOptions.map((option) =>
+                    renderRadioRow({
+                      key: option.value,
+                      label: option.label,
+                      count: option.count,
+                      checked: option.value === selectedCurrency,
+                      isDisabled: !canSelectCurrency,
+                      onSelect: () => currency?.onChange(option.value),
+                    }),
+                  )}
                 </Box>
               ) : null}
-              {options.length ? <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.TABLE')}</Box> : null}
-              {options.map((option) => (
-                <Box
-                  key={option.key}
-                  onClick={option.count ? () => option.onChange(!option.checked) : undefined}
-                  role="switch"
-                  aria-checked={option.checked}
-                  aria-disabled={!option.count}
-                  tabIndex={option.count ? 0 : -1}
-                  onKeyDown={onRowKeyDown}
-                  sx={sx.optionRow(!option.count)}
-                >
-                  <Switch
-                    size="small"
-                    checked={option.checked && !!option.count}
-                    disabled={!option.count}
-                    tabIndex={-1}
-                    sx={sx.switch}
-                  />
-                  <Box component="span" sx={sx.label}>
-                    {option.label}
-                  </Box>
-                  <Box component="span" sx={sx.count}>
-                    {option.count}
-                  </Box>
+              {options.length ? (
+                <Box sx={sx.section}>
+                  <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.TABLE')}</Box>
+                  {options.map((option) => (
+                    <Box
+                      key={option.key}
+                      onClick={option.count ? () => option.onChange(!option.checked) : undefined}
+                      role="switch"
+                      aria-checked={option.checked}
+                      aria-disabled={!option.count}
+                      tabIndex={option.count ? 0 : -1}
+                      onKeyDown={onRowKeyDown}
+                      sx={sx.optionRow(!option.count)}
+                    >
+                      <Switch
+                        size="small"
+                        checked={option.checked}
+                        disabled={!option.count}
+                        tabIndex={-1}
+                        sx={sx.switch}
+                      />
+                      <Box component="span" sx={sx.label}>
+                        {option.label}
+                      </Box>
+                      <Box component="span" sx={sx.count}>
+                        {option.count}
+                      </Box>
+                    </Box>
+                  ))}
                 </Box>
-              ))}
+              ) : null}
+              {directionOptions.length ? (
+                <Box role="radiogroup" aria-label={t('STATS_PAGE.FILTERS.DIRECTION')} sx={sx.section}>
+                  <Box sx={sx.header}>{t('STATS_PAGE.FILTERS.DIRECTION')}</Box>
+                  {directionOptions.map((option) =>
+                    renderRadioRow({
+                      key: option.value,
+                      label: option.label,
+                      count: option.count,
+                      checked: option.value === amountFilter,
+                      onSelect: () => setAmountFilter(option.value),
+                    }),
+                  )}
+                </Box>
+              ) : null}
             </Box>
           ) : null}
           {groups.map((group) => (

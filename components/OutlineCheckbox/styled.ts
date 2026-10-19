@@ -6,6 +6,7 @@ export const ui = () => {
       color: 'action.disabled',
       '& .MuiSvgIcon-root': { fontSize: 18 },
       '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: 'text.secondary' },
+      '&.Mui-disabled': { color: 'action.disabled' },
     },
   }
 }

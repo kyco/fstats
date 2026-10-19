@@ -26,15 +26,15 @@ const toParentOptions = ({ categories, counts, t }: ToParentOptionsProps): Paren
       key: parent.code,
       label: getCategoryLabel(parent.code, t),
       count: sumBy(children, 'count'),
-      keys: children.filter((child) => child.count).map((child) => child.key),
+      keys: children.map((child) => child.key),
       children,
     }
   })
 }
 
 /**
- * All categories with their number of transactions, money in and out, those without transactions are disabled.
- * Transactions without a (known) category are last in money out.
+ * All categories with their number of transactions, income and expenses, those without transactions are disabled.
+ * Transactions without a (known) category are last in expenses.
  */
 export const getCategoryGroups = (transactions: Transaction[], t: TFunction): CategoryGroup[] => {
   const counts = countBy(transactions, getCategoryKey)
@@ -51,12 +51,12 @@ export const getCategoryGroups = (transactions: Transaction[], t: TFunction): Ca
   return [
     {
       key: 'in',
-      label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN_TITLE'),
+      label: t('MISC.INCOME'),
       parents: toParentOptions({ categories: INCOME_CATEGORIES, counts, t }),
     },
     {
       key: 'out',
-      label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT_TITLE'),
+      label: t('MISC.EXPENSES'),
       parents: [...toParentOptions({ categories: EXPENSE_CATEGORIES, counts, t }), ...otherOptions],
     },
   ]

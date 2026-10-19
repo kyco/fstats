@@ -68,19 +68,18 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
 
     return (
       <Fragment key={key}>
-        <Box component="tr" data-variant={variant} sx={sx.row}>
-          {/* The whole label cell toggles, the button's clicks (also by keyboard) bubble up to it */}
-          <Box
-            component="th"
-            scope="row"
-            onClick={isExpandable ? () => toggle(key) : undefined}
-            sx={{ ...sx.labelCell(variant), ...(isExpandable ? sx.expandable : {}) }}
-            title={label}
-          >
+        {/* The whole row toggles, the button's clicks (also by keyboard) bubble up to it */}
+        <Box
+          component="tr"
+          data-variant={variant}
+          onClick={isExpandable ? () => toggle(key) : undefined}
+          sx={{ ...sx.row, ...(isExpandable ? sx.expandable : {}) }}
+        >
+          <Box component="th" scope="row" sx={sx.labelCell(variant)} title={label}>
             {/* Fixed width, so long descriptions are truncated rather than widening the cell */}
             <Box sx={sx.labelContent(variant)}>
               {isExpandable ? (
-                <ButtonBase aria-expanded={isExpanded} sx={sx.expandButton}>
+                <ButtonBase aria-expanded={isExpanded} disableRipple sx={sx.expandButton}>
                   <ExpandMore sx={{ ...sx.chevron, transform: isExpanded ? 'none' : 'rotate(-90deg)' }} />
                   <Box component="span" sx={sx.labelText}>
                     {label}
