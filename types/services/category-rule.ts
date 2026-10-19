@@ -101,6 +101,12 @@ export type RulesetDef = {
 // Engine
 // -------------------------------------------------------
 
+/**
+ * What keeps a transaction's category although a new rule matches it, see `getNewRuleEffect`: its override (set
+ * manually) or another rule.
+ */
+export type NewRuleKeptBy = 'override' | 'rule'
+
 export type CompiledCategoryRule = {
   field: CategoryRuleField
   direction: CategoryRuleDirection

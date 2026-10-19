@@ -8,13 +8,14 @@ import type {
   CategoryCode,
   CategoryEngine,
   CategoryRuleset,
+  NewRuleKeptBy,
   ParsedStatsFile,
   SourcedTransaction,
   TextRange,
   Transaction,
   VirtualTableColumn,
 } from '@/types'
-import { AmountFilter, CategorySource, TransactionTag } from '@/types-enums'
+import { AmountFilter, TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
 import { getCategoryConflicts, resolveCategory } from '@/m-category/service'
 import { getFileCurrency } from '@/m-stats-file/service'
@@ -269,7 +270,7 @@ type GetCategoryPreviewProps = {
   /**
    * Of the rule being created, `null` (or `undefined`) when it doesn't match the transaction.
    */
-  effect: { keptBy: CategorySource | null } | null | undefined
+  effect: { keptBy: NewRuleKeptBy | null } | null | undefined
   current: CategoryCode | null
   /**
    * Chosen in the category form.
@@ -290,7 +291,7 @@ export const getCategoryPreview = ({ effect, current, category, t }: GetCategory
   if (effect.keptBy) {
     return {
       title: t(
-        effect.keptBy === CategorySource.OVERRIDE
+        effect.keptBy === 'override'
           ? 'STATS_PAGE.CATEGORY_RULES.KEPT_OVERRIDE'
           : 'STATS_PAGE.CATEGORY_RULES.KEPT_RULE',
       ),

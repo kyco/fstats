@@ -38,16 +38,18 @@ const Component = ({ transaction, onClose, onRuleChange, draft }: TransactionDet
   const { locale, dateFormat } = useUserPreferences()
   const { isDemoMode } = useWorkspace()
   const { unique } = useStatsTransactions()
-  const { focusMatch, focusedMatch, setIsFormOpen, isAskingToDiscard, discard, keepEditing } =
+  const { focusMatch, focusedMatch, setForm, isAskingToDiscard, discard, keepEditing } =
     useWorkspaceSelectedTransaction()
   // The category form, opened below the category like an accordion
   const [isEditing, setIsEditing] = useState(!!draft)
+  const [hasChanges, setHasChanges] = useState(false)
 
-  // Clicking rows or categories in the table asks before discarding it, until it's closed (also with the sidebar)
+  // Clicking rows or categories in the table asks before discarding the changes, until it's closed (also with the
+  // sidebar)
   useEffect(() => {
-    setIsFormOpen(isEditing)
-    return () => setIsFormOpen(false)
-  }, [isEditing, setIsFormOpen])
+    setForm({ isOpen: isEditing, hasChanges: isEditing && hasChanges })
+    return () => setForm({ isOpen: false, hasChanges: false })
+  }, [isEditing, hasChanges, setForm])
   // Starts the form over each time
   const [editorKey, setEditorKey] = useState(0)
   const similar = useMemo(() => getSimilarTransactions(unique, transaction), [unique, transaction])
@@ -96,6 +98,7 @@ const Component = ({ transaction, onClose, onRuleChange, draft }: TransactionDet
         initialDraft={editorKey ? undefined : draft}
         onFocusMatch={focusMatch}
         focusedMatchId={focusedMatch?.id}
+        onChangesChange={setHasChanges}
       />
 
       {/* One grid for the sections below, so their labels and values line up */}

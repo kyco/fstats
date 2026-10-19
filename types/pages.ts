@@ -148,11 +148,12 @@ export type SelectedTransaction = {
   focusedMatch: { id: string; key: number; shouldScroll: boolean } | null
   focusMatch: (id: string, shouldScroll?: boolean) => void
   /**
-   * Whether the category form is open in the sidebar, selecting a row or changing a category asks before discarding it.
+   * Of the category form in the sidebar: while it's open, changing a category closes it (one form at a time), and with
+   * changes, selecting a row or changing a category asks before discarding it.
    */
-  setIsFormOpen: (isOpen: boolean) => void
+  setForm: (form: { isOpen: boolean; hasChanges: boolean }) => void
   /**
-   * Runs the action, or while the category form is open, asks first (`isAskingToDiscard`) and runs it on `discard`.
+   * Runs the action, or while the category form has changes, asks first (`isAskingToDiscard`) and runs it on `discard`.
    */
   guard: (action: () => void) => void
   isAskingToDiscard: boolean

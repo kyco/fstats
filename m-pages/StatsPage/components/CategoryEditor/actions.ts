@@ -5,6 +5,7 @@ import type { CategoryRuleDraft, CategoryRuleset, MenuSelectOption, ResolvedCate
 import { CategoryRuleField, CategorySource } from '@/types-enums'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
 import { compileRule, getRuleRef, matchesRule } from '@/m-category/service'
+import { sortNewestFirst } from '@/m-transaction/service'
 import { getCategoryLabel } from '@/utils/Category'
 
 import { getRulesetName } from '../RulesetSelect/actions'
@@ -66,11 +67,7 @@ type GetRuleMatchesProps = {
  */
 export const getRuleMatches = ({ rule, transaction, transactions }: GetRuleMatchesProps) => {
   const compiled = compileRule(rule)
-  const matched = rule.keyword
-    ? transactions
-        .filter((other) => matchesRule(other, compiled))
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    : []
+  const matched = rule.keyword ? sortNewestFirst(transactions.filter((other) => matchesRule(other, compiled))) : []
 
   return {
     isMatch: !!rule.keyword && matchesRule(transaction, compiled),

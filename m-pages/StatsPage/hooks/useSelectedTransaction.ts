@@ -21,7 +21,7 @@ export const useSelectedTransaction = ({ isEnabled }: UseSelectedTransactionProp
   const [rule, setRule] = useState<CategoryRulePreview | null>(null)
   const [draft, setDraft] = useState<SelectedTransaction['draft']>(null)
   const [focusedMatch, setFocusedMatch] = useState<SelectedTransaction['focusedMatch']>(null)
-  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [form, setForm] = useState({ isOpen: false, hasChanges: false })
   // Waits until the user decides to discard the category form
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
@@ -45,12 +45,12 @@ export const useSelectedTransaction = ({ isEnabled }: UseSelectedTransactionProp
       setFocusedMatch(null)
 
       // Only one row is selected, the sidebar closes for another transaction, or with its form (one form at a time)
-      if (transaction && (isFormOpen || transaction.id !== next.id || transaction.source !== next.source)) {
+      if (transaction && (form.isOpen || transaction.id !== next.id || transaction.source !== next.source)) {
         setTransaction(null)
         setDraft(null)
       }
     },
-    [transaction, isFormOpen],
+    [transaction, form.isOpen],
   )
 
   const closeEditor = useCallback(() => {
@@ -80,13 +80,13 @@ export const useSelectedTransaction = ({ isEnabled }: UseSelectedTransactionProp
 
   const guard = useCallback(
     (action: () => void) => {
-      if (isFormOpen) {
+      if (form.hasChanges) {
         setPendingAction(() => action)
       } else {
         action()
       }
     },
-    [isFormOpen],
+    [form.hasChanges],
   )
 
   const discard = useCallback(() => {
@@ -116,7 +116,7 @@ export const useSelectedTransaction = ({ isEnabled }: UseSelectedTransactionProp
     moveToSidebar,
     focusedMatch,
     focusMatch,
-    setIsFormOpen,
+    setForm,
     guard,
     isAskingToDiscard: !!pendingAction,
     discard,

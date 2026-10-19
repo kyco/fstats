@@ -127,14 +127,14 @@ export const sxAccentColor = (theme: Theme) => ({
  * it stands out on highlighted rows too.
  */
 export const sxMark = (theme: Theme) => ({
-  color: '#78350f',
+  color: Color.amberDark,
   fontWeight: 600,
-  backgroundColor: '#fcd34d',
-  boxShadow: '0 0 0 1px #fcd34d',
+  backgroundColor: Color.amber,
+  boxShadow: `0 0 0 1px ${Color.amber}`,
   borderRadius: '2px',
   ...theme.applyStyles('dark', {
     color: 'inherit',
-    backgroundColor: 'rgba(250, 204, 21, 0.55)',
-    boxShadow: '0 0 0 1px rgba(250, 204, 21, 0.55)',
+    backgroundColor: Color.amberTranslucent,
+    boxShadow: `0 0 0 1px ${Color.amberTranslucent}`,
   }),
 })

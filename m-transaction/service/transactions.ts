@@ -170,6 +170,13 @@ export const getTransactionsByCurrency = ({ byCurrency, count }: StatsTransactio
 }
 
 /**
+ * Newest first, stable (the order is kept for equal dates). Sorts in place.
+ */
+export const sortNewestFirst = <T extends Pick<Transaction, 'date'>>(transactions: T[]) => {
+  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+}
+
+/**
  * Transactions of all files in a single list, newest first like the date explorer. Stable, so the order of files is
  * kept for equal dates. The first occurrence of a transaction in multiple files is the original, the others are
  * duplicates.
@@ -181,11 +188,11 @@ export const getSourcedTransactions = (files: ParsedStatsFile[]): SourcedTransac
   const duplicates = getDuplicates(transactions)
   const sourcesById = groupBy(transactions, 'id')
 
-  return transactions
-    .map((transaction) => ({
+  return sortNewestFirst(
+    transactions.map((transaction) => ({
       ...transaction,
       sources: sourcesById[transaction.id].map(({ source }) => source),
       isDuplicate: duplicates.has(transaction),
-    }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    })),
+  )
 }

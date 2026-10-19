@@ -3,10 +3,11 @@
 import { EditOutlined, ExpandMore, InfoOutlined, WarningAmberOutlined } from '@mui/icons-material'
 import { Box, Button, Checkbox, Divider, FormControlLabel, IconButton, TextField, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import { isEqual } from 'lodash'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
-import type { CategoryCode, CategoryEditorDraft, CategoryRulePreview, Transaction } from '@/types'
+import type { CategoryEditorDraft, CategoryRulePreview, Transaction } from '@/types'
 import { CategoryRuleDirection, CategoryRuleMatch, CategorySource } from '@/types-enums'
 import { PARENT_CATEGORY_COLORS } from '@/common'
 import { SegmentedToggle } from '@/components'
@@ -87,6 +88,10 @@ type CategoryEditorProps = {
    * The match the table is scrolled to, the edited transaction by default.
    */
   focusedMatchId?: string | null
+  /**
+   * Whether anything was changed in the form (also before moving it from the menu), e.g. to ask before discarding it.
+   */
+  onChangesChange?: (hasChanges: boolean) => void
 }
 
 /**
@@ -104,6 +109,7 @@ const Component = ({
   onMoveToSidebar,
   onFocusMatch,
   focusedMatchId,
+  onChangesChange,
 }: CategoryEditorProps) => {
   const theme = useTheme()
   const sx = ui(theme)
@@ -139,17 +145,44 @@ const Component = ({
     rulesetIds.map((id) => getBuiltInRuleset(id)).find((ruleset) => !!ruleset) ?? getBuiltInRuleset(DEFAULT_RULESET_ID)!
 
   // Chosen by the user, the current one isn't preselected
-  const [category, setCategory] = useState<CategoryCode | ''>(initialDraft?.category ?? '')
-  const [applyTo, setApplyTo] = useState<CategoryEditorDraft['applyTo']>(initialDraft?.applyTo ?? 'transaction')
-  const [field, setField] = useState(initialDraft?.field ?? fieldOptions[0])
-  const [match, setMatch] = useState<CategoryRuleMatch>(initialDraft?.match ?? CategoryRuleMatch.CONTAINS)
-  const [keyword, setKeyword] = useState(initialDraft?.keyword ?? transaction.description.trim())
-  const [ignoreCase, setIgnoreCase] = useState(initialDraft?.ignoreCase ?? true)
-  // Of the transaction by default, at least one is needed
-  const [amounts, setAmounts] = useState(initialDraft?.amounts ?? { in: isIncome, out: !isIncome })
-  const [saveTo, setSaveTo] = useState(initialDraft?.saveTo ?? checkedCustomId ?? MY_RULES_ID)
-  const [newRulesetName, setNewRulesetName] = useState(initialDraft?.newRulesetName ?? '')
-  const [copyBuiltIn, setCopyBuiltIn] = useState(initialDraft?.copyBuiltIn ?? false)
+  // What the form starts with, unless moved from the menu. Compared with, to know whether anything was changed.
+  const [defaults] = useState<CategoryEditorDraft>(() => ({
+    category: '',
+    applyTo: 'transaction',
+    field: fieldOptions[0],
+    match: CategoryRuleMatch.CONTAINS,
+    keyword: transaction.description.trim(),
+    ignoreCase: true,
+    // Of the transaction, at least one is needed
+    amounts: { in: isIncome, out: !isIncome },
+    saveTo: checkedCustomId ?? MY_RULES_ID,
+    newRulesetName: '',
+    copyBuiltIn: false,
+  }))
+  const initial = initialDraft ?? defaults
+  const [category, setCategory] = useState(initial.category)
+  const [applyTo, setApplyTo] = useState(initial.applyTo)
+  const [field, setField] = useState(initial.field)
+  const [match, setMatch] = useState(initial.match)
+  const [keyword, setKeyword] = useState(initial.keyword)
+  const [ignoreCase, setIgnoreCase] = useState(initial.ignoreCase)
+  const [amounts, setAmounts] = useState(initial.amounts)
+  const [saveTo, setSaveTo] = useState(initial.saveTo)
+  const [newRulesetName, setNewRulesetName] = useState(initial.newRulesetName)
+  const [copyBuiltIn, setCopyBuiltIn] = useState(initial.copyBuiltIn)
+  const draft: CategoryEditorDraft = {
+    category,
+    applyTo,
+    field,
+    match,
+    keyword,
+    ignoreCase,
+    amounts,
+    saveTo,
+    newRulesetName,
+    copyBuiltIn,
+  }
+  const hasChanges = !isEqual(draft, defaults)
   // In the sidebar, the match the table is scrolled to, starting at the edited (selected) one
   const focusedId = onFocusMatch ? (focusedMatchId ?? transaction.id) : null
   // In the menu, asks before moving to the sidebar
@@ -209,20 +242,9 @@ const Component = ({
     onFocusMatch?.(matches.transactions[index].id)
   }
 
-  const moveToSidebar = () => {
-    onMoveToSidebar?.({
-      category,
-      applyTo,
-      field,
-      match,
-      keyword,
-      ignoreCase,
-      amounts,
-      saveTo,
-      newRulesetName,
-      copyBuiltIn,
-    })
-  }
+  useEffect(() => {
+    onChangesChange?.(hasChanges)
+  }, [hasChanges, onChangesChange])
 
   const isNewRuleset = saveTo === NEW_RULESET
   const canSave =
@@ -463,7 +485,7 @@ const Component = ({
                       variant="contained"
                       color="info"
                       disableElevation
-                      onClick={moveToSidebar}
+                      onClick={() => onMoveToSidebar?.(draft)}
                       sx={sx.confirmButton}
                     >
                       {t('STATS_PAGE.CATEGORY_RULES.CONTINUE_IN_SIDEBAR')}

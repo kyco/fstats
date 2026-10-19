@@ -293,10 +293,10 @@ describe('getNewRuleEffect', () => {
 
   it('should change the category unless a more specific rule or an override wins', () => {
     expect(effect(rewe, 'REWE Markt Berlin')).toBeNull()
-    expect(effect(rewe, 'REWE')).toBe(CategorySource.MY_RULE)
+    expect(effect(rewe, 'REWE')).toBe('rule')
     // Applied after "My rules"
-    expect(effect(rewe, 'REWE Markt Berlin', false)).toBe(CategorySource.MY_RULE)
-    expect(effect(manual, 'REWE')).toBe(CategorySource.OVERRIDE)
+    expect(effect(rewe, 'REWE Markt Berlin', false)).toBe('rule')
+    expect(effect(manual, 'REWE')).toBe('override')
     // The override of the edited transaction is removed
     expect(effect(manual, 'REWE', true, manual.id)).toBeNull()
   })

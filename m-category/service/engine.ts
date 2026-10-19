@@ -6,6 +6,7 @@ import type {
   CategoryRuleset,
   CompiledCategoryRule,
   KeywordRuleDef,
+  NewRuleKeptBy,
   ParsedStatsFile,
   ResolvedCategory,
   RulesetDef,
@@ -236,21 +237,23 @@ type GetNewRuleEffectProps = {
  * Whether a new rule would change the category of a transaction it matches (see `resolveCategory`), otherwise what wins
  * over it: the override of the transaction or another rule.
  */
-export const getNewRuleEffect = ({ transaction, engine, rule, isMyRules, editedId }: GetNewRuleEffectProps) => {
+export const getNewRuleEffect = ({
+  transaction,
+  engine,
+  rule,
+  isMyRules,
+  editedId,
+}: GetNewRuleEffectProps): NewRuleKeptBy | null => {
   if (transaction.id !== editedId && engine.overrides.has(transaction.id)) {
-    return CategorySource.OVERRIDE
+    return 'override'
   }
 
-  if (!isMyRules && findRule(transaction, engine.myRules)) {
-    return CategorySource.MY_RULE
-  }
+  // "My rules" are applied first, then the rule sets
+  const isApplied = isMyRules
+    ? findRule(transaction, [...engine.myRules, rule]) === rule
+    : !findRule(transaction, engine.myRules) && findRule(transaction, [...engine.rulesetRules, rule]) === rule
 
-  const rules = isMyRules ? engine.myRules : engine.rulesetRules
-  return findRule(transaction, [...rules, rule]) === rule
-    ? null
-    : isMyRules
-      ? CategorySource.MY_RULE
-      : CategorySource.RULESET
+  return isApplied ? null : 'rule'
 }
 
 type GetRuleRefProps = {
