@@ -118,7 +118,7 @@ describe('getProfitLoss', () => {
     expect(profitLoss.transfers.net.total).toBe('0')
   })
 
-  it('should sum incoming and outgoing transactions of subcategories with both', () => {
+  it('should sum incoming and outgoing transactions of categories with both', () => {
     const doctor = toTransaction('2026-01-05', '-1000', 'HLT_01')
     const payout = toTransaction('2026-02-10', '600', 'HLT_01')
     const groceries = toTransaction('2026-01-10', '-200', 'GRO_01')
@@ -132,11 +132,12 @@ describe('getProfitLoss', () => {
     const [health, grocery] = profitLoss.expenses.rows
 
     expect(health.total).toBe('400')
-    expect(health.flows).toBeUndefined()
+    expect(health.flows?.incoming.total).toBe('600')
     expect(health.children[0].flows).toEqual({
       incoming: { values: { '2026-02': '600' }, total: '600' },
       outgoing: { values: { '2026-01': '-1000' }, total: '-1000' },
     })
+    expect(grocery.flows).toBeUndefined()
     expect(grocery.children[0].flows).toBeUndefined()
     expect(profitLoss.expenses.total.flows).toBeUndefined()
   })

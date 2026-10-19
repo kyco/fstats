@@ -299,6 +299,11 @@ export type DateRow = {
 
 export type ProfitLossRowVariant = 'category' | 'subcategory' | 'transaction' | 'total' | 'net' | 'rate'
 
+/**
+ * Incoming or outgoing amount of a cell's tooltip, signed like the cell.
+ */
+export type ProfitLossFlowLine = { labelKey: string; value: NumberString }
+
 // -------------------------------------------------------
 // Stats page: parser setup
 // -------------------------------------------------------

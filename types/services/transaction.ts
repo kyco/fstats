@@ -183,8 +183,8 @@ export type ProfitLossRow = {
   total: NumberString
   children: ProfitLossRow[]
   /**
-   * Sums of the incoming and outgoing transactions (not negated), only rows without children that have both, e.g. a
-   * medical aid payout to a medical expense.
+   * Sums of the incoming and outgoing transactions (not negated), only category rows that have both, e.g. a medical
+   * aid payout to a medical expense.
    */
   flows?: { incoming: ProfitLossAmounts; outgoing: ProfitLossAmounts }
   /**

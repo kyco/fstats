@@ -18,7 +18,7 @@ import { Big } from '@/lib/w-big'
 
 import { getAmountColor } from '../../../../actions'
 import { getPeriodLabel } from '../../actions'
-import { EMPTY_AMOUNT } from './actions'
+import { EMPTY_AMOUNT, getFlowLines } from './actions'
 import { FlowsTooltip } from './components'
 import { ui } from './styled'
 
@@ -53,7 +53,7 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
     value: NumberString | undefined,
     key: string,
     variant: ProfitLossRowVariant,
-    flow?: { title: string; incoming?: NumberString; outgoing?: NumberString },
+    flow?: { title: string; incoming?: NumberString; outgoing?: NumberString; negate: boolean },
   ) => {
     const color = value ? getAmountColor(value) : 'text.disabled'
 
@@ -62,8 +62,13 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
         {flow?.incoming && flow.outgoing ? (
           <FlowsTooltip
             title={flow.title}
-            incoming={formatAmount(flow.incoming)}
-            outgoing={formatAmount(Big(flow.outgoing).abs().toString())}
+            lines={getFlowLines({ incoming: flow.incoming, outgoing: flow.outgoing, negate: flow.negate }).map(
+              (line) => ({
+                label: t(line.labelKey),
+                value: formatAmount(line.value),
+                color: getAmountColor(line.value),
+              }),
+            )}
             net={formatAmount(value)}
             netColor={color}
           />
@@ -76,7 +81,8 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
     )
   }
 
-  const renderRow = (row: ProfitLossRow, variant: ProfitLossRowVariant, parentKey = ''): ReactNode => {
+  // `negate` for the expenses, shown as positive amounts
+  const renderRow = (row: ProfitLossRow, variant: ProfitLossRowVariant, parentKey = '', negate = false): ReactNode => {
     const { flows } = row
     const key = `${parentKey}${row.key}`
     const isExpandable = row.children.length > 0
@@ -122,6 +128,7 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
                 title: `${row.label} ${MISC.CENTER_DOT} ${getPeriodLabel({ key: periodKey, period, locale })}`,
                 incoming: flows.incoming.values[periodKey],
                 outgoing: flows.outgoing.values[periodKey],
+                negate,
               },
             ),
           )}
@@ -133,10 +140,13 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
               title: `${row.label} ${MISC.CENTER_DOT} ${t('MISC.TOTAL')}`,
               incoming: flows.incoming.total,
               outgoing: flows.outgoing.total,
+              negate,
             },
           )}
         </Box>
-        {isExpandable && isExpanded ? row.children.map((child) => renderRow(child, childVariant, `${key}/`)) : null}
+        {isExpandable && isExpanded
+          ? row.children.map((child) => renderRow(child, childVariant, `${key}/`, negate))
+          : null}
       </Fragment>
     )
   }
@@ -176,7 +186,7 @@ const Component = ({ profitLoss, period }: ProfitLossTableProps) => {
           {renderRow(income.total, 'total')}
 
           {renderSection(t('MISC.EXPENSES'))}
-          {expenses.rows.map((row) => renderRow(row, 'category'))}
+          {expenses.rows.map((row) => renderRow(row, 'category', '', true))}
           {renderRow(expenses.total, 'total')}
 
           {renderRow(net, 'net')}

@@ -189,6 +189,7 @@ const getCategoryRows = ({ transactions, period, negate, t }: GetCategoryRowsPro
       period,
       negate,
       children: sortRows(children),
+      withFlows: true,
     })
   })
 
