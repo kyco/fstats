@@ -1,61 +1,21 @@
-import { sxListRow, sxListRowTitle, sxSubheaderText } from '@/styles/styled'
+import { sxSubheaderText } from '@/styles/styled'
 
 export const ui = () => {
   return {
     // Like the cards of the sidebar (`StatsCard`)
+    // Relative for the overlay asking to discard the category form
     panel: {
+      position: 'relative',
       border: 1,
       borderColor: 'divider',
       borderRadius: 1,
       overflow: 'hidden',
-    },
-    // Like the rows of the other cards (`StatsRow`), the amount below without a divider
-    titleBar: {
-      ...sxListRow,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 1,
-      pl: 1.5,
-      pr: 1,
-    },
-    title: {
-      ...sxListRowTitle,
-      fontWeight: 700,
-    },
-    // A large enough hit area around the small icon, without taking more space
-    closeButton: {
-      p: '8px',
-      m: '-8px',
-    },
-    closeIcon: {
-      fontSize: 16,
-      color: 'text.secondary',
-    },
-    summarySection: {
-      px: 1.5,
-      pt: 0.5,
-      pb: 1.5,
     },
     section: {
       display: 'flex',
       flexDirection: 'column',
       gap: 1,
       p: 1.5,
-    },
-    summary: {
-      display: 'flex',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: 1,
-    },
-    amount: {
-      fontSize: 20,
-      fontWeight: 600,
-      fontVariantNumeric: 'tabular-nums',
-    },
-    date: {
-      fontSize: 12,
-      color: 'text.secondary',
     },
     // Columns of the labels and values, shared by the sections (subgrids) so they line up
     grid: {

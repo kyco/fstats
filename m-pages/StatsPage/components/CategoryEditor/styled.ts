@@ -131,6 +131,63 @@ export const ui = (theme: Theme) => {
       color: isMatch ? 'info.main' : 'warning.main',
       bgcolor: `rgba(${isMatch ? theme.vars.palette.info.mainChannel : theme.vars.palette.warning.mainChannel} / 0.08)`,
     }),
+    // Below another notice, only the gap of the field
+    nextNotice: {
+      mt: 0,
+    },
+    // After the count of the matches, asks to show them in the table
+    matchesLink: {
+      p: 0,
+      ml: 0.75,
+      border: 0,
+      font: 'inherit',
+      color: 'inherit',
+      background: 'none',
+      textDecoration: 'underline',
+      textUnderlineOffset: '2px',
+      cursor: 'pointer',
+    },
+    noticeText: {
+      flexGrow: 1,
+    },
+    // Which match the table is scrolled to, with buttons to the previous and next one
+    matchNav: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.25,
+      flexShrink: 0,
+      whiteSpace: 'nowrap',
+    },
+    matchNavButton: {
+      p: 0.25,
+      fontSize: 18,
+    },
+    // Asks before moving the form to the sidebar, a card below the count
+    confirm: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 1,
+      px: 1.25,
+      py: 1,
+      border: 1,
+      borderColor: 'divider',
+      borderRadius: '6px',
+      fontSize: 12,
+      color: 'text.secondary',
+    },
+    confirmActions: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: 0.5,
+    },
+    // As small as the text, like the action next to where the category is from
+    confirmButton: {
+      minWidth: 0,
+      py: 0,
+      px: 1,
+      fontSize: 12,
+      lineHeight: '22px',
+    },
     // Right below the toggle, like the notice below the keyword
     applyNotice: {
       mt: -1.25,

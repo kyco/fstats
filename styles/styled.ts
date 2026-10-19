@@ -121,3 +121,20 @@ export const sxAccentColor = (theme: Theme) => ({
   color: Color.cyanDark,
   ...sxDark(theme, { color: Color.cyan }),
 })
+
+/**
+ * Highlighted text (`<mark>`), e.g. search matches. Bold with dark text and slightly wider (without moving the text), so
+ * it stands out on highlighted rows too.
+ */
+export const sxMark = (theme: Theme) => ({
+  color: '#78350f',
+  fontWeight: 600,
+  backgroundColor: '#fcd34d',
+  boxShadow: '0 0 0 1px #fcd34d',
+  borderRadius: '2px',
+  ...theme.applyStyles('dark', {
+    color: 'inherit',
+    backgroundColor: 'rgba(250, 204, 21, 0.55)',
+    boxShadow: '0 0 0 1px rgba(250, 204, 21, 0.55)',
+  }),
+})

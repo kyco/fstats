@@ -1,5 +1,7 @@
 import type { Theme } from '@mui/material/styles'
 
+import { sxMark } from '@/styles/styled'
+
 import { ROW_HEIGHT } from './actions'
 
 export const ui = () => {
@@ -57,13 +59,21 @@ export const ui = () => {
       '& tbody tr:not(.spacer):hover': {
         bgcolor: 'action.hover',
       },
-      // Search matches
-      '& mark': (theme: Theme) => ({
-        color: 'inherit',
-        backgroundColor: '#fde68a',
-        borderRadius: '2px',
-        ...theme.applyStyles('dark', { backgroundColor: 'rgba(250, 204, 21, 0.4)' }),
-      }),
+      // A ring inside rows with `--row-ring` (e.g. inside their outline), and a bar at the start of rows with
+      // `--row-accent`, see `getRowStyle`
+      '& tbody tr > td': {
+        boxShadow: 'inset 0 4px 0 var(--row-ring, transparent), inset 0 -4px 0 var(--row-ring, transparent)',
+      },
+      '& tbody tr > td:first-of-type': {
+        boxShadow:
+          'inset 3px 0 0 var(--row-accent, transparent), inset 4px 0 0 var(--row-ring, transparent), inset 0 4px 0 var(--row-ring, transparent), inset 0 -4px 0 var(--row-ring, transparent)',
+      },
+      '& tbody tr > td:last-of-type': {
+        boxShadow:
+          'inset -4px 0 0 var(--row-ring, transparent), inset 0 4px 0 var(--row-ring, transparent), inset 0 -4px 0 var(--row-ring, transparent)',
+      },
+      // Search matches and those of the rule being created
+      '& mark': (theme: Theme) => sxMark(theme),
     },
   }
 }

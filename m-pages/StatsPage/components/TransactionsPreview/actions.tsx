@@ -5,14 +5,16 @@ import { uniq } from 'lodash'
 import type { ReactNode } from 'react'
 
 import type {
+  CategoryCode,
   CategoryEngine,
   CategoryRuleset,
   ParsedStatsFile,
   SourcedTransaction,
+  TextRange,
   Transaction,
   VirtualTableColumn,
 } from '@/types'
-import { AmountFilter, TransactionTag } from '@/types-enums'
+import { AmountFilter, CategorySource, TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
 import { getCategoryConflicts, resolveCategory } from '@/m-category/service'
 import { getFileCurrency } from '@/m-stats-file/service'
@@ -144,6 +146,10 @@ type GetTransactionColumnsProps = {
    */
   renderCategory?: (label: string, rowIndex: number) => ReactNode
   /**
+   * Parts of the description to highlight, e.g. those the rule being created matches.
+   */
+  getDescriptionHighlights?: (rowIndex: number) => TextRange[]
+  /**
    * Other rule sets that would give the transaction a different category (shown with an icon), `null` without.
    */
   conflicts?: {
@@ -165,6 +171,7 @@ export const getTransactionColumns = ({
   amountFilter,
   t,
   renderCategory,
+  getDescriptionHighlights,
   conflicts,
   tags,
 }: GetTransactionColumnsProps): VirtualTableColumn[] => {
@@ -172,7 +179,7 @@ export const getTransactionColumns = ({
 
   return [
     { label: t('MISC.DATE'), width: 100, getStyle: () => sx.tabularNums },
-    { label: t('MISC.DESCRIPTION'), width: 320 },
+    { label: t('MISC.DESCRIPTION'), width: 320, getHighlights: getDescriptionHighlights },
     {
       // Mixed currencies show the symbol per amount instead
       label: currency ? t('MISC.AMOUNT_WITH_CURRENCY', { currency: getCurrencySymbol(currency) }) : t('MISC.AMOUNT'),
@@ -256,4 +263,41 @@ export const getTransactionCells = (
     formatAmount({ value: displayValue, currency: transaction.currency, locale, showPlusSign: isSigned }),
     getCategoryLabel(transaction.category, t),
   ]
+}
+
+type GetCategoryPreviewProps = {
+  /**
+   * Of the rule being created, `null` (or `undefined`) when it doesn't match the transaction.
+   */
+  effect: { keptBy: CategorySource | null } | null | undefined
+  current: CategoryCode | null
+  /**
+   * Chosen in the category form.
+   */
+  category: CategoryCode | null
+  t: TFunction
+}
+
+/**
+ * The category the rule being created gives the transaction (with the current one as the title), or why it keeps its
+ * category. `null` when unchanged, e.g. before a category is chosen.
+ */
+export const getCategoryPreview = ({ effect, current, category, t }: GetCategoryPreviewProps) => {
+  if (!effect) {
+    return null
+  }
+
+  if (effect.keptBy) {
+    return {
+      title: t(
+        effect.keptBy === CategorySource.OVERRIDE
+          ? 'STATS_PAGE.CATEGORY_RULES.KEPT_OVERRIDE'
+          : 'STATS_PAGE.CATEGORY_RULES.KEPT_RULE',
+      ),
+    }
+  }
+
+  return category && category !== current
+    ? { category, title: t('STATS_PAGE.CATEGORY_RULES.CURRENT_CATEGORY', { category: getCategoryLabel(current, t) }) }
+    : null
 }

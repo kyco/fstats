@@ -1,4 +1,9 @@
 import type { Theme } from '@mui/material/styles'
+import type { CSSProperties } from 'react'
+
+const focusedBackground = (theme: Theme) => ({
+  backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.24)`,
+})
 
 export const ui = () => {
   return {
@@ -47,8 +52,34 @@ export const ui = () => {
     // Duplicates and transactions on days deselected in the date explorer, not counted anywhere
     excludedRow: { opacity: 0.4, textDecoration: 'line-through' },
 
-    // The selected transaction, and those matching the rule being created for it
-    selectedRow: (theme: Theme) => ({ backgroundColor: theme.vars.palette.action.selected }),
-    matchedRow: (theme: Theme) => ({ backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.08)` }),
+    // The selected transaction, outlined (inside, so the table doesn't cut it off) with a bar, so it's found at once
+    selectedRow: (theme: Theme) =>
+      ({
+        backgroundColor: theme.vars.palette.action.selected,
+        outline: `2px solid ${theme.vars.palette.text.primary}`,
+        outlineOffset: -2,
+        '--row-accent': theme.vars.palette.text.primary,
+      }) as CSSProperties,
+    // A faint tint with a bar, so the highlighted matches in them stand out
+    matchedRow: (theme: Theme) =>
+      ({
+        backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.1)`,
+        '--row-accent': theme.vars.palette.info.main,
+      }) as CSSProperties,
+    // Selected and scrolled to: a blue ring inside the outline of the selected one
+    selectedFocusedRow: (theme: Theme) =>
+      ({
+        ...focusedBackground(theme),
+        '--row-accent': 'transparent',
+        '--row-ring': theme.vars.palette.info.main,
+      }) as CSSProperties,
+    // The match the category form scrolled to, stronger and outlined like the selected one, so it's found at once
+    focusedRow: (theme: Theme) =>
+      ({
+        ...focusedBackground(theme),
+        outline: `2px solid ${theme.vars.palette.info.main}`,
+        outlineOffset: -2,
+        '--row-accent': theme.vars.palette.info.main,
+      }) as CSSProperties,
   }
 }

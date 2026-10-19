@@ -10,11 +10,20 @@ import type {
   ResolvedCategory,
   RulesetDef,
   StatsFile,
+  TextRange,
   Transaction,
 } from '@/types'
 import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch, CategorySource } from '@/types-enums'
 import { isParsed } from '@/m-stats-file/service'
-import { getBuiltInRuleset, getUncategorisedCode, MY_RULES_ID, RULESETS, toKeywordPattern } from '@/utils/Category'
+import {
+  getBuiltInRuleset,
+  getPatternRanges,
+  getUncategorisedCode,
+  MY_RULES_ID,
+  RULESETS,
+  toKeywordHighlightPattern,
+  toKeywordPattern,
+} from '@/utils/Category'
 import { isExpense } from '@/utils/Stats'
 
 /**
@@ -29,6 +38,7 @@ export const compileRule = (
     direction: rule.direction,
     category: rule.category,
     pattern: toKeywordPattern(rule),
+    highlightPattern: toKeywordHighlightPattern(rule),
     length: rule.keyword.trim().length,
     rulesetId,
     rule: id && number && rulesetId ? { rulesetId, id, number, keyword: rule.keyword } : undefined,
@@ -43,7 +53,7 @@ const toDirectionRules = (rules: KeywordRuleDef[], direction: CategoryRuleDirect
   return rules.flatMap(({ category, keywords }) =>
     keywords.map((keyword) => ({
       field: CategoryRuleField.DESCRIPTION,
-      match: CategoryRuleMatch.CONTAINS,
+      match: CategoryRuleMatch.CONTAINS_WORD,
       ignoreCase: true,
       direction,
       category,
@@ -140,6 +150,16 @@ export const matchesRule = (transaction: Transaction, rule: CompiledCategoryRule
 }
 
 /**
+ * The parts of the description the rule matches, to highlight them. None when it doesn't match or matches another
+ * field.
+ */
+export const getRuleDescriptionMatches = (transaction: Transaction, rule: CompiledCategoryRule): TextRange[] => {
+  return rule.field === CategoryRuleField.DESCRIPTION && matchesRule(transaction, rule)
+    ? getPatternRanges(transaction.description, rule.highlightPattern)
+    : []
+}
+
+/**
  * The most specific (longest keyword) matching rule, the first of equally long ones.
  */
 const findRule = (transaction: Transaction, rules: CompiledCategoryRule[]) => {
@@ -193,6 +213,44 @@ export const resolveCategory = ({ transaction, engine, preset }: ResolveCategory
   }
 
   return { category: getUncategorisedCode(transaction), source: CategorySource.NONE }
+}
+
+type GetNewRuleEffectProps = {
+  transaction: Transaction
+  engine: CategoryEngine
+  /**
+   * The rule being created, matching the transaction.
+   */
+  rule: CompiledCategoryRule
+  /**
+   * Saved to "My rules", otherwise to a rule set (checked on saving, its rules are then applied after the others).
+   */
+  isMyRules: boolean
+  /**
+   * The edited transaction, its override is removed on saving.
+   */
+  editedId: string
+}
+
+/**
+ * Whether a new rule would change the category of a transaction it matches (see `resolveCategory`), otherwise what wins
+ * over it: the override of the transaction or another rule.
+ */
+export const getNewRuleEffect = ({ transaction, engine, rule, isMyRules, editedId }: GetNewRuleEffectProps) => {
+  if (transaction.id !== editedId && engine.overrides.has(transaction.id)) {
+    return CategorySource.OVERRIDE
+  }
+
+  if (!isMyRules && findRule(transaction, engine.myRules)) {
+    return CategorySource.MY_RULE
+  }
+
+  const rules = isMyRules ? engine.myRules : engine.rulesetRules
+  return findRule(transaction, [...rules, rule]) === rule
+    ? null
+    : isMyRules
+      ? CategorySource.MY_RULE
+      : CategorySource.RULESET
 }
 
 type GetRuleRefProps = {

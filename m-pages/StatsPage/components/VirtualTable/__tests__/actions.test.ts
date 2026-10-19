@@ -27,6 +27,11 @@ describe('search', () => {
     expect(splitMatches('Rent', '')).toEqual(['Rent'])
   })
 
+  it('should merge the matches with other ranges', () => {
+    expect(splitMatches('Coffee Shop', 'shop', [[0, 6]])).toEqual(['', 'Coffee', ' ', 'Shop', ''])
+    expect(splitMatches('Coffee Shop', 'fee s', [[0, 6]])).toEqual(['', 'Coffee S', 'hop'])
+  })
+
   it('should ignore accents and match ß as ss', () => {
     const names = [['Müller'], ['Straße'], ['Cafe']]
     const texts = names.map(toSearchText)

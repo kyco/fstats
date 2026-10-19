@@ -293,17 +293,20 @@ export type CategoryRuleField = z.infer<typeof zCategoryRuleField>
 // -------------------------------------------------------
 
 /**
- * How a category rule matches its keyword, always ignoring case: as whole words anywhere, at the start, or the whole
- * value.
+ * How a category rule matches its keyword: all its words anywhere, in any order (also inside words, e.g. 'box' matches
+ * "Boxes"), all its words as whole words (e.g. 'OBI' doesn't match "T-Mobile", used by the built-in rule sets), at the
+ * start, or the whole text (e.g. 'rent' matches "Rent" but not "Rent January").
  */
 export const CategoryRuleMatch = {
   CONTAINS: 'contains',
+  CONTAINS_WORD: 'containsWord',
   STARTS_WITH: 'startsWith',
   EQUALS: 'equals',
 } as const
 
 export const zCategoryRuleMatch = z.enum([
   CategoryRuleMatch.CONTAINS,
+  CategoryRuleMatch.CONTAINS_WORD,
   CategoryRuleMatch.STARTS_WITH,
   CategoryRuleMatch.EQUALS,
 ] as const)

@@ -22,8 +22,8 @@ export const zCategoryRule = z.object({
    */
   number: z.number().int().positive(),
   field: zCategoryRuleField,
-  // Rules stored before there were match types contain the keyword
-  match: zCategoryRuleMatch.default(CategoryRuleMatch.CONTAINS),
+  // Rules stored before there were match types contain the keyword as whole words
+  match: zCategoryRuleMatch.default(CategoryRuleMatch.CONTAINS_WORD),
   // Rules stored before ignore case was an option ignore it
   ignoreCase: z.boolean().default(true),
   keyword: zNonEmptyString,
@@ -106,6 +106,10 @@ export type CompiledCategoryRule = {
   direction: CategoryRuleDirection
   category: CategoryCode
   pattern: RegExp
+  /**
+   * The parts of the value the keyword matches, see `toKeywordHighlightPattern`.
+   */
+  highlightPattern: RegExp
   /**
    * Of the keyword, the longest matching keyword wins.
    */

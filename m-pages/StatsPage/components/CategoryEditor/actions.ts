@@ -1,3 +1,4 @@
+import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material'
 import type { TFunction } from 'i18next'
 
 import type { CategoryRuleDraft, CategoryRuleset, MenuSelectOption, ResolvedCategory, Transaction } from '@/types'
@@ -14,15 +15,31 @@ import { getRulesetName } from '../RulesetSelect/actions'
 export const NEW_RULESET = 'new'
 
 /**
- * Categories of the transaction's direction, grouped by parent category.
+ * Arrows scrolling the table to the previous and next match of the rule.
+ */
+export const MATCH_STEPS = [
+  { step: -1, labelKey: 'STATS_PAGE.CATEGORY_RULES.PREVIOUS_MATCH', Icon: KeyboardArrowUp },
+  { step: 1, labelKey: 'STATS_PAGE.CATEGORY_RULES.NEXT_MATCH', Icon: KeyboardArrowDown },
+]
+
+/**
+ * All categories that can be assigned, grouped by parent category and direction (e.g. "Transfers & Uncategorised" is in
+ * both). Those of the transaction's direction first.
  */
 export const getCategoryPickerOptions = (isIncome: boolean, t: TFunction): MenuSelectOption[] => {
-  return Object.values(isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).flatMap((parent) =>
-    Object.values(parent.subcategories).map((category) => ({
-      value: category.code,
-      label: getCategoryLabel(category.code, t),
-      group: getCategoryLabel(parent.code, t),
-    })),
+  const directions = [
+    { categories: INCOME_CATEGORIES, label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN_TITLE') },
+    { categories: EXPENSE_CATEGORIES, label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT_TITLE') },
+  ]
+
+  return (isIncome ? directions : directions.toReversed()).flatMap(({ categories, label }) =>
+    Object.values(categories).flatMap((parent) =>
+      Object.values(parent.subcategories).map((category) => ({
+        value: category.code,
+        label: getCategoryLabel(category.code, t),
+        group: `${getCategoryLabel(parent.code, t)} · ${label}`,
+      })),
+    ),
   )
 }
 
@@ -44,18 +61,21 @@ type GetRuleMatchesProps = {
 }
 
 /**
- * Whether the rule matches the edited transaction, and how many of the shown ones it matches.
+ * Whether the rule matches the edited transaction, and which of the shown ones it matches, newest first like the
+ * transactions table.
  */
 export const getRuleMatches = ({ rule, transaction, transactions }: GetRuleMatchesProps) => {
-  if (!rule.keyword) {
-    return { isMatch: false, count: 0 }
-  }
-
   const compiled = compileRule(rule)
+  const matched = rule.keyword
+    ? transactions
+        .filter((other) => matchesRule(other, compiled))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    : []
 
   return {
-    isMatch: matchesRule(transaction, compiled),
-    count: transactions.filter((other) => matchesRule(other, compiled)).length,
+    isMatch: !!rule.keyword && matchesRule(transaction, compiled),
+    count: matched.length,
+    transactions: matched,
   }
 }
 

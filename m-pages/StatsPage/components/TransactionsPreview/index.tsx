@@ -3,10 +3,17 @@
 import { useTheme } from '@mui/material/styles'
 import { uniq } from 'lodash'
 import type { ReactNode } from 'react'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import type { CategoryRuleset, SourcedTransaction, StatsFile, TransactionFilter } from '@/types'
-import { compileRule, matchesRule, useCategoryEngine, useCategoryRulesets } from '@/m-category/service'
+import {
+  compileRule,
+  getNewRuleEffect,
+  getRuleDescriptionMatches,
+  matchesRule,
+  useCategoryEngine,
+  useCategoryRulesets,
+} from '@/m-category/service'
 import { isParsed } from '@/m-stats-file/service'
 import { filterTransactions, getSourcedTransactions, getTransactionCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
@@ -22,6 +29,7 @@ import VirtualTable from '../VirtualTable'
 import { filterBySearch, highlightMatches, toSearchText } from '../VirtualTable/actions'
 import {
   getCategoryInfo,
+  getCategoryPreview,
   getSharedCurrency,
   getSourceLabel,
   getTransactionCells,
@@ -87,11 +95,17 @@ const Component = ({
   const selected = useWorkspaceSelectedTransaction()
   const { engine } = useCategoryEngine()
   const { data: rulesets = NO_RULESETS } = useCategoryRulesets()
-  const editCategory = selected.edit
+  const { edit, guard } = selected
+  // Asks first while the category form is open in the sidebar, it would be discarded
+  const editCategory = useCallback(
+    (transaction: SourcedTransaction, anchor: HTMLElement) => guard(() => edit(transaction, anchor)),
+    [guard, edit],
+  )
   // The demo is read-only, its categories can't be changed
   const { isDemoMode } = useWorkspace()
   // Rows matching the rule being created are highlighted
-  const ruleMatcher = useMemo(() => (selected.rule ? compileRule(selected.rule) : null), [selected.rule])
+  const rulePreview = selected.rule
+  const ruleMatcher = useMemo(() => (rulePreview ? compileRule(rulePreview.rule) : null), [rulePreview])
   const parsedFiles = useMemo(() => files.filter(isParsed), [files])
   const isCombined = parsedFiles.length > 1
   const isSticky = isCombined && canStick
@@ -155,6 +169,29 @@ const Component = ({
     () => transactions.map((transaction) => getCategoryInfo({ transaction, engine, rulesets, isDemoMode, t })),
     [transactions, engine, rulesets, isDemoMode, t],
   )
+  // Of the rows the rule being created matches: what wins over it (`null` when it changes the category)
+  const ruleEffects = useMemo(
+    () =>
+      rulePreview && ruleMatcher
+        ? transactions.map((transaction) =>
+            matchesRule(transaction, ruleMatcher)
+              ? {
+                  keptBy: getNewRuleEffect({
+                    transaction,
+                    engine,
+                    rule: ruleMatcher,
+                    isMyRules: rulePreview.isMyRules,
+                    editedId: rulePreview.editedId,
+                  }),
+                }
+              : null,
+          )
+        : null,
+    [rulePreview, ruleMatcher, transactions, engine],
+  )
+  // The match the category form scrolled to, in this table
+  const focusedMatch = rulePreview ? selected.focusedMatch : null
+  const focusedIndex = focusedMatch ? transactions.findIndex((transaction) => transaction.id === focusedMatch.id) : -1
   const columns = useMemo(() => {
     const shownTags = uniq(tags.filter((tag) => tag !== null))
 
@@ -166,16 +203,39 @@ const Component = ({
         <CategoryCell
           category={transactions[rowIndex].category}
           label={highlightMatches(label, search)}
+          preview={getCategoryPreview({
+            effect: ruleEffects?.[rowIndex],
+            current: transactions[rowIndex].category,
+            category: rulePreview?.category ?? null,
+            t,
+          })}
           onClick={isDemoMode ? undefined : (anchor) => editCategory(transactions[rowIndex], anchor)}
         />
       ),
+      // What the rule being created matches
+      getDescriptionHighlights: ruleMatcher
+        ? (rowIndex) => getRuleDescriptionMatches(transactions[rowIndex], ruleMatcher)
+        : undefined,
       conflicts: {
         isShown: categoryInfos.some((info) => info.conflicts),
         getText: (rowIndex) => categoryInfos[rowIndex].conflicts,
       },
       tags: shownTags.length ? { shown: shownTags, getTag: (rowIndex) => tags[rowIndex] } : undefined,
     })
-  }, [currency, amountFilter, t, tags, transactions, search, isDemoMode, editCategory, categoryInfos])
+  }, [
+    currency,
+    amountFilter,
+    t,
+    tags,
+    transactions,
+    search,
+    isDemoMode,
+    editCategory,
+    ruleMatcher,
+    ruleEffects,
+    rulePreview,
+    categoryInfos,
+  ])
 
   // Only tables with matches are shown, see `NoSearchResultsDisplay`
   if (parsedFiles.length && search && !transactions.length) {
@@ -216,21 +276,27 @@ const Component = ({
           ]}
           highlight={search}
           stickyHeaderTop={isSticky ? STICKY_HEADER_OFFSET : undefined}
-          onRowClick={(index) => selected.toggle(transactions[index])}
+          onRowClick={(index) => guard(() => selected.toggle(transactions[index]))}
           getRowStyle={(index) => {
             const transaction = transactions[index]
             const isSame = (other: SourcedTransaction | undefined) =>
               transaction.id === other?.id && transaction.source === other.source
-            const highlight =
-              isSame(selected.transaction ?? undefined) || isSame(selected.editing?.transaction)
-                ? sx.selectedRow(theme)
-                : ruleMatcher && matchesRule(transaction, ruleMatcher)
+            const isSelected = isSame(selected.transaction ?? undefined) || isSame(selected.editing?.transaction)
+            const isFocused = index === focusedIndex && !!ruleEffects?.[index]
+            const highlight = isSelected
+              ? { ...sx.selectedRow(theme), ...(isFocused ? sx.selectedFocusedRow(theme) : null) }
+              : isFocused
+                ? sx.focusedRow(theme)
+                : ruleEffects?.[index]
                   ? sx.matchedRow(theme)
                   : undefined
 
             return tags[index] || highlight ? { ...(tags[index] ? sx.excludedRow : null), ...highlight } : undefined
           }}
           scrollElement={scrollElement}
+          scrollTo={
+            focusedMatch?.shouldScroll && focusedIndex >= 0 ? { index: focusedIndex, key: focusedMatch.key } : null
+          }
         />
       ) : (
         <FileMessage file={files[0]} message={t('STATS_PAGE.DATA_VIEW.FILE_NOT_PARSED')} />

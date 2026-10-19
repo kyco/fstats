@@ -3,7 +3,7 @@
 import { Box } from '@mui/material'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { CSSProperties } from 'react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { VirtualTableColumn } from '@/types'
 
@@ -21,6 +21,9 @@ type VirtualTableProps = {
    * Only called for rendered rows, so the cell values can be computed lazily.
    */
   getCells: (index: number) => string[]
+  /**
+   * `--row-accent` draws a bar of that colour at the start of the row, `--row-ring` a 4px ring inside it.
+   */
   getRowStyle?: (index: number) => CSSProperties | undefined
   /**
    * Makes the rows clickable, e.g. to pick one.
@@ -47,6 +50,10 @@ type VirtualTableProps = {
    * Search query, highlighted in the cells (case-insensitive). Not in cells with `renderCell`.
    */
   highlight?: string
+  /**
+   * Row to scroll to (centred), again whenever the key changes.
+   */
+  scrollTo?: { index: number; key: number } | null
 }
 
 const Component = ({
@@ -61,6 +68,7 @@ const Component = ({
   minColumnWidth,
   scrollElement,
   highlight = '',
+  scrollTo,
 }: VirtualTableProps) => {
   const sx = ui()
   const tbodyRef = useRef<HTMLTableSectionElement>(null)
@@ -95,6 +103,17 @@ const Component = ({
     overscan: OVERSCAN,
     scrollMargin,
   })
+
+  const scrollIndex = scrollTo?.index
+  const scrollKey = scrollTo?.key
+
+  useEffect(() => {
+    if (scrollIndex !== undefined) {
+      virtualizer.scrollToIndex(scrollIndex, { align: 'center' })
+    }
+    // Only when asked to, not when the rows change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollKey])
 
   const items = virtualizer.getVirtualItems()
   const paddingTop = items.length ? items[0].start - scrollMargin : 0
@@ -155,7 +174,9 @@ const Component = ({
                     title={column?.renderCell ? undefined : cell}
                     style={{ textAlign: column?.align, ...column?.getStyle?.(cell) }}
                   >
-                    {column?.renderCell ? column.renderCell(cell, item.index) : highlightMatches(cell, highlight)}
+                    {column?.renderCell
+                      ? column.renderCell(cell, item.index)
+                      : highlightMatches(cell, highlight, column?.getHighlights?.(item.index))}
                   </td>
                 )
               })}

@@ -1,12 +1,12 @@
 'use client'
 
 import { EditOutlined, ExpandMore, InfoOutlined, WarningAmberOutlined } from '@mui/icons-material'
-import { Box, Button, Checkbox, Divider, FormControlLabel, TextField, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Divider, FormControlLabel, IconButton, TextField, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
-import type { CategoryCode, CategoryRuleDraft, Transaction } from '@/types'
+import type { CategoryCode, CategoryEditorDraft, CategoryRulePreview, Transaction } from '@/types'
 import { CategoryRuleDirection, CategoryRuleMatch, CategorySource } from '@/types-enums'
 import { PARENT_CATEGORY_COLORS } from '@/common'
 import { SegmentedToggle } from '@/components'
@@ -37,7 +37,14 @@ import { isExpense } from '@/utils/Stats'
 import { Trans, useTranslation } from '@/lib/i18n'
 
 import { useStatsTransactions } from '../../context'
-import { getCategoryPickerOptions, getFieldOptions, getRuleMatches, getSourceText, NEW_RULESET } from './actions'
+import {
+  getCategoryPickerOptions,
+  getFieldOptions,
+  getRuleMatches,
+  getSourceText,
+  MATCH_STEPS,
+  NEW_RULESET,
+} from './actions'
 import MenuSelect from './components/MenuSelect'
 import { ui } from './styled'
 
@@ -63,10 +70,24 @@ type CategoryEditorProps = {
   /**
    * The rule being created (`null` while changing the transaction only), so the table can highlight its matches.
    */
-  onRuleChange?: (rule: CategoryRuleDraft | null) => void
+  onRuleChange?: (rule: CategoryRulePreview | null) => void
+  /**
+   * What was entered before, e.g. in the menu before moving to the sidebar.
+   */
+  initialDraft?: CategoryEditorDraft
+  /**
+   * In the menu, "View" next to the count of the matches moves the form to the sidebar, so the table can be scrolled…
+   */
+  onMoveToSidebar?: (draft: CategoryEditorDraft) => void
+  /**
+   * …and there, its arrows scroll the table to the previous or next match.
+   */
+  onFocusMatch?: (transactionId: string) => void
+  /**
+   * The match the table is scrolled to, the edited transaction by default.
+   */
+  focusedMatchId?: string | null
 }
-
-type ApplyTo = 'transaction' | 'rule'
 
 /**
  * The category of a transaction and where it's from. Changed for the transaction only or with a rule for all matching
@@ -79,6 +100,10 @@ const Component = ({
   onEdit,
   onClose,
   onRuleChange,
+  initialDraft,
+  onMoveToSidebar,
+  onFocusMatch,
+  focusedMatchId,
 }: CategoryEditorProps) => {
   const theme = useTheme()
   const sx = ui(theme)
@@ -114,17 +139,21 @@ const Component = ({
     rulesetIds.map((id) => getBuiltInRuleset(id)).find((ruleset) => !!ruleset) ?? getBuiltInRuleset(DEFAULT_RULESET_ID)!
 
   // Chosen by the user, the current one isn't preselected
-  const [category, setCategory] = useState<CategoryCode | ''>('')
-  const [applyTo, setApplyTo] = useState<ApplyTo>('transaction')
-  const [field, setField] = useState(fieldOptions[0])
-  const [match, setMatch] = useState<CategoryRuleMatch>(CategoryRuleMatch.CONTAINS)
-  const [keyword, setKeyword] = useState(transaction.description.trim())
-  const [ignoreCase, setIgnoreCase] = useState(true)
+  const [category, setCategory] = useState<CategoryCode | ''>(initialDraft?.category ?? '')
+  const [applyTo, setApplyTo] = useState<CategoryEditorDraft['applyTo']>(initialDraft?.applyTo ?? 'transaction')
+  const [field, setField] = useState(initialDraft?.field ?? fieldOptions[0])
+  const [match, setMatch] = useState<CategoryRuleMatch>(initialDraft?.match ?? CategoryRuleMatch.CONTAINS)
+  const [keyword, setKeyword] = useState(initialDraft?.keyword ?? transaction.description.trim())
+  const [ignoreCase, setIgnoreCase] = useState(initialDraft?.ignoreCase ?? true)
   // Of the transaction by default, at least one is needed
-  const [amounts, setAmounts] = useState({ in: isIncome, out: !isIncome })
-  const [saveTo, setSaveTo] = useState(checkedCustomId ?? MY_RULES_ID)
-  const [newRulesetName, setNewRulesetName] = useState('')
-  const [copyBuiltIn, setCopyBuiltIn] = useState(false)
+  const [amounts, setAmounts] = useState(initialDraft?.amounts ?? { in: isIncome, out: !isIncome })
+  const [saveTo, setSaveTo] = useState(initialDraft?.saveTo ?? checkedCustomId ?? MY_RULES_ID)
+  const [newRulesetName, setNewRulesetName] = useState(initialDraft?.newRulesetName ?? '')
+  const [copyBuiltIn, setCopyBuiltIn] = useState(initialDraft?.copyBuiltIn ?? false)
+  // In the sidebar, the match the table is scrolled to, starting at the edited (selected) one
+  const focusedId = onFocusMatch ? (focusedMatchId ?? transaction.id) : null
+  // In the menu, asks before moving to the sidebar
+  const [isConfirmingMove, setIsConfirmingMove] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -156,9 +185,45 @@ const Component = ({
     [rule, transaction, unique],
   )
 
+  const isMyRules = saveTo === MY_RULES_ID
+  const preview = useMemo(
+    () => (rule?.keyword ? { rule, category: category || null, isMyRules, editedId: transaction.id } : null),
+    [rule, category, isMyRules, transaction.id],
+  )
+
   useEffect(() => {
-    onRuleChange?.(rule?.keyword ? rule : null)
-  }, [rule, onRuleChange])
+    onRuleChange?.(preview)
+  }, [preview, onRuleChange])
+
+  // -1 when it doesn't match (e.g. after changing the keyword)
+  const focusedIndex = matches?.transactions.findIndex((other) => other.id === focusedId) ?? -1
+
+  // Only when asked to, from none to the first (down) or last (up) one
+  const focusMatch = (step: number) => {
+    if (!matches?.count) {
+      return
+    }
+
+    const index =
+      focusedIndex < 0 ? (step > 0 ? 0 : matches.count - 1) : (focusedIndex + step + matches.count) % matches.count
+    onFocusMatch?.(matches.transactions[index].id)
+  }
+
+  const moveToSidebar = () => {
+    onMoveToSidebar?.({
+      category,
+      applyTo,
+      field,
+      match,
+      keyword,
+      ignoreCase,
+      amounts,
+      saveTo,
+      newRulesetName,
+      copyBuiltIn,
+    })
+  }
+
   const isNewRuleset = saveTo === NEW_RULESET
   const canSave =
     !isSaving &&
@@ -326,21 +391,91 @@ const Component = ({
                   sx={sx.input}
                 />
               </Box>
-              {matches && trimmedKeyword ? (
-                <Box sx={sx.notice(matches.isMatch)}>
-                  {matches.isMatch ? <InfoOutlined sx={sx.noticeIcon} /> : <WarningAmberOutlined sx={sx.noticeIcon} />}
-                  {matches.isMatch ? (
-                    <span>
-                      <Trans
-                        i18nKey="STATS_PAGE.CATEGORY_RULES.MATCH_COUNT"
-                        count={matches.count}
-                        values={{ count: matches.count }}
-                        components={{ b: <strong /> }}
-                      />
-                    </span>
-                  ) : (
-                    t('STATS_PAGE.CATEGORY_RULES.NO_MATCH')
-                  )}
+              {/* Also when not matching this transaction, the others it would change */}
+              {matches?.count ? (
+                <Box sx={sx.notice(true)}>
+                  <InfoOutlined sx={sx.noticeIcon} />
+                  <Box component="span" sx={sx.noticeText}>
+                    <Trans
+                      i18nKey="STATS_PAGE.CATEGORY_RULES.MATCH_COUNT"
+                      count={matches.count}
+                      values={{ count: matches.count }}
+                      components={{ b: <strong /> }}
+                    />
+                    {/* In the menu, asks to move to the sidebar, to see the matches in the table */}
+                    {onMoveToSidebar ? (
+                      <Box
+                        component="button"
+                        type="button"
+                        aria-expanded={isConfirmingMove}
+                        onClick={() => setIsConfirmingMove((isShown) => !isShown)}
+                        sx={sx.matchesLink}
+                      >
+                        {t('STATS_PAGE.CATEGORY_RULES.VIEW_MATCHES')}
+                      </Box>
+                    ) : null}
+                  </Box>
+                  {/* In the sidebar, scrolls the table through the matches */}
+                  {onFocusMatch ? (
+                    <Box sx={sx.matchNav}>
+                      {focusedIndex >= 0 ? (
+                        <span>
+                          {t('STATS_PAGE.CATEGORY_RULES.MATCH_POSITION', {
+                            index: focusedIndex + 1,
+                            count: matches.count,
+                          })}
+                        </span>
+                      ) : null}
+                      {MATCH_STEPS.map(({ step, labelKey, Icon }) => (
+                        <IconButton
+                          key={step}
+                          size="small"
+                          color="inherit"
+                          // Only to scroll to the single match
+                          disabled={matches.count < 2 && focusedIndex === 0}
+                          onClick={() => focusMatch(step)}
+                          aria-label={t(labelKey)}
+                          title={t(labelKey)}
+                          sx={sx.matchNavButton}
+                        >
+                          <Icon fontSize="inherit" />
+                        </IconButton>
+                      ))}
+                    </Box>
+                  ) : null}
+                </Box>
+              ) : null}
+              {/* Below the count, asks before moving the form to the sidebar */}
+              {matches?.count && isConfirmingMove ? (
+                <Box sx={sx.confirm}>
+                  <span>{t('STATS_PAGE.CATEGORY_RULES.CONFIRM_MOVE')}</span>
+                  <Box sx={sx.confirmActions}>
+                    <Button
+                      size="small"
+                      color="inherit"
+                      onClick={() => setIsConfirmingMove(false)}
+                      sx={sx.confirmButton}
+                    >
+                      {t('STATS_PAGE.CATEGORY_RULES.CANCEL')}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="info"
+                      disableElevation
+                      onClick={moveToSidebar}
+                      sx={sx.confirmButton}
+                    >
+                      {t('STATS_PAGE.CATEGORY_RULES.CONTINUE_IN_SIDEBAR')}
+                    </Button>
+                  </Box>
+                </Box>
+              ) : null}
+              {/* Close to the count above it */}
+              {matches && trimmedKeyword && !matches.isMatch ? (
+                <Box sx={{ ...sx.notice(false), ...(matches.count ? sx.nextNotice : null) }}>
+                  <WarningAmberOutlined sx={sx.noticeIcon} />
+                  {t('STATS_PAGE.CATEGORY_RULES.NO_MATCH')}
                 </Box>
               ) : null}
               <FormControlLabel

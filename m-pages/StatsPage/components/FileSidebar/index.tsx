@@ -56,8 +56,9 @@ const Component = () => {
       {selected.transaction ? (
         <TransactionDetails
           // Starts over for another transaction
-          key={`${selected.transaction.id}|${selected.transaction.source}`}
+          key={`${selected.transaction.id}|${selected.transaction.source}|${selected.draft?.key ?? ''}`}
           transaction={selected.transaction}
+          draft={selected.draft?.values}
           onClose={selected.close}
           onRuleChange={selected.setRule}
         />

@@ -1,11 +1,12 @@
 'use client'
 
 import type { PopoverActions } from '@mui/material'
-import { Box, Popover, Typography } from '@mui/material'
+import { Box, Divider, Popover } from '@mui/material'
 import { useEffect, useRef, useState } from 'react'
 
 import { useWorkspaceSelectedTransaction } from '../../context'
 import CategoryEditor from '../CategoryEditor'
+import TransactionHeader from '../TransactionHeader'
 import { ui } from './styled'
 
 /**
@@ -14,7 +15,7 @@ import { ui } from './styled'
  */
 const Component = () => {
   const sx = ui()
-  const { editing, closeEditor, setRule } = useWorkspaceSelectedTransaction()
+  const { editing, closeEditor, setRule, moveToSidebar } = useWorkspaceSelectedTransaction()
   const actionsRef = useRef<PopoverActions>(null)
   const [content, setContent] = useState<HTMLElement | null>(null)
 
@@ -46,11 +47,9 @@ const Component = () => {
       slotProps={{ paper: { sx: sx.paper } }}
     >
       <Box ref={setContent}>
-        <Box sx={sx.header}>
-          <Typography sx={sx.title} title={transaction.description}>
-            {transaction.description || '–'}
-          </Typography>
-        </Box>
+        {/* Like the transaction details */}
+        <TransactionHeader transaction={transaction} onClose={closeEditor} />
+        <Divider />
         <CategoryEditor
           // Starts over for another transaction
           key={`${transaction.id}|${transaction.source}`}
@@ -58,6 +57,7 @@ const Component = () => {
           isEditing
           onClose={closeEditor}
           onRuleChange={setRule}
+          onMoveToSidebar={moveToSidebar}
         />
       </Box>
     </Popover>

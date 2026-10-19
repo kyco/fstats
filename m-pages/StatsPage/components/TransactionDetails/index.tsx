@@ -1,19 +1,18 @@
 'use client'
 
-import { Close } from '@mui/icons-material'
-import { Box, Divider, IconButton, Tooltip, Typography } from '@mui/material'
-import { Fragment, useMemo, useState } from 'react'
+import { Box, Divider, Typography } from '@mui/material'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 
-import type { CategoryRuleDraft, SourcedTransaction } from '@/types'
+import type { CategoryEditorDraft, CategoryRulePreview, SourcedTransaction } from '@/types'
 import { getSimilarTransactions } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
-import { toDisplayDate } from '@/utils/Date'
-import { toFixedLocaleCurrency } from '@/utils/Number'
 import { useTranslation } from '@/lib/i18n'
 
-import { useStatsTransactions, useWorkspace } from '../../context'
+import { useStatsTransactions, useWorkspace, useWorkspaceSelectedTransaction } from '../../context'
 import CategoryEditor from '../CategoryEditor'
+import TransactionHeader from '../TransactionHeader'
 import { getExtraRows, getSimilarRows } from './actions'
+import DiscardOverlay from './components/DiscardOverlay'
 import { ui } from './styled'
 
 type TransactionDetailsProps = {
@@ -22,21 +21,33 @@ type TransactionDetailsProps = {
   /**
    * The rule being created in the category form, so the table can highlight its matches.
    */
-  onRuleChange: (rule: CategoryRuleDraft | null) => void
+  onRuleChange: (rule: CategoryRulePreview | null) => void
+  /**
+   * The form moved from the category editor menu, opened with what was entered there.
+   */
+  draft?: CategoryEditorDraft
 }
 
 /**
  * The transaction selected in the transactions table: its details, those with the same description and its category,
  * which can be changed.
  */
-const Component = ({ transaction, onClose, onRuleChange }: TransactionDetailsProps) => {
+const Component = ({ transaction, onClose, onRuleChange, draft }: TransactionDetailsProps) => {
   const sx = ui()
   const { t } = useTranslation()
   const { locale, dateFormat } = useUserPreferences()
   const { isDemoMode } = useWorkspace()
   const { unique } = useStatsTransactions()
+  const { focusMatch, focusedMatch, setIsFormOpen, isAskingToDiscard, discard, keepEditing } =
+    useWorkspaceSelectedTransaction()
   // The category form, opened below the category like an accordion
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(!!draft)
+
+  // Clicking rows or categories in the table asks before discarding it, until it's closed (also with the sidebar)
+  useEffect(() => {
+    setIsFormOpen(isEditing)
+    return () => setIsFormOpen(false)
+  }, [isEditing, setIsFormOpen])
   // Starts the form over each time
   const [editorKey, setEditorKey] = useState(0)
   const similar = useMemo(() => getSimilarTransactions(unique, transaction), [unique, transaction])
@@ -62,32 +73,9 @@ const Component = ({ transaction, onClose, onRuleChange }: TransactionDetailsPro
 
   return (
     <Box sx={sx.panel}>
-      <Box sx={sx.titleBar}>
-        <Typography component="h2" sx={sx.title} title={transaction.description}>
-          {transaction.description || '–'}
-        </Typography>
-        <Tooltip title={t('STATS_PAGE.TRANSACTION_DETAILS.CLOSE')}>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            aria-label={t('STATS_PAGE.TRANSACTION_DETAILS.CLOSE')}
-            sx={sx.closeButton}
-          >
-            <Close sx={sx.closeIcon} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {isAskingToDiscard ? <DiscardOverlay onContinue={keepEditing} onDiscard={discard} /> : null}
 
-      <Box sx={sx.summarySection}>
-        <Box sx={sx.summary}>
-          <Box component="span" sx={sx.amount}>
-            {toFixedLocaleCurrency({ value: transaction.value, currency, locale, showPlusSign: true })}
-          </Box>
-          <Box component="span" sx={sx.date}>
-            {toDisplayDate({ date: transaction.date, locale, formatTo: dateFormat })}
-          </Box>
-        </Box>
-      </Box>
+      <TransactionHeader transaction={transaction} onClose={onClose} />
 
       <Divider />
 
@@ -104,6 +92,10 @@ const Component = ({ transaction, onClose, onRuleChange }: TransactionDetailsPro
           onRuleChange(null)
         }}
         onRuleChange={onRuleChange}
+        // Only the first time, starting over shows the defaults
+        initialDraft={editorKey ? undefined : draft}
+        onFocusMatch={focusMatch}
+        focusedMatchId={focusedMatch?.id}
       />
 
       {/* One grid for the sections below, so their labels and values line up */}

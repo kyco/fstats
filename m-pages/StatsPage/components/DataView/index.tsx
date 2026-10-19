@@ -17,7 +17,7 @@ import {
   getEmptyReason,
   getTransactionsLayoutOptions,
 } from '../../actions'
-import { useStatsTransactions, useWorkspaceFiles } from '../../context'
+import { useStatsTransactions, useWorkspaceFiles, useWorkspaceSearch } from '../../context'
 import { useCurrencySelect, useTableOptions, useTransactionFilter } from '../../hooks'
 import CsvPreview from '../CsvPreview'
 import NoSearchResultsDisplay from '../NoSearchResultsDisplay'
@@ -36,8 +36,8 @@ const Component = () => {
   // State rather than a ref, so the previews re-render once the scroll element exists
   const [middleColumn, setMiddleColumn] = useState<HTMLDivElement | null>(null)
   const isTransactions = getView(useSearchParams()) === WorkspaceView.TRANSACTIONS
-  // Kept when switching between the CSV and transactions views. Deferred, so typing stays responsive with many rows.
-  const [search, setSearch] = useState('')
+  // Kept when switching views. Deferred, so typing stays responsive with many rows.
+  const { value: search, setValue: setSearch } = useWorkspaceSearch()
   const searchQuery = toSearchQuery(useDeferredValue(search))
   const {
     transactionsLayout,

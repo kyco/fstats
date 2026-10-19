@@ -23,6 +23,12 @@ export const ui = (theme: Theme) => {
       verticalAlign: 'middle',
       color: isUncategorised ? 'text.secondary' : 'text.primary',
     }),
+    // The category the rule being created would give it, like the matched rows
+    preview: {
+      borderStyle: 'dashed',
+      borderColor: theme.vars.palette.info.main,
+      color: 'text.primary',
+    },
     button: {
       '&:hover, &.Mui-focusVisible': {
         borderStyle: 'solid',

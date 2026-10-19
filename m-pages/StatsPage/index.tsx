@@ -55,6 +55,8 @@ const Component = () => {
   const demoState = useDemoState(isDemoMode)
   // Selected in the transactions table
   const selectedTransaction = useSelectedTransaction({ isEnabled: !setupFile && view === WorkspaceView.TRANSACTIONS })
+  // Of the transactions and CSV views, here so it's kept when switching to other views and back
+  const [searchValue, setSearchValue] = useState('')
   const { columnWidths: widths, setColumnWidths: setWidths } = useStatsLayout()
   // Leave demo mode once real files are added, so they are shown
   const { dropzone, addFolder } = useFileDropzone({
@@ -107,6 +109,7 @@ const Component = () => {
         files,
         stats,
         selectedTransaction,
+        search: { value: searchValue, setValue: setSearchValue },
       }}
     >
       <Box {...dropzone.getRootProps()} sx={sx.dropzone}>

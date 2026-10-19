@@ -46,3 +46,10 @@ export const useStatsTransactions = () => {
 export const useWorkspaceSelectedTransaction = () => {
   return useWorkspace().selectedTransaction
 }
+
+/**
+ * Search of the transactions and CSV views, kept when switching views.
+ */
+export const useWorkspaceSearch = () => {
+  return useWorkspace().search
+}

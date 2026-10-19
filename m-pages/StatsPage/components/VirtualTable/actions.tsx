@@ -1,4 +1,4 @@
-import type { VirtualTableColumn } from '@/types'
+import type { TextRange, VirtualTableColumn } from '@/types'
 
 // Of the header and each row, including the border. Also the estimate of the virtualizer, which measures rows
 export const ROW_HEIGHT = 28 // px
@@ -69,11 +69,13 @@ export const filterBySearch = <T,>({ rows, searchTexts, query }: FilterBySearchP
 }
 
 /**
- * Splits the text into parts, the odd ones match the query (see `toSearchQuery`), e.g. "a" matches the "ä" of "Bäcker".
+ * The ranges of the matches of the query (see `toSearchQuery`), e.g. "a" matches the "ä" of "Bäcker".
  */
-export const splitMatches = (text: string, query: string) => {
+const getSearchRanges = (text: string, query: string) => {
+  const ranges: TextRange[] = []
+
   if (!query) {
-    return [text]
+    return ranges
   }
 
   // Folded per character with the original range of each folded character, as folding can change the length (ß to ss)
@@ -93,7 +95,6 @@ export const splitMatches = (text: string, query: string) => {
     index += char.length
   }
 
-  const parts: string[] = []
   let last = 0
 
   for (let match = folded.indexOf(query); match !== -1; match = folded.indexOf(query, match + query.length)) {
@@ -102,9 +103,38 @@ export const splitMatches = (text: string, query: string) => {
     // Skips a match starting within the character the previous one ended in (e.g. "s" in "ß")
     if (start >= last) {
       const end = ends[match + query.length - 1]
-      parts.push(text.slice(last, start), text.slice(start, end))
+      ranges.push([start, end])
       last = end
     }
+  }
+
+  return ranges
+}
+
+/**
+ * Splits the text into parts, the odd ones match the query (see `getSearchRanges`) or are in the other ranges (e.g. the
+ * matches of a rule). Overlapping ones are merged.
+ */
+export const splitMatches = (text: string, query: string, ranges: TextRange[] = []) => {
+  const sorted = [...getSearchRanges(text, query), ...ranges].sort((a, b) => a[0] - b[0])
+  const merged: TextRange[] = []
+
+  for (const [start, end] of sorted) {
+    const previous = merged.at(-1)
+
+    if (previous && start <= previous[1]) {
+      previous[1] = Math.max(previous[1], end)
+    } else {
+      merged.push([start, end])
+    }
+  }
+
+  const parts: string[] = []
+  let last = 0
+
+  for (const [start, end] of merged) {
+    parts.push(text.slice(last, start), text.slice(start, end))
+    last = end
   }
 
   parts.push(text.slice(last))
@@ -112,9 +142,9 @@ export const splitMatches = (text: string, query: string) => {
 }
 
 /**
- * The text with the matches of the search query wrapped in `<mark>`.
+ * The text with the matches of the search query (and the other ranges, see `splitMatches`) wrapped in `<mark>`.
  */
-export const highlightMatches = (text: string, query: string) => {
+export const highlightMatches = (text: string, query: string, ranges?: TextRange[]) => {
   // eslint-disable-next-line react/no-array-index-key
-  return splitMatches(text, query).map((part, index) => (index % 2 ? <mark key={index}>{part}</mark> : part))
+  return splitMatches(text, query, ranges).map((part, index) => (index % 2 ? <mark key={index}>{part}</mark> : part))
 }

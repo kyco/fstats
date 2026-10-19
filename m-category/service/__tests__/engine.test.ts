@@ -4,7 +4,15 @@ import type { CategoryCode, CategoryOverride, CategoryRule, CategoryRuleset, Tra
 import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch, CategorySource } from '@/types-enums'
 import { DEFAULT_RULESET_ID, MY_RULES_ID } from '@/utils/Category'
 
-import { createCategoryEngine, getActiveRulesetIds, getCategoryConflicts, getRuleRef, resolveCategory } from '..'
+import {
+  compileRule,
+  createCategoryEngine,
+  getActiveRulesetIds,
+  getCategoryConflicts,
+  getNewRuleEffect,
+  getRuleRef,
+  resolveCategory,
+} from '..'
 
 const toTransaction = (description: string, value = '-10.00', extra: Transaction['extra'] = null): Transaction => ({
   id: `${description}|${value}`,
@@ -163,6 +171,39 @@ describe('resolveCategory', () => {
     expect(category('VISA NETTOS', props)).toBe('TFO_02')
     expect(category(' rent ', props)).toBe('HOU_01')
     expect(category('Rent January', props)).toBe('TFO_02')
+    expect(category('Parent', props)).toBe('TFO_02')
+    expect(category('January Rent', props)).toBe('TFO_02')
+    expect(category('Ren t', props)).toBe('TFO_02')
+  })
+
+  it('should match contained keywords inside words, unless matching whole words', () => {
+    const rulesets = [
+      toRuleset(MY_RULES_ID, [
+        toRule('box', 'GRO_01'),
+        toRule('OBI', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
+      ]),
+    ]
+    const props = { rulesets, rulesetIds: [MY_RULES_ID] }
+
+    expect(category('Amazon Boxes', props)).toBe('GRO_01')
+    expect(category('OBI Markt', props)).toBe('HOU_01')
+    expect(category('T-Mobile', props)).toBe('TFO_02')
+  })
+
+  it('should match contained keywords when all their words are found, in any order', () => {
+    const rulesets = [
+      toRuleset(MY_RULES_ID, [
+        toRule('here is text', 'GRO_01'),
+        toRule('OBI markt', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
+      ]),
+    ]
+    const props = { rulesets, rulesetIds: [MY_RULES_ID] }
+
+    expect(category('Here is some TEXT', props)).toBe('GRO_01')
+    expect(category('texts here, it is', props)).toBe('GRO_01')
+    expect(category('here is some', props)).toBe('TFO_02')
+    expect(category('Markt OBI 42', props)).toBe('HOU_01')
+    expect(category('Markt T-Mobile', props)).toBe('TFO_02')
   })
 
   it('should match the case of the keyword unless ignoring it', () => {
@@ -235,5 +276,28 @@ describe('getRuleRef', () => {
 
     expect(getRuleRef({ rulesetId: MY_RULES_ID, number: 3, rulesets })).toBe('MR-003')
     expect(getRuleRef({ rulesetId: 'custom', number: 14, rulesets })).toBe('R2-014')
+  })
+})
+
+describe('getNewRuleEffect', () => {
+  const rulesets = [toRuleset(MY_RULES_ID, [toRule('REWE Markt', 'GRO_01')])]
+  const rewe = toTransaction('REWE Markt Berlin')
+  const manual = toTransaction('REWE City')
+  const engine = createCategoryEngine({
+    rulesetIds: [MY_RULES_ID, DEFAULT_RULESET_ID],
+    rulesets,
+    overrides: [{ transactionId: manual.id, category: 'HOU_01', created: '2026-01-01T00:00:00+00:00' }],
+  })
+  const effect = (transaction: Transaction, keyword: string, isMyRules = true, editedId = '') =>
+    getNewRuleEffect({ transaction, engine, rule: compileRule(toRule(keyword, 'TFO_02')), isMyRules, editedId })
+
+  it('should change the category unless a more specific rule or an override wins', () => {
+    expect(effect(rewe, 'REWE Markt Berlin')).toBeNull()
+    expect(effect(rewe, 'REWE')).toBe(CategorySource.MY_RULE)
+    // Applied after "My rules"
+    expect(effect(rewe, 'REWE Markt Berlin', false)).toBe(CategorySource.MY_RULE)
+    expect(effect(manual, 'REWE')).toBe(CategorySource.OVERRIDE)
+    // The override of the edited transaction is removed
+    expect(effect(manual, 'REWE', true, manual.id)).toBeNull()
   })
 })

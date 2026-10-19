@@ -1,7 +1,7 @@
 import type { SvgIconComponent } from '@mui/icons-material'
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from 'react'
 
-import type { Currency } from '@/types-enums'
+import type { CategoryRuleField, CategoryRuleMatch, Currency } from '@/types-enums'
 
 import type { NumberString } from './global'
 import type { CategoryRuleDraft } from './services/category-rule'
@@ -14,6 +14,7 @@ import type {
   StatsTransactions,
   Transaction,
 } from './services/transaction'
+import type { TextRange } from './utils'
 
 // -------------------------------------------------------
 // Layout
@@ -69,6 +70,47 @@ export type WorkspaceContextValue = {
   files: FileHelper
   stats: StatsTransactions
   selectedTransaction: SelectedTransaction
+  /**
+   * Search of the transactions and CSV views, kept when switching views.
+   */
+  search: WorkspaceSearch
+}
+
+export type WorkspaceSearch = {
+  value: string
+  setValue: (value: string) => void
+}
+
+/**
+ * What was entered in the category form, kept when it moves from the menu to the sidebar.
+ */
+export type CategoryEditorDraft = {
+  category: CategoryCode | ''
+  applyTo: 'transaction' | 'rule'
+  field: CategoryRuleField
+  match: CategoryRuleMatch
+  keyword: string
+  ignoreCase: boolean
+  amounts: { in: boolean; out: boolean }
+  saveTo: string
+  newRulesetName: string
+  copyBuiltIn: boolean
+}
+
+/**
+ * The rule being created in the category form, previewed in the transactions table.
+ */
+export type CategoryRulePreview = {
+  rule: CategoryRuleDraft
+  /**
+   * Chosen in the form, shown as the new category of the matches the rule changes.
+   */
+  category: CategoryCode | null
+  isMyRules: boolean
+  /**
+   * The edited transaction.
+   */
+  editedId: string
 }
 
 /**
@@ -89,10 +131,33 @@ export type SelectedTransaction = {
   edit: (transaction: SourcedTransaction, anchor: HTMLElement) => void
   closeEditor: () => void
   /**
-   * Its matches are highlighted in the transactions table.
+   * Its matches are highlighted in the transactions table, with the categories they'd get.
    */
-  rule: CategoryRuleDraft | null
-  setRule: (rule: CategoryRuleDraft | null) => void
+  rule: CategoryRulePreview | null
+  setRule: (rule: CategoryRulePreview | null) => void
+  /**
+   * The form of the menu, moved to the sidebar (with the edited transaction selected), so the table can be scrolled.
+   * The key changes with each move, so the sidebar starts over.
+   */
+  draft: { values: CategoryEditorDraft; key: number } | null
+  moveToSidebar: (draft: CategoryEditorDraft) => void
+  /**
+   * The match of the rule highlighted in the table, which scrolls to it (unless `shouldScroll` is false). The key
+   * changes so it scrolls again.
+   */
+  focusedMatch: { id: string; key: number; shouldScroll: boolean } | null
+  focusMatch: (id: string, shouldScroll?: boolean) => void
+  /**
+   * Whether the category form is open in the sidebar, selecting a row or changing a category asks before discarding it.
+   */
+  setIsFormOpen: (isOpen: boolean) => void
+  /**
+   * Runs the action, or while the category form is open, asks first (`isAskingToDiscard`) and runs it on `discard`.
+   */
+  guard: (action: () => void) => void
+  isAskingToDiscard: boolean
+  discard: () => void
+  keepEditing: () => void
 }
 
 /**
@@ -350,6 +415,10 @@ export type VirtualTableColumn = {
    * Cell content, by value. Replaces the value and its tooltip.
    */
   renderCell?: (value: string, rowIndex: number) => ReactNode
+  /**
+   * Parts of the cell to highlight like search matches, e.g. those a rule matches.
+   */
+  getHighlights?: (rowIndex: number) => TextRange[]
 }
 
 /**
