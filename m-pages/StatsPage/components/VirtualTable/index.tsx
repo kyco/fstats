@@ -6,8 +6,9 @@ import type { CSSProperties } from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { VirtualTableColumn } from '@/types'
+import { highlightMatches } from '@/utils/Search'
 
-import { getColWidths, highlightMatches, OVERSCAN, ROW_HEIGHT } from './actions'
+import { getColWidths, OVERSCAN, ROW_HEIGHT } from './actions'
 import { ui } from './styled'
 
 type VirtualTableProps = {

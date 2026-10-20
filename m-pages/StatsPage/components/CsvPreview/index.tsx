@@ -4,12 +4,12 @@ import { useMemo } from 'react'
 
 import type { StatsFile } from '@/types'
 import { isRejected, useFileRows } from '@/m-stats-file/service'
+import { filterBySearch, toSearchText } from '@/utils/Search'
 import { useTranslation } from '@/lib/i18n'
 
 import FileMessage from '../FileMessage'
 import PreviewSection from '../PreviewSection'
 import VirtualTable from '../VirtualTable'
-import { filterBySearch, toSearchText } from '../VirtualTable/actions'
 import { getColumnCount, getMinColumnWidth } from './actions'
 
 type CsvPreviewProps = {

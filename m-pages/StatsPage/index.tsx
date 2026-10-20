@@ -110,6 +110,7 @@ const Component = () => {
         stats,
         selectedTransaction,
         search: { value: searchValue, setValue: setSearchValue },
+        categoryEngine: files.categoryEngine,
       }}
     >
       <Box {...dropzone.getRootProps()} sx={sx.dropzone}>

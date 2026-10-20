@@ -10,7 +10,6 @@ export const MISC = {
   DEFAULT_COLOR_MODE: ColorMode.SYSTEM,
   DEFAULT_PERSIST_DATA: false,
   LS_I18N_LOCALE_KEY: 'fstats__locale',
-  LS_I18N_LOCALE_KEY_LEGACY: 'fstats__i18nextLng',
   LS_MUI_COLOR_MODE_KEY: 'fstats__mui-mode',
   LS_SELECTED_FILE_IDS_KEY: 'fstats__selected_file_ids',
   LS_SIDEBAR_EXPANDED_KEY: 'fstats__sidebar_expanded',
@@ -26,8 +25,9 @@ export const MISC = {
   LS_STATS_BREAKDOWN_PERIOD_KEY: 'fstats__data_breakdown_period',
   LS_STATS_CURRENCY_KEY: 'fstats__data_currency',
   LS_DEMO_FIRST_VIEWED_KEY: 'fstats__demo_first_viewed',
-  LS_CATEGORY_RULESET_KEY: 'fstats__category_ruleset',
-  LS_CATEGORY_MY_RULES_KEY: 'fstats__category_my_rules',
+  LS_CATEGORY_ACTIVE_RULESET_KEY: 'fstats__category_active_ruleset',
+  // Set once the first rule set was created for a new user, so deleting all of them doesn't create it again
+  LS_CATEGORY_RULESETS_CREATED_KEY: 'fstats__category_rulesets_created',
   SS_SESSION_KEY: 'fstats__session',
   USER_KEY: 'current_user',
 } as const

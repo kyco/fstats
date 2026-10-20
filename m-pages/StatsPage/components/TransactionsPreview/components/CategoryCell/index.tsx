@@ -5,10 +5,11 @@ import { useTheme } from '@mui/material/styles'
 import type { MouseEvent, ReactNode } from 'react'
 
 import type { CategoryCode } from '@/types'
-import { PARENT_CATEGORY_COLORS } from '@/common'
-import { getCategoryLabel, getParentCategoryCode, isUncategorisedCode } from '@/utils/Category'
+import { getCategoryColor, getCategoryLabel } from '@/m-category/service'
+import { isUncategorisedCode } from '@/utils/Category'
 import { useTranslation } from '@/lib/i18n'
 
+import { useWorkspaceCategories } from '../../../../context'
 import { ui } from './styled'
 
 type CategoryCellProps = {
@@ -33,15 +34,16 @@ const Component = ({ category: currentCategory, label, onClick, preview }: Categ
   const theme = useTheme()
   const sx = ui(theme)
   const { t } = useTranslation()
+  const { tree } = useWorkspaceCategories()
   const category = preview?.category ?? currentCategory
-  const color = category ? PARENT_CATEGORY_COLORS[getParentCategoryCode(category)] : undefined
+  const color = getCategoryColor(tree, category)
   const isUncategorised = isUncategorisedCode(category)
   const chipSx = { ...sx.chip(isUncategorised), ...(preview?.category ? sx.preview : null) }
   const content = (
     <>
       {isUncategorised ? null : <Box component="span" sx={sx.dot(color)} />}
       <Box component="span" sx={sx.label}>
-        {preview?.category ? getCategoryLabel(preview.category, t) : label}
+        {preview?.category ? getCategoryLabel({ code: preview.category, tree, t }) : label}
       </Box>
     </>
   )

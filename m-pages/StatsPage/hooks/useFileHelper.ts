@@ -21,7 +21,7 @@ type UseFileHelperProps = {
 export const useFileHelper = ({ isDemoMode = false }: UseFileHelperProps = {}): FileHelper => {
   const [storedSelectedFileIds, setStoredSelectedFileIds] = useLocalStorage<string[]>(MISC.LS_SELECTED_FILE_IDS_KEY, [])
   const { data: storedFiles = NO_FILES, isLoading: isLoadingStoredFiles } = useFiles()
-  const { engine, isLoading: isLoadingCategories } = useCategoryEngine()
+  const { engine, isLoading: isLoadingCategories } = useCategoryEngine({ isDemoMode })
   const isLoadingFiles = isLoadingStoredFiles || isLoadingCategories
   const files: StatsFile[] = useMemo(
     () => categoriseFiles(isDemoMode ? [getDemoFile()] : storedFiles, engine),
@@ -58,6 +58,7 @@ export const useFileHelper = ({ isDemoMode = false }: UseFileHelperProps = {}): 
 
   return {
     files,
+    categoryEngine: engine,
     isLoadingFiles,
     checkedFiles,
     checkedIds,

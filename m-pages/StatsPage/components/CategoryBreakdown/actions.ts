@@ -1,17 +1,15 @@
 import type { TFunction } from 'i18next'
-import { mapValues } from 'lodash'
 
 import type {
-  CategoryCode,
+  CategoryTree,
   CategoryWithTransactions,
   NumberString,
-  ParentCategoryCode,
   ParentCategoryWithTransactions,
   SortingPref,
   Transaction,
 } from '@/types'
-import { ALL_CATEGORIES } from '@/common'
-import { getCategoryLabel, getParentCategoryCode } from '@/utils/Category'
+import { CATEGORY_COLORS } from '@/common'
+import { getCategoryLabel, getParentCategory } from '@/m-category/service'
 import { sumValues } from '@/utils/Stats'
 import { Big } from '@/lib/w-big'
 
@@ -21,59 +19,55 @@ export const COL2 = [3.2, 3]
 export const COL3 = [2.3, 1]
 export const COL4 = [2, 5]
 
-export const getTransactionsGroupedByCategory = (
-  transactions: Transaction[],
-  t: TFunction,
-): ParentCategoryWithTransactions[] => {
-  const categories: Record<ParentCategoryCode, ParentCategoryWithTransactions> = {}
+type GetTransactionsGroupedByCategoryProps = {
+  transactions: Transaction[]
+  /**
+   * Of the active rule set, transactions of other categories are skipped.
+   */
+  tree: CategoryTree
+  t: TFunction
+}
 
-  Object.values(ALL_CATEGORIES).forEach((category) => {
-    const subcategories: Record<CategoryCode, CategoryWithTransactions> = {}
-    Object.values(category.subcategories).forEach((subcategory) => {
-      subcategories[subcategory.code] = {
-        ...subcategory,
-        label: getCategoryLabel(subcategory.code, t),
-        transactions: [],
-        total: '0',
-      }
-    })
-
-    categories[category.code] = {
-      ...category,
-      label: getCategoryLabel(category.code, t),
-      subcategories,
-      transactions: [],
-      total: '0',
-    }
-  })
+export const getTransactionsGroupedByCategory = ({
+  transactions,
+  tree,
+  t,
+}: GetTransactionsGroupedByCategoryProps): ParentCategoryWithTransactions[] => {
+  const categories = tree.parents.map((parent) => ({
+    code: parent.code,
+    label: getCategoryLabel({ code: parent.code, tree, t }),
+    color: CATEGORY_COLORS[parent.color],
+    direction: parent.direction,
+    transactions: [] as Transaction[],
+    subcategories: Object.fromEntries(
+      parent.children.map((child) => [
+        child.code,
+        { code: child.code, label: getCategoryLabel({ code: child.code, tree, t }), transactions: [] as Transaction[] },
+      ]),
+    ),
+  }))
 
   transactions.forEach((transaction) => {
-    if (!transaction.category) {
+    const parent = getParentCategory(tree, transaction.category)
+    const category = categories.find((other) => other.code === parent?.code)
+
+    if (!category || !transaction.category) {
       return
     }
 
-    const parentCategory = categories[getParentCategoryCode(transaction.category)]
-    if (!parentCategory) {
-      console.warn(`Unknown category code "${transaction.category}":`, transaction)
-      return
-    }
-    const category = parentCategory.subcategories[transaction.category]
-    if (!category) {
-      console.warn(`Unknown category code "${transaction.category}":`, transaction)
-      return
-    }
-
-    parentCategory.transactions.push(transaction)
     category.transactions.push(transaction)
+    category.subcategories[transaction.category].transactions.push(transaction)
   })
 
-  return Object.values(categories).map((category) => ({
+  return categories.map((category) => ({
     ...category,
     total: sumValues(category.transactions).toString(),
-    subcategories: mapValues(category.subcategories, (subcategory) => ({
-      ...subcategory,
-      total: sumValues(subcategory.transactions).toString(),
-    })),
+    subcategories: Object.fromEntries(
+      Object.entries(category.subcategories).map(([code, subcategory]) => [
+        code,
+        { ...subcategory, total: sumValues(subcategory.transactions).toString() },
+      ]),
+    ),
   }))
 }
 

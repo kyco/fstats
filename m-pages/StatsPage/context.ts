@@ -53,3 +53,11 @@ export const useWorkspaceSelectedTransaction = () => {
 export const useWorkspaceSearch = () => {
   return useWorkspace().search
 }
+
+/**
+ * Decided the categories of the files, its `tree` has the categories of the active rule set (the standard ones in demo
+ * mode).
+ */
+export const useWorkspaceCategories = () => {
+  return useWorkspace().categoryEngine
+}

@@ -12,7 +12,7 @@ Privacy-focused CSV bank statement parser. All processing is client-side (Indexe
 
 - **API Layer** (`api/`) — LocalForage operations and persistence/runtime schema synchronization; monetary values stay decimal strings and use `Big` for calculations
 - **Service Layer** (`service/`) — TanStack Query hooks, cache management, business logic
-- `m-category` decides the categories of transactions when they're shown (never at parse time), see `resolveCategory`: override of the transaction > "My rules" (if checked) > the checked rule sets (built-in in `utils/Category/rulesets/`, or the user's; combined, longest keyword wins, then list order) > uncategorised. User rule sets, "My rules" and overrides are stored in IndexedDB, the checked rule sets in LocalStorage
+- `m-category` decides the categories of transactions when they're shown (never at parse time), see `resolveCategory`: override of the transaction > the rules of the active rule set (longest keyword wins, then list order) > uncategorised. Each rule set (IndexedDB) has its own categories (`categories`, a tree built by `buildCategoryTree`) plus the fixed system category "Uncategorised" (`SYSTEM_CATEGORIES`); subcategories marked `isTransfer` are internal transfers, excluded from profit and loss; categories the active rule set doesn't have are uncategorised. Labels via `getCategoryLabel` (the user's label, otherwise the translation of the code). The active rule set's ID is in LocalStorage; rule sets are managed on `/rule-sets` (`m-pages/RulesetsPage`). New users get a rule set per template (Standard active)
 - Modules without persistence have only `service/`, e.g. `m-transaction` (filters, duplicates, counts, stats, profit and loss, date ranges); its types are in `types/services/transaction.ts`
 - Page-independent logic belongs in a module, not in a page's `actions.ts`; low-level helpers that `utils/Parser` needs stay in `utils/` (e.g. `utils/Stats`)
 
@@ -64,6 +64,6 @@ Banks are declarative definitions in `utils/Parser/banks/`. `BANKS` in `utils/Pa
 5. Changing how existing files are parsed or renaming a bank or format `id`: bump `PARSER_VERSION` in `utils/Parser/create-parser.ts`, so stored files are re-parsed.
 6. Add the bank to the README list under its country. The homepage "Supported banks" list derives from `BANKS` via `getSupportedBanks()` (`m-pages/HomePage/actions.ts`).
 
-## Adding a Built-in Category Rule Set
+## Adding a Category Template
 
-Built-in rule sets are declarative definitions in `utils/Category/rulesets/` (like banks). `RULESETS` in `utils/Category/registry.ts` is the registry. Copy `utils/Category/rulesets/_template.ts` (documents every field), add it to `RULESETS` and its name to `STATS_PAGE.CATEGORY_RULES.RULESETS` in both locale files. Rule set IDs are stored as the checked rule sets — never change them. Changing rules needs no `PARSER_VERSION` bump.
+Templates are declarative definitions in `utils/Category/templates/` (like banks), which users create a rule set from (then it's theirs, template changes don't affect it). `TEMPLATES` in `utils/Category/registry.ts` is the registry. Copy `utils/Category/templates/_template.ts` (documents every field), add it to `TEMPLATES`, its name to `RULESETS_PAGE.TEMPLATES` and the labels of new category codes to `public/locales/categories/{en,de}.json`. Category codes end up in users' overrides — reuse a code only when it means the same.

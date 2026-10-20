@@ -4,6 +4,8 @@ import {
   HelpOutlineRounded,
   Home,
   HomeOutlined,
+  Label,
+  LabelOutlined,
   Poll,
   PollOutlined,
   Settings,
@@ -16,6 +18,7 @@ import { CONFIG, ROUTES } from '@/common'
 export const NAV_ITEMS_TOP: NavItem[] = [
   { route: ROUTES.HOME, labelKey: 'NAVIGATION.HOME', icon: HomeOutlined, iconActive: Home },
   { route: ROUTES.STATS, labelKey: 'NAVIGATION.STATS', icon: PollOutlined, iconActive: Poll },
+  { route: ROUTES.RULESETS, labelKey: 'NAVIGATION.RULESETS', icon: LabelOutlined, iconActive: Label },
 ]
 
 export const NAV_ITEMS_BOTTOM: NavItem[] = [

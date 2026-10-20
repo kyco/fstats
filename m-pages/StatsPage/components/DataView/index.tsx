@@ -8,6 +8,7 @@ import { TransactionsLayout } from '@/types-enums'
 import { getView, WorkspaceView } from '@/common'
 import { FletchingDivider, SearchField, SegmentedToggle } from '@/components'
 import { filterTransactions, getFilteredCurrencies, groupFilesByCurrency } from '@/m-transaction/service'
+import { toSearchQuery } from '@/utils/Search'
 import { useTranslation } from '@/lib/i18n'
 
 import { ALL_CURRENCIES, getEmptyReason, getTransactionsLayoutOptions } from '../../actions'
@@ -18,7 +19,6 @@ import NoSearchResultsDisplay from '../NoSearchResultsDisplay'
 import TransactionsPreview from '../TransactionsPreview'
 import ViewEmptyState from '../ViewEmptyState'
 import ViewToolbar from '../ViewToolbar'
-import { toSearchQuery } from '../VirtualTable/actions'
 import { ui } from './styled'
 
 /**

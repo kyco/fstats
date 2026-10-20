@@ -21,8 +21,9 @@
   "SIN": "Income",
   "SIN_01": "Income",
   "SIN_02": "Government & Insurance",
-  "TFI": "Transfers & Uncategorised",
-  "TFI_01": "Internal Transfer",
+  "TRI": "Transfers",
+  "TRI_01": "Internal Transfer",
+  "TFI": "Uncategorised",
   "TFI_02": "Uncategorised",
   "HOU": "Housing & Utilities",
   "HOU_01": "Rent & Mortgage",
@@ -87,8 +88,9 @@
   "SOU_03": "Software & SaaS",
   "SOU_04": "Travel",
   "SOU_05": "Office Equipment",
-  "TFO": "Transfers & Uncategorised",
-  "TFO_01": "Internal Transfer",
+  "TRO": "Transfers",
+  "TRO_01": "Internal Transfer",
+  "TFO": "Uncategorised",
   "TFO_02": "Uncategorised",
   "UNCATEGORISED": "Uncategorised"
 }

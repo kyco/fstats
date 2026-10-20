@@ -1,19 +1,17 @@
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material'
 import type { TFunction } from 'i18next'
 
-import type { CategoryRuleDraft, CategoryRuleset, MenuSelectOption, ResolvedCategory, Transaction } from '@/types'
-import { CategoryRuleField, CategorySource } from '@/types-enums'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
-import { compileRule, getRuleRef, matchesRule } from '@/m-category/service'
+import type {
+  CategoryRuleDraft,
+  CategoryRuleset,
+  CategoryTree,
+  MenuSelectOption,
+  ResolvedCategory,
+  Transaction,
+} from '@/types'
+import { CategoryDirection, CategoryRuleField } from '@/types-enums'
+import { compileRule, getCategoryLabel, getDirectionParents, getRuleRef, matchesRule } from '@/m-category/service'
 import { sortNewestFirst } from '@/m-transaction/service'
-import { getCategoryLabel } from '@/utils/Category'
-
-import { getRulesetName } from '../RulesetSelect/actions'
-
-/**
- * "Save to" option of a rule set created on saving.
- */
-export const NEW_RULESET = 'new'
 
 /**
  * Arrows scrolling the table to the previous and next match of the rule.
@@ -23,22 +21,31 @@ export const MATCH_STEPS = [
   { step: 1, labelKey: 'STATS_PAGE.CATEGORY_RULES.NEXT_MATCH', Icon: KeyboardArrowDown },
 ]
 
+type GetCategoryPickerOptionsProps = {
+  isIncome: boolean
+  /**
+   * Of the active rule set.
+   */
+  tree: CategoryTree
+  t: TFunction
+}
+
 /**
- * All categories that can be assigned, grouped by parent category and direction (e.g. "Transfers & Uncategorised" is in
+ * All categories of the rule set, grouped by parent category and direction (e.g. "Transfers & Uncategorised" is in
  * both). Those of the transaction's direction first.
  */
-export const getCategoryPickerOptions = (isIncome: boolean, t: TFunction): MenuSelectOption[] => {
+export const getCategoryPickerOptions = ({ isIncome, tree, t }: GetCategoryPickerOptionsProps): MenuSelectOption[] => {
   const directions = [
-    { categories: INCOME_CATEGORIES, label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN_TITLE') },
-    { categories: EXPENSE_CATEGORIES, label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT_TITLE') },
+    { direction: CategoryDirection.IN, label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.IN_TITLE') },
+    { direction: CategoryDirection.OUT, label: t('STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.OUT_TITLE') },
   ]
 
-  return (isIncome ? directions : directions.toReversed()).flatMap(({ categories, label }) =>
-    Object.values(categories).flatMap((parent) =>
-      Object.values(parent.subcategories).map((category) => ({
+  return (isIncome ? directions : directions.toReversed()).flatMap(({ direction, label }) =>
+    getDirectionParents(tree, direction).flatMap((parent) =>
+      parent.children.map((category) => ({
         value: category.code,
-        label: getCategoryLabel(category.code, t),
-        group: `${getCategoryLabel(parent.code, t)} · ${label}`,
+        label: getCategoryLabel({ code: category.code, tree, t }),
+        group: `${getCategoryLabel({ code: parent.code, tree, t })} · ${label}`,
       })),
     ),
   )
@@ -79,17 +86,14 @@ export const getRuleMatches = ({ rule, transaction, transactions }: GetRuleMatch
 type GetSourceTextProps = {
   resolved: ResolvedCategory
   rulesets: CategoryRuleset[]
-  t: TFunction
 }
 
 /**
- * Where the current category comes from, e.g. "Via <b>Standard</b> rule set." or "Set by rule <b>MR-003</b> of <b>My
- * rules</b>.", for `Trans`.
+ * Where the current category comes from, e.g. "Set by rule <b>R1-003</b> of <b>Standard</b>.", for `Trans`.
  */
-export const getSourceText = ({ resolved: { source, rulesetId, rule }, rulesets, t }: GetSourceTextProps) => {
-  const name = rulesetId ? getRulesetName({ id: rulesetId, rulesets, t }) : undefined
-  const key = source === CategorySource.RULESET && rule ? 'customRule' : source
+export const getSourceText = ({ resolved: { source, rule }, rulesets }: GetSourceTextProps) => {
+  const name = rule ? rulesets.find((ruleset) => ruleset.id === rule.rulesetId)?.name : undefined
   const ref = rule ? getRuleRef({ rulesetId: rule.rulesetId, number: rule.number, rulesets }) : undefined
 
-  return { i18nKey: `STATS_PAGE.CATEGORY_RULES.SOURCE.${key}`, values: { rule: ref, name } }
+  return { i18nKey: `STATS_PAGE.CATEGORY_RULES.SOURCE.${source}`, values: { rule: ref, name } }
 }

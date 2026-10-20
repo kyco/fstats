@@ -85,6 +85,17 @@ const defaultTheme = {
       },
     },
 
+    // Small labels are placed for 40px high inputs, centred in the 48px ones until they move up
+    MuiInputLabel: {
+      styleOverrides: {
+        sizeSmall: {
+          '&:not(.MuiInputLabel-shrink)': {
+            transform: 'translate(14px, 13px) scale(1)',
+          },
+        },
+      },
+    },
+
     MuiCard: {
       defaultProps: {
         elevation: 0,

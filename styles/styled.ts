@@ -1,6 +1,7 @@
 import { alpha } from '@mui/material/styles'
 import type { Theme } from '@mui/material/styles'
 
+import type { GradientColorsLightDark } from '@/types'
 import { ColorMode } from '@/types-enums'
 import { MISC } from '@/common'
 
@@ -32,6 +33,18 @@ export const sxGlass = (theme: Theme, opacity: number = MISC.GLASS_EFFECT) => {
       background: alpha(Color.kycoGrey, opacity),
     },
     backdropFilter: 'blur(10px)',
+  }
+}
+
+/**
+ * Background of the colour of a parent category, e.g. its dot.
+ */
+export const sxCategoryGradient = (theme: Theme, color: GradientColorsLightDark) => {
+  return {
+    background: `linear-gradient(135deg, ${color.light.start}, ${color.light.end})`,
+    [theme.getColorSchemeSelector(ColorMode.DARK)]: {
+      background: `linear-gradient(135deg, ${color.dark.start}, ${color.dark.end})`,
+    },
   }
 }
 

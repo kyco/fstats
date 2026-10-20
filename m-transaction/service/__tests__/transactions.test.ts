@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ParsedStatsFile, Transaction } from '@/types'
-import { AmountFilter, StatsFileStatus } from '@/types-enums'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
+import { AmountFilter, CategoryDirection, StatsFileStatus } from '@/types-enums'
+import { getDirectionParents, getTemplateTree } from '@/m-category/service'
+import { DEFAULT_TEMPLATE_ID } from '@/utils/Category'
 
 import {
   filterTransactions,
@@ -107,17 +108,17 @@ describe('filterTransactions', () => {
 })
 
 describe('getDirection', () => {
-  const incomeKeys = Object.values(INCOME_CATEGORIES).flatMap((parent) => Object.keys(parent.subcategories))
-  const expenseKeys = [
-    ...Object.values(EXPENSE_CATEGORIES).flatMap((parent) => Object.keys(parent.subcategories)),
-    NO_CATEGORY,
-  ]
+  const tree = getTemplateTree(DEFAULT_TEMPLATE_ID)
+  const toKeys = (direction: CategoryDirection) =>
+    getDirectionParents(tree, direction).flatMap((parent) => parent.children.map((child) => child.code))
+  const incomeKeys = toKeys(CategoryDirection.IN)
+  const expenseKeys = [...toKeys(CategoryDirection.OUT), NO_CATEGORY]
 
   it('should follow the type of the excluded categories', () => {
-    expect(getDirection(new Set())).toBe(AmountFilter.ALL)
-    expect(getDirection(new Set(['HOU_01']))).toBe(AmountFilter.ALL)
-    expect(getDirection(new Set(incomeKeys))).toBe(AmountFilter.OUT)
-    expect(getDirection(new Set(expenseKeys))).toBe(AmountFilter.IN)
-    expect(getDirection(new Set([...incomeKeys, ...expenseKeys]))).toBeNull()
+    expect(getDirection(new Set(), tree)).toBe(AmountFilter.ALL)
+    expect(getDirection(new Set(['HOU_01']), tree)).toBe(AmountFilter.ALL)
+    expect(getDirection(new Set(incomeKeys), tree)).toBe(AmountFilter.OUT)
+    expect(getDirection(new Set(expenseKeys), tree)).toBe(AmountFilter.IN)
+    expect(getDirection(new Set([...incomeKeys, ...expenseKeys]), tree)).toBeNull()
   })
 })

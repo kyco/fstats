@@ -16,11 +16,6 @@ const resources = {
   [UserLocale.DE]: { translation: de, categories: deCategories },
 } as const
 
-if (typeof window !== 'undefined') {
-  // Legacy key, always held the fallback language as browser language detection wasn't enabled
-  window.localStorage.removeItem(MISC.LS_I18N_LOCALE_KEY_LEGACY)
-}
-
 i18n
   .use(initReactI18next)
   .use(

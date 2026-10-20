@@ -29,20 +29,13 @@ export const ui = () => {
       color: 'text.secondary',
     },
 
-    // Right aligned, the conflict icon before the info icon
+    // Right aligned
     infoCell: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'flex-end',
       gap: 0.5,
     },
-    // Other rule sets would categorise the transaction differently
-    conflictIcon: {
-      display: 'block',
-      fontSize: 14,
-      color: 'warning.main',
-    },
-
     infoIcon: {
       display: 'block',
       fontSize: 14,

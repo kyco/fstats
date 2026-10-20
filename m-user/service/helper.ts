@@ -27,16 +27,6 @@ export const ensureUserExists = async (): Promise<User> => {
   const locale = (i18n.resolvedLanguage as UserLocale | undefined) ?? MISC.DEFAULT_LOCALE
 
   if (user) {
-    // Run migrations
-    if (!user.dateFormat) {
-      user = await updateUser({ dateFormat: MISC.DEFAULT_DATE_FORMAT })
-    }
-
-    // `colorMode` was removed (MUI's storage is the source of truth), writing strips it
-    if ('colorMode' in user) {
-      user = await updateUser({})
-    }
-
     if (user.locale !== locale) {
       user = await updateUser({ locale })
     }

@@ -347,18 +347,55 @@ export const CategorySource = {
    */
   OVERRIDE: 'override',
   /**
-   * A rule of "My rules", applied with every rule set.
-   */
-  MY_RULE: 'myRule',
-  /**
-   * Set in the transaction data, i.e. the demo transactions. Only with a built-in rule set.
+   * Set in the transaction data, i.e. the demo transactions.
    */
   PRESET: 'preset',
   /**
-   * A rule of the selected rule set.
+   * A rule of the active rule set.
    */
-  RULESET: 'ruleset',
+  RULE: 'rule',
   NONE: 'none',
 } as const
 
 export type CategorySource = (typeof CategorySource)[keyof typeof CategorySource]
+
+// -------------------------------------------------------
+
+/**
+ * Whether a parent category (and its subcategories) is for money in or out.
+ */
+export const CategoryDirection = {
+  IN: 'in',
+  OUT: 'out',
+} as const
+
+export const zCategoryDirection = z.enum([CategoryDirection.IN, CategoryDirection.OUT] as const)
+
+export type CategoryDirection = z.infer<typeof zCategoryDirection>
+
+// -------------------------------------------------------
+
+/**
+ * Colour of a parent category, see `CATEGORY_COLORS`. Stored in the user's rule sets, never rename them.
+ */
+export const zCategoryColor = z.enum([
+  'green',
+  'teal',
+  'lightGreen',
+  'lime',
+  'cyan',
+  'lightBlue',
+  'blue',
+  'indigo',
+  'deepPurple',
+  'purple',
+  'pink',
+  'red',
+  'deepOrange',
+  'orange',
+  'amber',
+  'brown',
+  'blueGrey',
+] as const)
+
+export type CategoryColor = z.infer<typeof zCategoryColor>

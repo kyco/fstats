@@ -2,12 +2,12 @@ import { Box, FormControlLabel, Switch } from '@mui/material'
 import { useState } from 'react'
 
 import type { Transaction } from '@/types'
-import { AmountFilter, Currency } from '@/types-enums'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
+import { AmountFilter, CategoryDirection, Currency } from '@/types-enums'
 import { CardTitle } from '@/components'
 import { getStats } from '@/m-transaction/service'
 import { useTranslation } from '@/lib/i18n'
 
+import { useWorkspaceCategories } from '../../context'
 import { getTransactionsGroupedByCategory } from './actions'
 import { BreakdownTable } from './components'
 
@@ -27,9 +27,10 @@ type CategoryBreakdownProps = {
 const Component = ({ transactions, currency, direction, chip }: CategoryBreakdownProps) => {
   const { t } = useTranslation()
   const { totalIncome, totalExpense } = getStats(transactions)
-  const groupedTransactions = getTransactionsGroupedByCategory(transactions, t)
-  const income = groupedTransactions.filter((cat) => Object.keys(INCOME_CATEGORIES).includes(cat.code))
-  const expenses = groupedTransactions.filter((cat) => Object.keys(EXPENSE_CATEGORIES).includes(cat.code))
+  const { tree } = useWorkspaceCategories()
+  const groupedTransactions = getTransactionsGroupedByCategory({ transactions, tree, t })
+  const income = groupedTransactions.filter((category) => category.direction === CategoryDirection.IN)
+  const expenses = groupedTransactions.filter((category) => category.direction === CategoryDirection.OUT)
   const [showAll, setShowAll] = useState(false)
 
   return (

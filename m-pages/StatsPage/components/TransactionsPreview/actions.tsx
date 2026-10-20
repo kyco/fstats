@@ -1,4 +1,4 @@
-import { CallSplit, InfoOutlined } from '@mui/icons-material'
+import { InfoOutlined } from '@mui/icons-material'
 import { Box, Tooltip } from '@mui/material'
 import type { TFunction } from 'i18next'
 import { uniq } from 'lodash'
@@ -8,6 +8,7 @@ import type {
   CategoryCode,
   CategoryEngine,
   CategoryRuleset,
+  CategoryTree,
   NewRuleKeptBy,
   ParsedStatsFile,
   SourcedTransaction,
@@ -17,25 +18,20 @@ import type {
 } from '@/types'
 import { TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
-import { getCategoryConflicts, resolveCategory } from '@/m-category/service'
+import { getCategoryLabel, resolveCategory } from '@/m-category/service'
 import { getFileCurrency } from '@/m-stats-file/service'
 import { sxChartTooltip } from '@/styles/styled'
-import { getCategoryLabel } from '@/utils/Category'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
 import { toFixedLocaleAmount, toFixedLocaleCurrency } from '@/utils/Number'
 
 import { getSourceText } from '../CategoryEditor/actions'
-import { getRulesetName } from '../RulesetSelect/actions'
 import { ui } from './styled'
 
 const TAG_LABEL_KEYS: Record<TransactionTag, string> = {
   [TransactionTag.DUPLICATE]: 'STATS_PAGE.DATA_VIEW.DUPLICATE_TAG',
   [TransactionTag.DATE_EXCLUDED]: 'STATS_PAGE.DATA_VIEW.DATE_EXCLUDED_TAG',
 }
-
-// Room for the icon showing other rule sets would categorise differently
-const CONFLICT_ICON_WIDTH = 20
 
 // Wide enough for the longest label, e.g. "Ausgeschlossen"
 const TAG_COLUMN_WIDTHS: Record<TransactionTag, number> = {
@@ -101,28 +97,12 @@ type GetCategoryInfoProps = {
 }
 
 /**
- * Where the category of the transaction is from, and the other rule sets that would give it a different one.
+ * Where the category of the transaction is from, as plain text for the tooltip.
  */
 export const getCategoryInfo = ({ transaction, engine, rulesets, isDemoMode, t }: GetCategoryInfoProps) => {
   const resolved = resolveCategory({ transaction, engine, preset: isDemoMode ? transaction.category : null })
-  const conflicts = getCategoryConflicts({ transaction, engine, resolved })
-  const { i18nKey, values } = getSourceText({ resolved, rulesets, t })
-  // Plain text in the tooltip
-  const sourceLine = t(i18nKey, values).replace(/<\/?b>/g, '')
-
-  return {
-    lines: [sourceLine],
-    conflicts: conflicts.length
-      ? t('STATS_PAGE.CATEGORY_RULES.ALSO_MATCHED', {
-          matches: conflicts
-            .map(
-              ({ rulesetId, category }) =>
-                `${getRulesetName({ id: rulesetId, rulesets, t })} (${getCategoryLabel(category, t)})`,
-            )
-            .join(', '),
-        })
-      : null,
-  }
+  const { i18nKey, values } = getSourceText({ resolved, rulesets })
+  return [t(i18nKey, values).replace(/<\/?b>/g, '')]
 }
 
 /**
@@ -149,13 +129,6 @@ type GetTransactionColumnsProps = {
    */
   getDescriptionHighlights?: (rowIndex: number) => TextRange[]
   /**
-   * Other rule sets that would give the transaction a different category (shown with an icon), `null` without.
-   */
-  conflicts?: {
-    isShown: boolean
-    getText: (rowIndex: number) => string | null
-  }
-  /**
    * Tags shown next to the source (e.g. "Duplicate"), only when some are shown. Shows the column without sources.
    */
   tags?: {
@@ -170,7 +143,6 @@ export const getTransactionColumns = ({
   t,
   renderCategory,
   getDescriptionHighlights,
-  conflicts,
   tags,
 }: GetTransactionColumnsProps): VirtualTableColumn[] => {
   const sx = ui()
@@ -191,22 +163,14 @@ export const getTransactionColumns = ({
       ? [
           {
             label: t('MISC.SOURCE'),
-            fixedWidth:
-              Math.max(32, ...(tags?.shown ?? []).map((tag) => TAG_COLUMN_WIDTHS[tag])) +
-              (conflicts?.isShown ? CONFLICT_ICON_WIDTH : 0),
+            fixedWidth: Math.max(32, ...(tags?.shown ?? []).map((tag) => TAG_COLUMN_WIDTHS[tag])),
             hideLabel: true,
             align: 'right' as const,
             renderCell: (label: string, rowIndex: number) => {
               const tag = tags?.getTag(rowIndex) ?? null
-              const conflictText = conflicts?.getText(rowIndex) ?? null
 
               return (
                 <Box component="span" sx={sx.infoCell}>
-                  {conflictText ? (
-                    <Tooltip title={conflictText} placement="left" slotProps={{ tooltip: { sx: sxChartTooltip } }}>
-                      <CallSplit sx={sx.conflictIcon} aria-label={conflictText} />
-                    </Tooltip>
-                  ) : null}
                   {/* Tagged rows show the tag with the icon */}
                   <Tooltip
                     title={<Box sx={{ whiteSpace: 'pre-line' }}>{label}</Box>}
@@ -235,6 +199,10 @@ type GetTransactionCellsProps = {
   currency: Currency | null
   locale: UserLocale
   dateFormat: DateFormat
+  /**
+   * Of the active rule set, for the labels of the categories.
+   */
+  tree: CategoryTree
   t: TFunction
 }
 
@@ -243,7 +211,7 @@ type GetTransactionCellsProps = {
  */
 export const getTransactionCells = (
   transaction: Transaction,
-  { currency, locale, dateFormat, t }: GetTransactionCellsProps,
+  { currency, locale, dateFormat, tree, t }: GetTransactionCellsProps,
 ) => {
   // Mixed currencies show the symbol per amount
   const formatAmount = currency ? toFixedLocaleAmount : toFixedLocaleCurrency
@@ -252,7 +220,7 @@ export const getTransactionCells = (
     toDisplayDate({ date: transaction.date, locale, formatTo: dateFormat }),
     transaction.description,
     formatAmount({ value: transaction.value, currency: transaction.currency, locale, showPlusSign: true }),
-    getCategoryLabel(transaction.category, t),
+    getCategoryLabel({ code: transaction.category, tree, t }),
   ]
 }
 
@@ -266,6 +234,7 @@ type GetCategoryPreviewProps = {
    * Chosen in the category form.
    */
   category: CategoryCode | null
+  tree: CategoryTree
   t: TFunction
 }
 
@@ -273,7 +242,7 @@ type GetCategoryPreviewProps = {
  * The category the rule being created gives the transaction (with the current one as the title), or why it keeps its
  * category. `null` when unchanged, e.g. before a category is chosen.
  */
-export const getCategoryPreview = ({ effect, current, category, t }: GetCategoryPreviewProps) => {
+export const getCategoryPreview = ({ effect, current, category, tree, t }: GetCategoryPreviewProps) => {
   if (!effect) {
     return null
   }
@@ -289,6 +258,11 @@ export const getCategoryPreview = ({ effect, current, category, t }: GetCategory
   }
 
   return category && category !== current
-    ? { category, title: t('STATS_PAGE.CATEGORY_RULES.CURRENT_CATEGORY', { category: getCategoryLabel(current, t) }) }
+    ? {
+        category,
+        title: t('STATS_PAGE.CATEGORY_RULES.CURRENT_CATEGORY', {
+          category: getCategoryLabel({ code: current, tree, t }),
+        }),
+      }
     : null
 }

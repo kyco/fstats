@@ -17,7 +17,7 @@ import { countIn, getCheckState, toggleKey, toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
 import { ALL_CURRENCIES } from '../../actions'
-import { useStatsTransactions, useWorkspaceFiles } from '../../context'
+import { useStatsTransactions, useWorkspaceCategories, useWorkspaceFiles } from '../../context'
 import { useTableOptions, useTransactionFilter } from '../../hooks'
 import { getCategoryGroups } from './actions'
 import { ui } from './styled'
@@ -50,7 +50,8 @@ const Component = ({ options, currency }: FiltersProps) => {
   const amount = hasAmount ? amountFilter : AmountFilter.ALL
   // The counted transactions (without duplicates, on selected days) matching the amount filter
   const transactions = useMemo(() => filterAmount(shown, amount), [shown, amount])
-  const groups = useMemo(() => getCategoryGroups(transactions, t), [transactions, t])
+  const { tree } = useWorkspaceCategories()
+  const groups = useMemo(() => getCategoryGroups({ transactions, tree, t }), [transactions, tree, t])
   // Those the view shows, also with the category filter
   const viewTransactions = view === WorkspaceView.TRANSACTIONS && includeDateExcluded ? unique : shown
   const currencyCounts = useMemo(
@@ -338,7 +339,7 @@ const Component = ({ options, currency }: FiltersProps) => {
               {hasAmount ? null : (
                 <Box sx={sx.sectionNote}>
                   <InfoOutlined sx={sx.noteIcon} />
-                  {t('STATS_PAGE.FILTERS.AMOUNTS_NETTED')}
+                  {t('STATS_PAGE.FILTERS.AMOUNTS_ONLY')}
                 </Box>
               )}
               {amountOptions.map((option) =>

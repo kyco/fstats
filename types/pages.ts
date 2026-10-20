@@ -1,15 +1,21 @@
 import type { SvgIconComponent } from '@mui/icons-material'
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from 'react'
 
-import type { CategoryRuleField, CategoryRuleMatch, Currency } from '@/types-enums'
+import type {
+  CategoryColor,
+  CategoryDirection,
+  CategoryRuleDirection,
+  CategoryRuleField,
+  CategoryRuleMatch,
+  Currency,
+} from '@/types-enums'
 
-import type { NumberString } from './global'
-import type { CategoryRuleDraft } from './services/category-rule'
+import type { GradientColorsLightDark, NumberString } from './global'
+import type { CategoryEngine, CategoryRule, CategoryRuleDraft } from './services/category-rule'
 import type { ParsedStatsFile, StatsFile } from './services/stats-file'
 import type {
-  Category,
   CategoryCode,
-  ParentCategory,
+  ParentCategoryCode,
   SourcedTransaction,
   StatsTransactions,
   Transaction,
@@ -74,6 +80,10 @@ export type WorkspaceContextValue = {
    * Search of the transactions and CSV views, kept when switching views.
    */
   search: WorkspaceSearch
+  /**
+   * Decided the categories of the files, with the categories of the active rule set (the standard ones in demo mode).
+   */
+  categoryEngine: CategoryEngine
 }
 
 export type WorkspaceSearch = {
@@ -92,9 +102,6 @@ export type CategoryEditorDraft = {
   keyword: string
   ignoreCase: boolean
   amounts: { in: boolean; out: boolean }
-  saveTo: string
-  newRulesetName: string
-  copyBuiltIn: boolean
 }
 
 /**
@@ -106,7 +113,6 @@ export type CategoryRulePreview = {
    * Chosen in the form, shown as the new category of the matches the rule changes.
    */
   category: CategoryCode | null
-  isMyRules: boolean
   /**
    * The edited transaction.
    */
@@ -166,6 +172,10 @@ export type SelectedTransaction = {
  */
 export type FileHelper = {
   files: StatsFile[]
+  /**
+   * Decided the categories of the files.
+   */
+  categoryEngine: CategoryEngine
   isLoadingFiles: boolean
   checkedFiles: StatsFile[]
   checkedIds: string[]
@@ -254,14 +264,18 @@ export type CategoryGroup = {
 // Stats page: category breakdown
 // -------------------------------------------------------
 
-export type CategoryWithTransactions = Category & {
+export type CategoryWithTransactions = {
+  code: CategoryCode
   label: string
   transactions: Transaction[]
   total: NumberString
 }
 
-export type ParentCategoryWithTransactions = Omit<ParentCategory, 'subcategories'> & {
+export type ParentCategoryWithTransactions = {
+  code: ParentCategoryCode
   label: string
+  color: GradientColorsLightDark
+  direction: CategoryDirection
   subcategories: Record<CategoryCode, CategoryWithTransactions>
   transactions: Transaction[]
   total: NumberString
@@ -450,3 +464,62 @@ export type MenuSelectOption = {
    */
   start?: ReactNode
 }
+
+// -------------------------------------------------------
+// Rule sets page
+// -------------------------------------------------------
+
+/**
+ * What a new rule set starts with, see `getStartGroups`.
+ */
+export type RulesetStartOption = {
+  value: string
+  label: string
+  description?: string
+  /**
+   * E.g. "66 categories · 71 rules", to tell a changed rule set from its template.
+   */
+  counts?: string
+  /**
+   * Suggested for the new rule set, e.g. the name of the template.
+   */
+  name: string
+}
+
+/**
+ * Entered in the dialog adding or editing a category on the rule sets page.
+ */
+export type CategoryDialogValues = {
+  label: string
+  /**
+   * Of parent categories.
+   */
+  color?: CategoryColor
+  /**
+   * Of subcategories.
+   */
+  isTransfer?: boolean
+}
+
+/**
+ * The category dialog on the rule sets page: adding a parent category or a subcategory, or editing one.
+ */
+export type CategoryDialogState =
+  | { type: 'addParent' }
+  | { type: 'addChild'; parentCode: ParentCategoryCode }
+  | { type: 'edit'; code: CategoryCode | ParentCategoryCode }
+
+/**
+ * Entered in the dialog adding or editing a keyword rule on the rule sets page.
+ */
+export type RuleDialogValues = Pick<CategoryRuleDraft, 'match' | 'keyword' | 'ignoreCase' | 'direction'>
+
+/**
+ * The rule dialog on the rule sets page: adding a rule to a subcategory, or editing one.
+ */
+export type RuleDialogState = { type: 'add'; code: CategoryCode } | { type: 'edit'; rule: CategoryRule }
+
+/**
+ * The amounts a keyword rule applies to, see `CategoryRuleDirection`.
+ */
+export type RuleAmounts = { in: boolean; out: boolean }

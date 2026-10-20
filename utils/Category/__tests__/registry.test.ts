@@ -1,38 +1,66 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ParentCategory } from '@/types'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
-import { MY_RULES_ID, RULESETS } from '@/utils/Category'
+import { zCategoryCode, zParentCategoryCode } from '@/types'
+import { SYSTEM_CATEGORIES, TEMPLATES } from '@/utils/Category'
 
+import deCategories from '../../../public/locales/categories/de.json'
+import enCategories from '../../../public/locales/categories/en.json'
 import deLocale from '../../../public/locales/de.json'
 import enLocale from '../../../public/locales/en.json'
 
-const toCodes = (categories: Record<string, ParentCategory>) => {
-  return new Set(Object.values(categories).flatMap((parent) => Object.keys(parent.subcategories)))
-}
+const SYSTEM_CODES = SYSTEM_CATEGORIES.flatMap((parent) => parent.children.map((child) => child.code))
 
-describe('RULESETS', () => {
-  it('should have unique IDs, other than the reserved ones', () => {
-    const ids = RULESETS.map((ruleset) => ruleset.id)
+describe('TEMPLATES', () => {
+  it('should have unique IDs', () => {
+    const ids = TEMPLATES.map((template) => template.id)
 
     expect(new Set(ids).size).toBe(ids.length)
-    expect(ids).not.toContain(MY_RULES_ID)
   })
 
-  it('should only use known category codes of the right direction', () => {
-    const incomeCodes = toCodes(INCOME_CATEGORIES)
-    const expenseCodes = toCodes(EXPENSE_CATEGORIES)
+  it('should have unique, valid category codes, children prefixed by their parent', () => {
+    TEMPLATES.forEach((template) => {
+      const parents = [...template.income.categories, ...template.expense.categories]
+      const codes = parents.flatMap((parent) => [parent.code, ...parent.children])
 
-    RULESETS.forEach((ruleset) => {
-      ruleset.income.forEach((rule) => expect(incomeCodes).toContain(rule.category))
-      ruleset.expense.forEach((rule) => expect(expenseCodes).toContain(rule.category))
+      expect(new Set(codes).size).toBe(codes.length)
+      parents.forEach((parent) => {
+        expect(zParentCategoryCode.safeParse(parent.code).success).toBe(true)
+        expect(SYSTEM_CATEGORIES.map((system) => system.code)).not.toContain(parent.code)
+        parent.children.forEach((child) => {
+          expect(zCategoryCode.safeParse(child).success).toBe(true)
+          expect(child.startsWith(`${parent.code}_`)).toBe(true)
+        })
+      })
     })
   })
 
-  it('should have a translated name', () => {
-    RULESETS.forEach((ruleset) => {
-      expect(enLocale.STATS_PAGE.CATEGORY_RULES.RULESETS).toHaveProperty(ruleset.id)
-      expect(deLocale.STATS_PAGE.CATEGORY_RULES.RULESETS).toHaveProperty(ruleset.id)
+  it('should only use its own categories of the right direction, or the system ones', () => {
+    TEMPLATES.forEach((template) => {
+      const toCodes = (direction: typeof template.income) => [
+        ...direction.categories.flatMap((parent) => parent.children),
+        ...SYSTEM_CODES,
+      ]
+
+      template.income.rules.forEach((rule) => expect(toCodes(template.income)).toContain(rule.category))
+      template.expense.rules.forEach((rule) => expect(toCodes(template.expense)).toContain(rule.category))
+    })
+  })
+
+  it('should have translated names and category labels', () => {
+    TEMPLATES.forEach((template) => {
+      expect(enLocale.RULESETS_PAGE.TEMPLATES).toHaveProperty(template.id)
+      expect(deLocale.RULESETS_PAGE.TEMPLATES).toHaveProperty(template.id)
+
+      const parents = [...template.income.categories, ...template.expense.categories, ...SYSTEM_CATEGORIES]
+      parents
+        .flatMap((parent) => [
+          parent.code,
+          ...parent.children.map((child) => (typeof child === 'string' ? child : child.code)),
+        ])
+        .forEach((code) => {
+          expect(enCategories).toHaveProperty(code)
+          expect(deCategories).toHaveProperty(code)
+        })
     })
   })
 })

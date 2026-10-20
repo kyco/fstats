@@ -9,6 +9,7 @@ import { isValidPreview } from '@/m-custom-parser/service'
 import { useUserPreferences } from '@/m-user/service'
 import { useTranslation } from '@/lib/i18n'
 
+import { useWorkspaceCategories } from '../../../../context'
 import { getTransactionCells, getTransactionColumns } from '../../../TransactionsPreview/actions'
 import VirtualTable from '../../../VirtualTable'
 import { PREVIEW_ROWS } from '../../actions'
@@ -37,6 +38,7 @@ const Component = ({ preview, currency, dateFormat: fileDateFormat, scrollElemen
   const sx = ui()
   const { t } = useTranslation()
   const { locale, dateFormat } = useUserPreferences()
+  const { tree } = useWorkspaceCategories()
   const transactions = preview?.transactions.slice(0, PREVIEW_ROWS) ?? []
   const [dateColumn, ...otherColumns] = getTransactionColumns({
     currency,
@@ -60,6 +62,7 @@ const Component = ({ preview, currency, dateFormat: fileDateFormat, scrollElemen
             currency,
             locale,
             dateFormat,
+            tree,
             t,
           })
           return [format(parseISO(transaction.date), fileDateFormat), ...cells]

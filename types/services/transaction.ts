@@ -8,24 +8,17 @@ import type { DateRange, NumberString } from '../global'
 import { zDateTimeString, zIdString, zNumberString } from '../global'
 import type { _KeysCheck } from '../key-check'
 
-const zParentCategoryCode = z.string().regex(/^[A-Z]{3}$/)
-export const zCategoryCode = z.string().regex(/^[A-Z]{3}_\d{2}$/)
+/**
+ * E.g. 'HOU' (of the templates) or a generated one, see `createCategoryCode`.
+ */
+export const zParentCategoryCode = z.string().regex(/^[A-Z0-9]{3,12}$/)
+/**
+ * The parent category code with a suffix, e.g. 'HOU_01' (of the templates) or 'HOU_K3M9QZ' (generated).
+ */
+export const zCategoryCode = z.string().regex(/^[A-Z0-9]{3,12}_[A-Z0-9]{2,12}$/)
 
 export type ParentCategoryCode = z.infer<typeof zParentCategoryCode>
 export type CategoryCode = z.infer<typeof zCategoryCode>
-
-export const zCategory = z.object({
-  code: zCategoryCode,
-})
-
-export type Category = z.infer<typeof zCategory>
-
-export const zParentCategory = z.object({
-  code: zParentCategoryCode,
-  subcategories: z.record(zCategoryCode, zCategory),
-})
-
-export type ParentCategory = z.infer<typeof zParentCategory>
 
 export const zTransaction = z.object({
   /**

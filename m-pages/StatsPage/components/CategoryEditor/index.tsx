@@ -9,44 +9,26 @@ import { useEffect, useMemo, useState } from 'react'
 
 import type { CategoryEditorDraft, CategoryRulePreview, Transaction } from '@/types'
 import { CategoryRuleDirection, CategoryRuleMatch, CategorySource } from '@/types-enums'
-import { PARENT_CATEGORY_COLORS } from '@/common'
-import { SegmentedToggle } from '@/components'
+import { MenuSelect, RuleMoreOptions, SegmentedToggle } from '@/components'
 import {
-  getCustomRulesets,
+  getCategoryColor,
+  getCategoryLabel,
   getRuleFieldValue,
   getRuleRef,
   resolveCategory,
-  useCategoryEngine,
-  useCategoryRulesets,
-  useCheckedRulesets,
+  useActiveRuleset,
   useMutateAddCategoryRule,
-  useMutateAddCategoryRuleset,
   useMutateRemoveCategoryOverride,
   useMutateRemoveCategoryRule,
   useMutateSetCategoryOverride,
 } from '@/m-category/service'
 import { getSimilarTransactions } from '@/m-transaction/service'
-import {
-  DEFAULT_RULESET_ID,
-  getBuiltInRuleset,
-  getCategoryLabel,
-  getParentCategoryCode,
-  getUncategorisedCode,
-  MY_RULES_ID,
-} from '@/utils/Category'
+import { getUncategorisedCode } from '@/utils/Category'
 import { isExpense } from '@/utils/Stats'
 import { Trans, useTranslation } from '@/lib/i18n'
 
-import { useStatsTransactions } from '../../context'
-import {
-  getCategoryPickerOptions,
-  getFieldOptions,
-  getRuleMatches,
-  getSourceText,
-  MATCH_STEPS,
-  NEW_RULESET,
-} from './actions'
-import MenuSelect from './components/MenuSelect'
+import { useStatsTransactions, useWorkspaceCategories } from '../../context'
+import { getCategoryPickerOptions, getFieldOptions, getRuleMatches, getSourceText, MATCH_STEPS } from './actions'
 import { ui } from './styled'
 
 type CategoryEditorProps = {
@@ -96,7 +78,7 @@ type CategoryEditorProps = {
 
 /**
  * The category of a transaction and where it's from. Changed for the transaction only or with a rule for all matching
- * transactions (like mail rules), saved to "My rules" or a custom rule set, while the table highlights the matches.
+ * transactions (like mail rules), saved to the active rule set, while the table highlights the matches.
  */
 const Component = ({
   transaction,
@@ -115,15 +97,13 @@ const Component = ({
   const sx = ui(theme)
   const { t } = useTranslation()
   const { unique } = useStatsTransactions()
-  const { engine } = useCategoryEngine()
-  const { rulesetIds, checkRuleset } = useCheckedRulesets()
-  const { data: rulesets = [] } = useCategoryRulesets()
-  const customRulesets = getCustomRulesets(rulesets)
+  const engine = useWorkspaceCategories()
+  const { tree } = engine
+  const { ruleset: activeRuleset, rulesets } = useActiveRuleset()
   const { mutateAsync: setOverride } = useMutateSetCategoryOverride()
   const { mutateAsync: removeOverride } = useMutateRemoveCategoryOverride()
   const { mutateAsync: addRule } = useMutateAddCategoryRule()
   const { mutateAsync: removeRule } = useMutateRemoveCategoryRule()
-  const { mutateAsync: addRuleset } = useMutateAddCategoryRuleset()
 
   const isIncome = !isExpense(transaction)
   // Transactions with the same description (this one included), unchanged when changing this one only
@@ -133,16 +113,11 @@ const Component = ({
     () => resolveCategory({ transaction, engine, preset: readOnly ? transaction.category : null }),
     [transaction, engine, readOnly],
   )
-  const categoryOptions = getCategoryPickerOptions(isIncome, t).map((option) => ({
+  const categoryOptions = getCategoryPickerOptions({ isIncome, tree, t }).map((option) => ({
     ...option,
-    start: <Box component="span" sx={sx.dot(PARENT_CATEGORY_COLORS[getParentCategoryCode(option.value)])} />,
+    start: <Box component="span" sx={sx.dot(getCategoryColor(tree, option.value))} />,
   }))
   const fieldOptions = getFieldOptions(transaction)
-  // Saved to the first checked custom rule set by default, otherwise to "My rules"
-  const checkedCustomId = customRulesets.find((ruleset) => rulesetIds.includes(ruleset.id))?.id
-  // Built-in rules to start a new rule set with, the first checked or the default ones
-  const builtIn =
-    rulesetIds.map((id) => getBuiltInRuleset(id)).find((ruleset) => !!ruleset) ?? getBuiltInRuleset(DEFAULT_RULESET_ID)!
 
   // Chosen by the user, the current one isn't preselected
   // What the form starts with, unless moved from the menu. Compared with, to know whether anything was changed.
@@ -154,10 +129,8 @@ const Component = ({
     keyword: transaction.description.trim(),
     ignoreCase: true,
     // Of the transaction, at least one is needed
-    amounts: { in: isIncome, out: !isIncome },
-    saveTo: checkedCustomId ?? MY_RULES_ID,
-    newRulesetName: '',
-    copyBuiltIn: false,
+    // Both, so e.g. a refund gets the category of the purchase
+    amounts: { in: true, out: true },
   }))
   const initial = initialDraft ?? defaults
   const [category, setCategory] = useState(initial.category)
@@ -167,21 +140,7 @@ const Component = ({
   const [keyword, setKeyword] = useState(initial.keyword)
   const [ignoreCase, setIgnoreCase] = useState(initial.ignoreCase)
   const [amounts, setAmounts] = useState(initial.amounts)
-  const [saveTo, setSaveTo] = useState(initial.saveTo)
-  const [newRulesetName, setNewRulesetName] = useState(initial.newRulesetName)
-  const [copyBuiltIn, setCopyBuiltIn] = useState(initial.copyBuiltIn)
-  const draft: CategoryEditorDraft = {
-    category,
-    applyTo,
-    field,
-    match,
-    keyword,
-    ignoreCase,
-    amounts,
-    saveTo,
-    newRulesetName,
-    copyBuiltIn,
-  }
+  const draft: CategoryEditorDraft = { category, applyTo, field, match, keyword, ignoreCase, amounts }
   const hasChanges = !isEqual(draft, defaults)
   // In the sidebar, the match the table is scrolled to, starting at the edited (selected) one
   const focusedId = onFocusMatch ? (focusedMatchId ?? transaction.id) : null
@@ -218,10 +177,9 @@ const Component = ({
     [rule, transaction, unique],
   )
 
-  const isMyRules = saveTo === MY_RULES_ID
   const preview = useMemo(
-    () => (rule?.keyword ? { rule, category: category || null, isMyRules, editedId: transaction.id } : null),
-    [rule, category, isMyRules, transaction.id],
+    () => (rule?.keyword ? { rule, category: category || null, editedId: transaction.id } : null),
+    [rule, category, transaction.id],
   )
 
   useEffect(() => {
@@ -246,12 +204,10 @@ const Component = ({
     onChangesChange?.(hasChanges)
   }, [hasChanges, onChangesChange])
 
-  const isNewRuleset = saveTo === NEW_RULESET
   const canSave =
     !isSaving &&
     !!category &&
-    (applyTo === 'transaction' ||
-      (!!trimmedKeyword && (amounts.in || amounts.out) && (!isNewRuleset || !!newRulesetName.trim())))
+    (applyTo === 'transaction' || (!!activeRuleset && !!trimmedKeyword && (amounts.in || amounts.out)))
 
   const run = async (action: () => Promise<unknown>) => {
     setIsSaving(true)
@@ -270,23 +226,17 @@ const Component = ({
 
   const save = () =>
     run(async () => {
-      if (!rule) {
+      if (!rule || !activeRuleset) {
         await setOverride({ transactionId: transaction.id, category })
         return
       }
 
-      const targetId = isNewRuleset
-        ? (await addRuleset({ name: newRulesetName.trim(), copyFrom: copyBuiltIn ? builtIn.id : undefined })).id
-        : saveTo
-      await addRule({ rulesetId: targetId, rule })
+      await addRule({ rulesetId: activeRuleset.id, rule })
 
       // Otherwise the override would still win over the new rule
       if (resolved.source === CategorySource.OVERRIDE) {
         await removeOverride(transaction.id)
       }
-
-      // Rules only apply while their rule set (or "My rules") is checked
-      checkRuleset(targetId)
     })
 
   const sourceAction =
@@ -500,70 +450,24 @@ const Component = ({
                   {t('STATS_PAGE.CATEGORY_RULES.NO_MATCH')}
                 </Box>
               ) : null}
+              {/* Ticked to match the case, ignored by default (banks write names differently, e.g. "REWE" and "Rewe") */}
               <FormControlLabel
-                control={<Checkbox checked={ignoreCase} onChange={(_, checked) => setIgnoreCase(checked)} />}
-                label={t('STATS_PAGE.CATEGORY_RULES.IGNORE_CASE')}
+                control={<Checkbox checked={!ignoreCase} onChange={(_, checked) => setIgnoreCase(!checked)} />}
+                label={t('STATS_PAGE.CATEGORY_RULES.MATCH_CASE')}
                 sx={sx.checkbox}
               />
             </>,
           )}
-          {renderField(
-            t('STATS_PAGE.CATEGORY_RULES.AMOUNTS'),
-            <Box sx={sx.checkboxes}>
-              {(['out', 'in'] as const).map((key) => (
-                <FormControlLabel
-                  key={key}
-                  control={
-                    <Checkbox
-                      checked={amounts[key]}
-                      onChange={(_, checked) => setAmounts((prev) => ({ ...prev, [key]: checked }))}
-                    />
-                  }
-                  label={t(`STATS_PAGE.DATA_VIEW.AMOUNT_FILTER.${key.toUpperCase()}_TITLE`)}
-                  sx={sx.checkbox}
-                />
-              ))}
-            </Box>,
-          )}
-          {renderField(
-            t('STATS_PAGE.CATEGORY_RULES.SAVE_TO'),
-            <>
-              <MenuSelect
-                title={t('STATS_PAGE.CATEGORY_RULES.SAVE_TO')}
-                value={saveTo}
-                options={[
-                  {
-                    value: MY_RULES_ID,
-                    label: t('STATS_PAGE.CATEGORY_RULES.MY_RULES'),
-                    description: t('STATS_PAGE.CATEGORY_RULES.MY_RULES_DESCRIPTION'),
-                  },
-                  ...customRulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name })),
-                  { value: NEW_RULESET, label: t('STATS_PAGE.CATEGORY_RULES.NEW_RULESET') },
-                ]}
-                onChange={setSaveTo}
+          <RuleMoreOptions amounts={amounts} onAmountsChange={setAmounts} />
+          {activeRuleset ? (
+            <Box sx={sx.saveTo}>
+              <Trans
+                i18nKey="STATS_PAGE.CATEGORY_RULES.SAVED_TO"
+                values={{ name: activeRuleset.name }}
+                components={{ b: <strong /> }}
               />
-              {isNewRuleset ? (
-                <>
-                  <TextField
-                    size="small"
-                    placeholder={t('STATS_PAGE.CATEGORY_RULES.RULESET_NAME')}
-                    value={newRulesetName}
-                    onChange={(event) => setNewRulesetName(event.target.value)}
-                    slotProps={{ htmlInput: { 'aria-label': t('STATS_PAGE.CATEGORY_RULES.RULESET_NAME') } }}
-                    sx={sx.input}
-                    autoFocus
-                  />
-                  <FormControlLabel
-                    control={<Checkbox checked={copyBuiltIn} onChange={(_, checked) => setCopyBuiltIn(checked)} />}
-                    label={t('STATS_PAGE.CATEGORY_RULES.COPY_BUILT_IN', {
-                      name: t(`STATS_PAGE.CATEGORY_RULES.RULESETS.${builtIn.id}`),
-                    })}
-                    sx={sx.checkbox}
-                  />
-                </>
-              ) : null}
-            </>,
-          )}
+            </Box>
+          ) : null}
         </>
       ) : null}
 
@@ -587,12 +491,12 @@ const Component = ({
     <Box sx={sx.section}>
       <Box sx={sx.source}>
         <Box component="span" sx={sx.current}>
-          <Box component="span" sx={sx.dot(PARENT_CATEGORY_COLORS[getParentCategoryCode(resolved.category)])} />
-          {getCategoryLabel(resolved.category, t)}
+          <Box component="span" sx={sx.dot(getCategoryColor(tree, resolved.category))} />
+          {getCategoryLabel({ code: resolved.category, tree, t })}
         </Box>
         <span>·</span>
         <span>
-          <Trans {...getSourceText({ resolved, rulesets, t })} components={{ b: <strong /> }} />
+          <Trans {...getSourceText({ resolved, rulesets })} components={{ b: <strong /> }} />
         </span>
         {sourceAction && !readOnly ? (
           <Button

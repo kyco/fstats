@@ -2,21 +2,15 @@ import { describe, expect, it } from 'vitest'
 
 import type { CategoryCode, CategoryOverride, CategoryRule, CategoryRuleset, Transaction } from '@/types'
 import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch, CategorySource } from '@/types-enums'
-import { DEFAULT_RULESET_ID, MY_RULES_ID } from '@/utils/Category'
+import { DEFAULT_TEMPLATE_ID, getTemplate } from '@/utils/Category'
 
-import {
-  compileRule,
-  createCategoryEngine,
-  getActiveRulesetIds,
-  getCategoryConflicts,
-  getNewRuleEffect,
-  getRuleRef,
-  resolveCategory,
-} from '..'
+import { compileRule, createCategoryEngine, createRuleset, getNewRuleEffect, getRuleRef, resolveCategory } from '..'
+
+const NOW = '2026-01-01T00:00:00+00:00'
 
 const toTransaction = (description: string, value = '-10.00', extra: Transaction['extra'] = null): Transaction => ({
   id: `${description}|${value}`,
-  date: '2026-01-01T00:00:00+00:00',
+  date: NOW,
   description,
   value,
   currency: 'EUR',
@@ -36,33 +30,30 @@ const toRule = (keyword: string, category: CategoryCode, rule: Partial<CategoryR
   ...rule,
 })
 
-const toRuleset = (id: string, rules: CategoryRule[]): CategoryRuleset => ({
-  id,
-  number: 1,
-  name: id,
-  rules,
-  created: '2026-01-01T00:00:00+00:00',
-  modified: '2026-01-01T00:00:00+00:00',
-})
-
-type ResolveProps = {
-  rulesetIds?: string[]
-  rulesets?: CategoryRuleset[]
-  overrides?: CategoryOverride[]
-  preset?: CategoryCode | null
+const fromTemplate = (templateId: string) => {
+  return createRuleset({ name: templateId, number: 1, now: NOW, template: getTemplate(templateId) })
 }
 
-const resolve = (
-  transaction: Transaction,
-  { rulesetIds = [MY_RULES_ID, DEFAULT_RULESET_ID], rulesets = [], overrides = [], preset }: ResolveProps = {},
-) => {
-  return resolveCategory({ transaction, engine: createCategoryEngine({ rulesetIds, rulesets, overrides }), preset })
+/**
+ * With the standard categories.
+ */
+const toRuleset = (rules: CategoryRule[]): CategoryRuleset => ({ ...fromTemplate(DEFAULT_TEMPLATE_ID), rules })
+
+type ResolveProps = {
+  ruleset?: CategoryRuleset | null
+  overrides?: CategoryOverride[]
+}
+
+const standard = fromTemplate(DEFAULT_TEMPLATE_ID)
+
+const resolve = (transaction: Transaction, { ruleset = standard, overrides = [] }: ResolveProps = {}) => {
+  return resolveCategory({ transaction, engine: createCategoryEngine({ ruleset, overrides }) })
 }
 
 const category = (description: string, props?: ResolveProps) => resolve(toTransaction(description), props).category
 
 describe('resolveCategory', () => {
-  it('should match keywords of the default rule set as whole words, ignoring case', () => {
+  it('should match keywords of the standard template as whole words, ignoring case', () => {
     expect(category('OBI Markt 123')).toBe('HOU_05')
     expect(category('Lastschrift spar Filiale')).toBe('GRO_01')
     expect(category('Müller Drogerie')).toBe('HLT_02')
@@ -79,11 +70,11 @@ describe('resolveCategory', () => {
     expect(category('Internet Banking Payment: Luno (stb) 42')).toBe('FIN_04')
   })
 
-  it('should name the rule set of the matching rule', () => {
-    expect(resolve(toTransaction('REWE'))).toEqual({
+  it('should reference the matching rule', () => {
+    expect(resolve(toTransaction('REWE'))).toMatchObject({
       category: 'GRO_01',
-      source: CategorySource.RULESET,
-      rulesetId: DEFAULT_RULESET_ID,
+      source: CategorySource.RULE,
+      rule: { rulesetId: standard.id, keyword: 'REWE' },
     })
   })
 
@@ -91,80 +82,42 @@ describe('resolveCategory', () => {
     expect(category('STEAM PURCHASE AMAZON PRIM')).toBe('FAM_06')
   })
 
-  it('should apply the rules of the selected built-in rule set only', () => {
-    const props = { rulesetIds: ['minimal_germany'] }
+  it('should apply the rules of the active rule set only', () => {
+    const ruleset = fromTemplate('minimal_germany')
 
-    expect(resolve(toTransaction('Gehalt Oktober', '3000.00'), props).category).toBe('SIN_01')
-    expect(resolve(toTransaction('Nettogehalt', '3000.00'), props).category).toBe('TFI_02')
-    expect(category('Deutsche Bahn Ticket', props)).toBe('SOU_04')
-    expect(category('REWE', props)).toBe('TFO_02')
-  })
-
-  it('should combine the checked rule sets, the longest keyword and then the first rule set winning', () => {
-    const rulesets = [toRuleset('custom', [toRule('Netto Marken-Discount', 'FAM_01'), toRule('TELEKOM', 'FAM_02')])]
-    const props = { rulesets, rulesetIds: [DEFAULT_RULESET_ID, 'custom'] }
-
-    expect(resolve(toTransaction('VISA NETTO MARKEN-DISCOUNT'), props)).toMatchObject({
-      category: 'FAM_01',
-      rulesetId: 'custom',
-    })
-    expect(resolve(toTransaction('TELEKOM Rechnung'), props)).toMatchObject({
-      category: 'HOU_03',
-      rulesetId: DEFAULT_RULESET_ID,
-    })
+    expect(resolve(toTransaction('Gehalt Oktober', '3000.00'), { ruleset }).category).toBe('SIN_01')
+    expect(resolve(toTransaction('Nettogehalt', '3000.00'), { ruleset }).category).toBe('TFI_02')
+    expect(category('Deutsche Bahn Ticket', { ruleset })).toBe('SOU_04')
+    expect(category('REWE', { ruleset })).toBe('TFO_02')
   })
 
   it('should leave transactions uncategorised by direction without a rule set', () => {
-    expect(resolve(toTransaction('REWE'), { rulesetIds: [MY_RULES_ID] })).toEqual({
+    expect(resolve(toTransaction('REWE'), { ruleset: null })).toEqual({
       category: 'TFO_02',
       source: CategorySource.NONE,
     })
-    expect(category('Interest Received', { rulesetIds: [MY_RULES_ID] })).toBe('TFO_02')
-    expect(resolve(toTransaction('Interest Received', '5.00'), { rulesetIds: [MY_RULES_ID] }).category).toBe('TFI_02')
+    expect(resolve(toTransaction('Interest Received', '5.00'), { ruleset: null }).category).toBe('TFI_02')
   })
 
-  it('should apply my rules before the rule set, with every rule set', () => {
-    const rulesets = [toRuleset(MY_RULES_ID, [toRule('REWE', 'FAM_01')])]
-
-    expect(resolve(toTransaction('REWE'), { rulesets })).toMatchObject({
-      category: 'FAM_01',
-      source: CategorySource.MY_RULE,
-      rulesetId: MY_RULES_ID,
-      rule: { rulesetId: MY_RULES_ID, id: 'REWE|FAM_01', keyword: 'REWE' },
-    })
-    expect(category('REWE', { rulesets, rulesetIds: [MY_RULES_ID] })).toBe('FAM_01')
-    // Unless unchecked
-    expect(category('REWE', { rulesets, rulesetIds: [DEFAULT_RULESET_ID] })).toBe('GRO_01')
-  })
-
-  it('should apply overrides before all rules', () => {
+  it('should apply overrides before all rules, only with categories of the rule set', () => {
     const transaction = toTransaction('REWE')
-    const rulesets = [toRuleset(MY_RULES_ID, [toRule('REWE', 'FAM_01')])]
-    const overrides = [{ transactionId: transaction.id, category: 'HOU_01', created: '2026-01-01T00:00:00+00:00' }]
+    const overrides = [{ transactionId: transaction.id, category: 'HOU_01', created: NOW }]
 
-    expect(resolve(transaction, { rulesets, overrides, rulesetIds: [MY_RULES_ID] })).toEqual({
-      category: 'HOU_01',
-      source: CategorySource.OVERRIDE,
-    })
-  })
-
-  it('should only apply the rules of the selected custom rule set', () => {
-    const rulesets = [toRuleset('custom', [toRule('Bakery', 'GRO_02')])]
-
-    expect(category('Bakery', { rulesets, rulesetIds: ['custom'] })).toBe('GRO_02')
-    // Built-in rules don't apply with a custom rule set
-    expect(category('REWE', { rulesets, rulesetIds: ['custom'] })).toBe('TFO_02')
-    expect(category('Bakery', { rulesets })).toBe('TFO_02')
+    expect(resolve(transaction, { overrides })).toEqual({ category: 'HOU_01', source: CategorySource.OVERRIDE })
+    // The minimal template has no "HOU_01", its rules apply
+    expect(resolve(transaction, { overrides, ruleset: fromTemplate('minimal_germany') }).category).toBe('TFO_02')
+    // The system categories are in every rule set
+    expect(resolve(transaction, { overrides: [{ ...overrides[0], category: 'TFO_02' }], ruleset: null }).category).toBe(
+      'TFO_02',
+    )
   })
 
   it('should match keywords at the start or the whole value', () => {
-    const rulesets = [
-      toRuleset(MY_RULES_ID, [
-        toRule('VISA NETTO', 'GRO_01', { match: CategoryRuleMatch.STARTS_WITH }),
-        toRule('Rent', 'HOU_01', { match: CategoryRuleMatch.EQUALS }),
-      ]),
-    ]
-    const props = { rulesets, rulesetIds: [MY_RULES_ID] }
+    const ruleset = toRuleset([
+      toRule('VISA NETTO', 'GRO_01', { match: CategoryRuleMatch.STARTS_WITH }),
+      toRule('Rent', 'HOU_01', { match: CategoryRuleMatch.EQUALS }),
+    ])
+    const props = { ruleset }
 
     expect(category('visa netto Marken-Discount', props)).toBe('GRO_01')
     expect(category('Payment VISA NETTO', props)).toBe('TFO_02')
@@ -177,127 +130,101 @@ describe('resolveCategory', () => {
   })
 
   it('should match contained keywords inside words, unless matching whole words', () => {
-    const rulesets = [
-      toRuleset(MY_RULES_ID, [
-        toRule('box', 'GRO_01'),
-        toRule('OBI', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
-      ]),
-    ]
-    const props = { rulesets, rulesetIds: [MY_RULES_ID] }
+    const ruleset = toRuleset([
+      toRule('box', 'GRO_01'),
+      toRule('OBI', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
+    ])
 
-    expect(category('Amazon Boxes', props)).toBe('GRO_01')
-    expect(category('OBI Markt', props)).toBe('HOU_01')
-    expect(category('T-Mobile', props)).toBe('TFO_02')
+    expect(category('Amazon Boxes', { ruleset })).toBe('GRO_01')
+    expect(category('OBI Markt', { ruleset })).toBe('HOU_01')
+    expect(category('T-Mobile', { ruleset })).toBe('TFO_02')
   })
 
   it('should match contained keywords when all their words are found, in any order', () => {
-    const rulesets = [
-      toRuleset(MY_RULES_ID, [
-        toRule('here is text', 'GRO_01'),
-        toRule('OBI markt', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
-      ]),
-    ]
-    const props = { rulesets, rulesetIds: [MY_RULES_ID] }
+    const ruleset = toRuleset([
+      toRule('here is text', 'GRO_01'),
+      toRule('OBI markt', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
+    ])
 
-    expect(category('Here is some TEXT', props)).toBe('GRO_01')
-    expect(category('texts here, it is', props)).toBe('GRO_01')
-    expect(category('here is some', props)).toBe('TFO_02')
-    expect(category('Markt OBI 42', props)).toBe('HOU_01')
-    expect(category('Markt T-Mobile', props)).toBe('TFO_02')
+    expect(category('Here is some TEXT', { ruleset })).toBe('GRO_01')
+    expect(category('texts here, it is', { ruleset })).toBe('GRO_01')
+    expect(category('here is some', { ruleset })).toBe('TFO_02')
+    expect(category('Markt OBI 42', { ruleset })).toBe('HOU_01')
+    expect(category('Markt T-Mobile', { ruleset })).toBe('TFO_02')
   })
 
   it('should match the case of the keyword unless ignoring it', () => {
-    const rulesets = [toRuleset(MY_RULES_ID, [toRule('REWE', 'FAM_01', { ignoreCase: false })])]
-    const props = { rulesets, rulesetIds: [MY_RULES_ID] }
+    const ruleset = toRuleset([toRule('REWE', 'FAM_01', { ignoreCase: false })])
 
-    expect(category('REWE Markt', props)).toBe('FAM_01')
-    expect(category('Rewe Markt', props)).toBe('TFO_02')
+    expect(category('REWE Markt', { ruleset })).toBe('FAM_01')
+    expect(category('Rewe Markt', { ruleset })).toBe('TFO_02')
   })
 
   it('should only apply rules to their direction', () => {
-    const rulesets = [toRuleset(MY_RULES_ID, [toRule('Refund', 'OTH_04', { direction: CategoryRuleDirection.IN })])]
+    const ruleset = toRuleset([toRule('Refund', 'OTH_04', { direction: CategoryRuleDirection.IN })])
 
-    expect(resolve(toTransaction('Refund', '5.00'), { rulesets }).category).toBe('OTH_04')
-    expect(resolve(toTransaction('Refund', '-5.00'), { rulesets }).category).toBe('TFO_02')
+    expect(resolve(toTransaction('Refund', '5.00'), { ruleset }).category).toBe('OTH_04')
+    expect(resolve(toTransaction('Refund', '-5.00'), { ruleset }).category).toBe('TFO_02')
   })
 
   it('should match the category of the file, but not use it', () => {
-    const rulesets = [toRuleset(MY_RULES_ID, [toRule('Groceries', 'GRO_01', { field: CategoryRuleField.CATEGORY })])]
+    const ruleset = toRuleset([toRule('Groceries', 'GRO_01', { field: CategoryRuleField.CATEGORY })])
 
-    expect(resolve(toTransaction('Shop 42', '-5.00', { category: 'Groceries' }), { rulesets }).category).toBe('GRO_01')
-    expect(resolve(toTransaction('Groceries'), { rulesets, rulesetIds: [MY_RULES_ID] }).category).toBe('TFO_02')
+    expect(resolve(toTransaction('Shop 42', '-5.00', { category: 'Groceries' }), { ruleset }).category).toBe('GRO_01')
+    expect(resolve(toTransaction('Groceries'), { ruleset }).category).toBe('TFO_02')
   })
 
-  it('should keep preset categories with a built-in rule set only', () => {
-    expect(resolve(toTransaction('REWE'), { preset: 'BUS_02' })).toEqual({
+  it('should keep preset categories the rule set has in the demo only, categorise the others with its rules', () => {
+    const engine = createCategoryEngine({ ruleset: standard, overrides: [], usePresets: true })
+    const transaction = toTransaction('REWE')
+
+    expect(resolveCategory({ transaction, engine, preset: 'BUS_02' })).toEqual({
       category: 'BUS_02',
       source: CategorySource.PRESET,
     })
-    expect(category('REWE', { preset: 'BUS_02', rulesetIds: [MY_RULES_ID] })).toBe('TFO_02')
-  })
-})
-
-describe('getCategoryConflicts', () => {
-  it('should list other rule sets matching with a different category', () => {
-    const rulesets = [
-      toRuleset('custom', [toRule('TELEKOM', 'FAM_02')]),
-      toRuleset(MY_RULES_ID, [toRule('Rechnung', 'HOU_03')]),
-    ]
-    const engine = createCategoryEngine({
-      rulesetIds: [MY_RULES_ID, DEFAULT_RULESET_ID, 'custom'],
-      rulesets,
-      overrides: [],
-    })
-    const transaction = toTransaction('TELEKOM Rechnung')
-    const resolved = resolveCategory({ transaction, engine })
-
-    // "My rules" wins, the default rule set agrees with it
-    expect(resolved).toMatchObject({ category: 'HOU_03', rulesetId: MY_RULES_ID })
-    expect(getCategoryConflicts({ transaction, engine, resolved })).toEqual([
-      { rulesetId: 'custom', category: 'FAM_02' },
-    ])
-  })
-})
-
-describe('getActiveRulesetIds', () => {
-  it('should keep the checked rule sets that exist, in their order', () => {
-    const rulesets = [toRuleset('custom', []), toRuleset(MY_RULES_ID, [])]
-
+    // Not in the standard categories, its rules apply
+    expect(resolveCategory({ transaction, engine, preset: 'SOU_01' }).category).toBe('GRO_01')
     expect(
-      getActiveRulesetIds({ rulesetIds: ['custom', 'removed', DEFAULT_RULESET_ID, MY_RULES_ID], rulesets }),
-    ).toEqual([DEFAULT_RULESET_ID, MY_RULES_ID, 'custom'])
-    expect(getActiveRulesetIds({ rulesetIds: [], rulesets })).toEqual([])
+      resolveCategory({
+        transaction: toTransaction('Miete Januar'),
+        engine: createCategoryEngine({ ruleset: fromTemplate('minimal_germany'), overrides: [], usePresets: true }),
+        preset: 'HOU_01',
+      }).category,
+    ).toBe('SOU_01')
+    expect(
+      resolveCategory({
+        transaction,
+        engine: createCategoryEngine({ ruleset: standard, overrides: [] }),
+        preset: 'BUS_02',
+      }).category,
+    ).toBe('GRO_01')
   })
 })
 
 describe('getRuleRef', () => {
   it('should prefix the number with the rule set', () => {
-    const rulesets = [{ ...toRuleset('custom', []), number: 2 }]
+    const rulesets = [{ ...standard, number: 2 }]
 
-    expect(getRuleRef({ rulesetId: MY_RULES_ID, number: 3, rulesets })).toBe('MR-003')
-    expect(getRuleRef({ rulesetId: 'custom', number: 14, rulesets })).toBe('R2-014')
+    expect(getRuleRef({ rulesetId: standard.id, number: 14, rulesets })).toBe('R2-014')
+    expect(getRuleRef({ rulesetId: 'removed', number: 3, rulesets })).toBe('R?-003')
   })
 })
 
 describe('getNewRuleEffect', () => {
-  const rulesets = [toRuleset(MY_RULES_ID, [toRule('REWE Markt', 'GRO_01')])]
   const rewe = toTransaction('REWE Markt Berlin')
   const manual = toTransaction('REWE City')
   const engine = createCategoryEngine({
-    rulesetIds: [MY_RULES_ID, DEFAULT_RULESET_ID],
-    rulesets,
-    overrides: [{ transactionId: manual.id, category: 'HOU_01', created: '2026-01-01T00:00:00+00:00' }],
+    ruleset: toRuleset([toRule('REWE Markt', 'GRO_01', { id: 'a', number: 1 })]),
+    overrides: [{ transactionId: manual.id, category: 'HOU_01', created: NOW }],
   })
-  const effect = (transaction: Transaction, keyword: string, isMyRules = true, editedId = '') =>
-    getNewRuleEffect({ transaction, engine, rule: compileRule(toRule(keyword, 'TFO_02')), isMyRules, editedId })
+  const effect = (transaction: Transaction, keyword: string, editedId = '') =>
+    getNewRuleEffect({ transaction, engine, rule: compileRule(toRule(keyword, 'TFO_02')), editedId })
 
   it('should change the category unless a more specific rule or an override wins', () => {
     expect(effect(rewe, 'REWE Markt Berlin')).toBeNull()
     expect(effect(rewe, 'REWE')).toBe('rule')
-    // Applied after "My rules"
-    expect(effect(rewe, 'REWE Markt Berlin', false)).toBe('rule')
     expect(effect(manual, 'REWE')).toBe('override')
     // The override of the edited transaction is removed
-    expect(effect(manual, 'REWE', true, manual.id)).toBeNull()
+    expect(effect(manual, 'REWE', manual.id)).toBeNull()
   })
 })

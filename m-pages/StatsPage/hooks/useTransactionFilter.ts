@@ -8,6 +8,7 @@ import { AmountFilter } from '@/types-enums'
 import { getView, MISC, WorkspaceView } from '@/common'
 import { getDirection } from '@/m-transaction/service'
 
+import { useWorkspaceCategories } from '../context'
 import { useViewStorage } from './useViewStorage'
 
 const NO_CATEGORIES = new Set<string>()
@@ -21,6 +22,7 @@ const NO_STORED_CATEGORIES: string[] = []
  */
 export const useTransactionFilter = () => {
   const isCsv = getView(useSearchParams()) === WorkspaceView.CSV
+  const { tree } = useWorkspaceCategories()
   const [storedAmountFilter, setAmountFilter] = useViewStorage<AmountFilter>(
     MISC.LS_STATS_AMOUNT_FILTER_KEY,
     AmountFilter.ALL,
@@ -48,7 +50,7 @@ export const useTransactionFilter = () => {
     () => ({ amount: AmountFilter.ALL, excludedCategories }),
     [excludedCategories],
   )
-  const direction = useMemo(() => getDirection(excludedCategories), [excludedCategories])
+  const direction = useMemo(() => getDirection(excludedCategories, tree), [excludedCategories, tree])
 
   return { filter, categoryFilter, amountFilter, setAmountFilter, direction, excludedCategories, setExcludedCategories }
 }

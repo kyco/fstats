@@ -1,53 +1,62 @@
 import type { TFunction } from 'i18next'
 import { countBy, sumBy } from 'lodash'
 
-import type { CategoryGroup, ParentCategory, ParentCategoryCode, ParentCategoryOption, Transaction } from '@/types'
-import { ALL_CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
+import type { CategoryGroup, CategoryTree, ParentCategoryOption, Transaction } from '@/types'
+import { CategoryDirection } from '@/types-enums'
+import { getCategoryLabel, getDirectionParents } from '@/m-category/service'
 import { getCategoryKey, NO_CATEGORY } from '@/m-transaction/service'
-import { getCategoryLabel } from '@/utils/Category'
 import { isIncome } from '@/utils/Stats'
 
-const KNOWN_KEYS = new Set(Object.values(ALL_CATEGORIES).flatMap((parent) => Object.keys(parent.subcategories)))
-
 type ToParentOptionsProps = {
-  categories: Record<ParentCategoryCode, ParentCategory>
+  tree: CategoryTree
+  direction: CategoryDirection
   counts: Record<string, number>
   inCounts: Record<string, number>
   t: TFunction
 }
 
-const toParentOptions = ({ categories, counts, inCounts, t }: ToParentOptionsProps): ParentCategoryOption[] => {
-  return Object.values(categories).map((parent) => {
-    const children = Object.values(parent.subcategories).map((category) => ({
+const toParentOptions = ({ tree, direction, counts, inCounts, t }: ToParentOptionsProps): ParentCategoryOption[] => {
+  return getDirectionParents(tree, direction).map((parent) => {
+    const children = parent.children.map((category) => ({
       key: category.code,
-      label: getCategoryLabel(category.code, t),
+      label: getCategoryLabel({ code: category.code, tree, t }),
       count: counts[category.code] ?? 0,
       inCount: inCounts[category.code] ?? 0,
     }))
 
     return {
       key: parent.code,
-      label: getCategoryLabel(parent.code, t),
+      label: getCategoryLabel({ code: parent.code, tree, t }),
       count: sumBy(children, 'count'),
       inCount: sumBy(children, 'inCount'),
       keys: children.map((child) => child.key),
-      children,
+      // A single subcategory (e.g. "Uncategorised") is toggled with its parent, without expanding it
+      children: children.length > 1 ? children : [],
     }
   })
+}
+
+type GetCategoryGroupsProps = {
+  transactions: Transaction[]
+  /**
+   * Of the active rule set.
+   */
+  tree: CategoryTree
+  t: TFunction
 }
 
 /**
  * All categories with their number of transactions, income and expenses, those without transactions are disabled.
  * Transactions without a (known) category are last in expenses.
  */
-export const getCategoryGroups = (transactions: Transaction[], t: TFunction): CategoryGroup[] => {
+export const getCategoryGroups = ({ transactions, tree, t }: GetCategoryGroupsProps): CategoryGroup[] => {
   const counts = countBy(transactions, getCategoryKey)
   const inCounts = countBy(transactions.filter(isIncome), getCategoryKey)
   const otherOptions = Object.keys(counts)
-    .filter((key) => !KNOWN_KEYS.has(key))
+    .filter((key) => !tree.categoriesByCode.has(key))
     .map((key) => ({
       key,
-      label: getCategoryLabel(key === NO_CATEGORY ? null : key, t),
+      label: getCategoryLabel({ code: key === NO_CATEGORY ? null : key, tree, t }),
       count: counts[key],
       inCount: inCounts[key] ?? 0,
       keys: [key],
@@ -58,12 +67,12 @@ export const getCategoryGroups = (transactions: Transaction[], t: TFunction): Ca
     {
       key: 'in',
       label: t('MISC.INCOME'),
-      parents: toParentOptions({ categories: INCOME_CATEGORIES, counts, inCounts, t }),
+      parents: toParentOptions({ tree, direction: CategoryDirection.IN, counts, inCounts, t }),
     },
     {
       key: 'out',
       label: t('MISC.EXPENSES'),
-      parents: [...toParentOptions({ categories: EXPENSE_CATEGORIES, counts, inCounts, t }), ...otherOptions],
+      parents: [...toParentOptions({ tree, direction: CategoryDirection.OUT, counts, inCounts, t }), ...otherOptions],
     },
   ]
 }

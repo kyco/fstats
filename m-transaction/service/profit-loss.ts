@@ -3,7 +3,7 @@ import { groupBy, sortBy } from 'lodash'
 
 import type {
   AccountTransaction,
-  CategoryCode,
+  CategoryTree,
   NumberString,
   ParsedStatsFile,
   ProfitLoss,
@@ -12,17 +12,12 @@ import type {
 } from '@/types'
 import { BreakdownPeriod } from '@/types-enums'
 import type { Currency } from '@/types-enums'
-import { EXPENSE_CATEGORIES } from '@/common'
-import { getCategoryLabel, getParentCategoryCode, isUncategorisedCode } from '@/utils/Category'
+import { getCategoryLabel, isExpenseCategory, isTransferCategory } from '@/m-category/service'
+import { getParentCategoryCode, isUncategorisedCode } from '@/utils/Category'
 import { getTransactionDay } from '@/utils/Date'
 import { getBankAccountId } from '@/utils/Parser'
 import { getPercentage, isExpense, isIncome, sumValues } from '@/utils/Stats'
 import { Big } from '@/lib/w-big'
-
-/**
- * Categorised as an internal transfer by the keyword rules.
- */
-const TRANSFER_CATEGORIES: CategoryCode[] = ['TFI_01', 'TFO_01']
 
 /**
  * Bank transfers can take a few days, e.g. over a weekend.
@@ -51,13 +46,14 @@ const getDayDiff = (a: Transaction, b: Transaction) => {
 }
 
 /**
- * Transfers between own accounts, which are neither income nor expenses: those categorised as such, and pairs of
- * opposite amounts in different accounts of the same currency at most `TRANSFER_MAX_DAYS` apart (closest first).
+ * Transfers between own accounts, which are neither income nor expenses: those in a category marked as transfer (see
+ * `CategoryDef.isTransfer`), and pairs of opposite amounts in different accounts of the same currency at most
+ * `TRANSFER_MAX_DAYS` apart (closest first).
  */
-export const splitTransfers = <T extends AccountTransaction>(transactions: T[]) => {
+export const splitTransfers = <T extends AccountTransaction>(transactions: T[], tree: CategoryTree) => {
   const transferIds = new Set(
     transactions
-      .filter((transaction) => transaction.category && TRANSFER_CATEGORIES.includes(transaction.category))
+      .filter((transaction) => isTransferCategory(tree, transaction.category))
       .map((transaction) => transaction.id),
   )
   const getMatchKey = (transaction: T) => `${transaction.currency}|${Big(transaction.value).abs().toString()}`
@@ -164,13 +160,14 @@ type GetCategoryRowsProps = {
   transactions: Transaction[]
   period: BreakdownPeriod
   negate: boolean
+  tree: CategoryTree
   t: TFunction
 }
 
 /**
  * One row per parent category (expandable to its subcategories), uncategorised transactions last.
  */
-const getCategoryRows = ({ transactions, period, negate, t }: GetCategoryRowsProps) => {
+const getCategoryRows = ({ transactions, period, negate, tree, t }: GetCategoryRowsProps) => {
   const uncategorised = transactions.filter(isUncategorised)
   const byParent = groupBy(
     transactions.filter((transaction) => !isUncategorised(transaction)),
@@ -179,12 +176,19 @@ const getCategoryRows = ({ transactions, period, negate, t }: GetCategoryRowsPro
 
   const rows = Object.entries(byParent).map(([parentCode, items]) => {
     const children = Object.entries(groupBy(items, (transaction) => transaction.category)).map(([code, subItems]) =>
-      toRow({ key: code, label: getCategoryLabel(code, t), transactions: subItems, period, negate, withFlows: true }),
+      toRow({
+        key: code,
+        label: getCategoryLabel({ code, tree, t }),
+        transactions: subItems,
+        period,
+        negate,
+        withFlows: true,
+      }),
     )
 
     return toRow({
       key: parentCode,
-      label: getCategoryLabel(parentCode, t),
+      label: getCategoryLabel({ code: parentCode, tree, t }),
       transactions: items,
       period,
       negate,
@@ -210,12 +214,6 @@ const getCategoryRows = ({ transactions, period, negate, t }: GetCategoryRowsPro
   ]
 }
 
-const isExpenseCategory = (transaction: Transaction) => {
-  return transaction.category
-    ? getParentCategoryCode(transaction.category) in EXPENSE_CATEGORIES
-    : isExpense(transaction)
-}
-
 /**
  * The transfers as one row per transaction, by date.
  */
@@ -236,6 +234,10 @@ const getNetMargin = (net: NumberString | undefined, income: NumberString | unde
 type GetProfitLossProps = {
   accountTransactions: AccountTransaction[]
   period: BreakdownPeriod
+  /**
+   * Of the active rule set, decides whether a category is income or an expense.
+   */
+  tree: CategoryTree
   t: TFunction
   filter?: (transactions: AccountTransaction[]) => AccountTransaction[]
 }
@@ -249,6 +251,7 @@ type GetProfitLossProps = {
 export const getProfitLoss = ({
   accountTransactions,
   period,
+  tree,
   t,
   filter = (transactions) => transactions,
 }: GetProfitLossProps): ProfitLoss[] => {
@@ -262,11 +265,11 @@ export const getProfitLoss = ({
     }
 
     const shown = new Set(currencyTransactions)
-    const split = splitTransfers(allCurrencyTransactions)
+    const split = splitTransfers(allCurrencyTransactions, tree)
     const transactions = split.transactions.filter((transaction) => shown.has(transaction))
     const transfers = split.transfers.filter((transaction) => shown.has(transaction))
-    const expenses = transactions.filter(isExpenseCategory)
-    const income = transactions.filter((transaction) => !isExpenseCategory(transaction))
+    const expenses = transactions.filter((transaction) => isExpenseCategory(tree, transaction))
+    const income = transactions.filter((transaction) => !isExpenseCategory(tree, transaction))
     const incomingTransfers = transfers.filter(isIncome)
     const outgoingTransfers = transfers.filter((transaction) => !isIncome(transaction))
     const periods = Object.keys(
@@ -289,11 +292,11 @@ export const getProfitLoss = ({
       currency: currency as Currency,
       periods,
       income: {
-        rows: getCategoryRows({ transactions: income, period, negate: false, t }),
+        rows: getCategoryRows({ transactions: income, period, negate: false, tree, t }),
         total: incomeTotal,
       },
       expenses: {
-        rows: getCategoryRows({ transactions: expenses, period, negate: true, t }),
+        rows: getCategoryRows({ transactions: expenses, period, negate: true, tree, t }),
         total: toRow({
           key: 'expenses',
           label: t('STATS_PAGE.PROFIT_LOSS.TOTAL_EXPENSES'),

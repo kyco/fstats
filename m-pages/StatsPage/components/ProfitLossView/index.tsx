@@ -11,7 +11,7 @@ import { filterDays, filterTransactions, getAccountTransactions, getProfitLoss }
 import { useTranslation } from '@/lib/i18n'
 
 import { EMPTY_REASON_TITLE_KEYS, getEmptyReason, getTransactionCountText, isMissingData } from '../../actions'
-import { useStatsTransactions, useWorkspaceFiles } from '../../context'
+import { useStatsTransactions, useWorkspaceCategories, useWorkspaceFiles } from '../../context'
 import { useBreakdownPeriod, useCurrencySelect, useTransactionFilter } from '../../hooks'
 import PreviewSection from '../PreviewSection'
 import ViewEmptyState from '../ViewEmptyState'
@@ -28,6 +28,7 @@ const Component = () => {
   const { t } = useTranslation()
   const { files, checkedFiles, selectedFiles } = useWorkspaceFiles()
   const { all, unique, shown, byCurrency, deselectedDays, count } = useStatsTransactions()
+  const { tree } = useWorkspaceCategories()
   const { period, setPeriod } = useBreakdownPeriod()
   // Income and expenses are netted, so the amount filter doesn't apply
   const { categoryFilter: filter } = useTransactionFilter()
@@ -51,10 +52,11 @@ const Component = () => {
       getProfitLoss({
         accountTransactions,
         period,
+        tree,
         t,
         filter: (transactions) => filterTransactions(filterDays(transactions, deselectedDays), filter),
       }),
-    [accountTransactions, deselectedDays, filter, period, t],
+    [accountTransactions, deselectedDays, filter, period, tree, t],
   )
   const getCaption = (currency: Currency) => {
     const counts = countsByCurrency[currency]

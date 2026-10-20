@@ -49,9 +49,9 @@ const makeStatsFileState = <T extends z.ZodType>(transaction: T) => {
       status: z.literal(StatsFileStatus.PARSED),
       sections: z.array(makeStatsFileSection(transaction)).min(1),
       /**
-       * `PARSER_VERSION` at parse time, files parsed with an older version are re-parsed. Missing for old files.
+       * `PARSER_VERSION` at parse time, files parsed with an older version are re-parsed.
        */
-      parserVersion: z.number().int().optional(),
+      parserVersion: z.number().int(),
     }),
     zStatsFileErrorState,
   ])

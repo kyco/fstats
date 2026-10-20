@@ -1,36 +1,74 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useMemo } from 'react'
+import { formatISO } from 'date-fns'
+import { sortBy } from 'lodash'
+import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
-import type { CategoryCode, CategoryOverride, CategoryRuleset } from '@/types'
+import type { CategoryCode, CategoryOverride, CategoryRuleDraft, CategoryRuleset } from '@/types'
 import { MISC } from '@/common'
-import { DEFAULT_RULESET_ID, getBuiltInRuleset, MY_RULES_ID } from '@/utils/Category'
+import { DEFAULT_TEMPLATE_ID, getTemplate, TEMPLATES } from '@/utils/Category'
+import { i18n } from '@/lib/i18n'
 
 import {
-  addCategoryRule,
-  addCategoryRuleset,
   getCategoryOverrides,
+  getCategoryRuleset,
   getCategoryRulesets,
   getCategoryStoreSize,
+  putCategoryRuleset,
   removeAllCategoryData,
   removeCategoryOverride,
-  removeCategoryRule,
   removeCategoryRuleset,
   setCategoryOverride,
+  syncCategoryRuleset,
 } from '../api'
-import { createCategoryEngine, getActiveRulesetIds, toCategoryRules } from './engine'
+import { createCategoryEngine } from './engine'
 import { categoryKey } from './keys'
+import type { RulesetUpdate } from './ruleset'
+import { addRule, createRuleset, getNextNumber, removeRule } from './ruleset'
 
 const NO_RULESETS: CategoryRuleset[] = []
 const NO_OVERRIDES: CategoryOverride[] = []
+
+/**
+ * Like `useLocalStorage`, which is notified by the event.
+ */
+const writeLocalStorage = (key: string, value: unknown) => {
+  window.localStorage.setItem(key, JSON.stringify(value))
+  window.dispatchEvent(new StorageEvent('local-storage', { key }))
+}
+
+/**
+ * The stored rule sets. New users get one per template, the standard one active. All can be deleted, transactions are
+ * then uncategorised.
+ */
+const loadCategoryRulesets = async () => {
+  const rulesets = await getCategoryRulesets()
+
+  if (rulesets.length || window.localStorage.getItem(MISC.LS_CATEGORY_RULESETS_CREATED_KEY)) {
+    return sortBy(rulesets.map(syncCategoryRuleset), 'number')
+  }
+
+  const now = formatISO(new Date())
+  const created = await Promise.all(
+    TEMPLATES.map((template, index) =>
+      putCategoryRuleset(
+        createRuleset({ name: i18n.t(`RULESETS_PAGE.TEMPLATES.${template.id}`), number: index + 1, now, template }),
+      ),
+    ),
+  )
+  const active = created[TEMPLATES.findIndex((template) => template.id === DEFAULT_TEMPLATE_ID)]
+  writeLocalStorage(MISC.LS_CATEGORY_ACTIVE_RULESET_KEY, active.id)
+  writeLocalStorage(MISC.LS_CATEGORY_RULESETS_CREATED_KEY, true)
+  return created
+}
 
 export const useCategoryRulesets = () => {
   return useQuery({
     queryKey: categoryKey.rulesets,
     queryFn: () => {
-      return getCategoryRulesets()
+      return loadCategoryRulesets()
     },
   })
 }
@@ -57,78 +95,39 @@ export const useCategoryStorageSize = () => {
 }
 
 /**
- * Stored before rule sets could be combined: a single ID, `'none'` for none. "My rules" is stored separately.
+ * The rule set deciding the categories, the first one when the stored one was removed.
  */
-const toRulesetIds = (stored: string | string[]) => {
-  const ids = typeof stored === 'string' ? (stored === 'none' ? [] : [stored]) : stored
-  return ids.filter((id) => id !== MY_RULES_ID)
+export const useActiveRuleset = () => {
+  const [storedId, setActiveId] = useLocalStorage<string | null>(MISC.LS_CATEGORY_ACTIVE_RULESET_KEY, null, {
+    initializeWithValue: false,
+  })
+  const { data: rulesets = NO_RULESETS, isLoading } = useCategoryRulesets()
+  const ruleset = rulesets.find((other) => other.id === storedId) ?? rulesets.at(0) ?? null
+
+  return { ruleset, rulesets, setActiveId, isLoading }
+}
+
+type UseCategoryEngineProps = {
+  /**
+   * The demo transactions keep their categories the active rule set has (all with the standard one), the rules
+   * categorise the others. Its transactions have no overrides, it's read-only.
+   */
+  isDemoMode?: boolean
 }
 
 /**
- * The rule sets checked in the toolbar (built-in ones, "My rules" and the user's), in their order, without removed ones.
- * "My rules" is checked unless unchecked by the user. Overrides of single transactions always apply.
+ * Decides the categories of all transactions, a new one whenever the active rule set, its rules or the overrides
+ * change.
  */
-export const useCheckedRulesets = () => {
-  const [stored, setStored] = useLocalStorage<string | string[]>(MISC.LS_CATEGORY_RULESET_KEY, [DEFAULT_RULESET_ID], {
-    initializeWithValue: false,
-  })
-  const [isMyRulesChecked, setIsMyRulesChecked] = useLocalStorage(MISC.LS_CATEGORY_MY_RULES_KEY, true, {
-    initializeWithValue: false,
-  })
-  const { data: rulesets = NO_RULESETS } = useCategoryRulesets()
-  // Memoized, the categories of all transactions are recomputed when it changes
-  const rulesetIds = useMemo(
-    () =>
-      getActiveRulesetIds({
-        rulesetIds: [...toRulesetIds(stored), ...(isMyRulesChecked ? [MY_RULES_ID] : [])],
-        rulesets,
-      }),
-    [stored, isMyRulesChecked, rulesets],
-  )
-
-  const toggleRuleset = useCallback(
-    (id: string) => {
-      if (id === MY_RULES_ID) {
-        setIsMyRulesChecked((prev) => !prev)
-        return
-      }
-
-      setStored((prev) => {
-        const ids = toRulesetIds(prev)
-        return ids.includes(id) ? ids.filter((other) => other !== id) : [...ids, id]
-      })
-    },
-    [setStored, setIsMyRulesChecked],
-  )
-
-  const checkRuleset = useCallback(
-    (id: string) => {
-      if (id === MY_RULES_ID) {
-        setIsMyRulesChecked(true)
-        return
-      }
-
-      setStored((prev) => (toRulesetIds(prev).includes(id) ? prev : [...toRulesetIds(prev), id]))
-    },
-    [setStored, setIsMyRulesChecked],
-  )
-
-  return { rulesetIds, toggleRuleset, checkRuleset }
-}
-
-/**
- * Decides the categories of all transactions, a new one whenever the rules, overrides or the checked rule sets change.
- */
-export const useCategoryEngine = () => {
-  const { rulesetIds } = useCheckedRulesets()
-  const { data: rulesets = NO_RULESETS, isLoading: isLoadingRulesets } = useCategoryRulesets()
+export const useCategoryEngine = ({ isDemoMode = false }: UseCategoryEngineProps = {}) => {
+  const { ruleset, isLoading: isLoadingRulesets } = useActiveRuleset()
   const { data: overrides = NO_OVERRIDES, isLoading: isLoadingOverrides } = useCategoryOverrides()
   const engine = useMemo(
-    () => createCategoryEngine({ rulesetIds, rulesets, overrides }),
-    [rulesetIds, rulesets, overrides],
+    () => createCategoryEngine({ ruleset, overrides: isDemoMode ? NO_OVERRIDES : overrides, usePresets: isDemoMode }),
+    [isDemoMode, ruleset, overrides],
   )
 
-  return { engine, isLoading: isLoadingRulesets || isLoadingOverrides }
+  return { engine, ruleset, isLoading: isLoadingRulesets || isLoadingOverrides }
 }
 
 const useInvalidateCategories = () => {
@@ -136,49 +135,55 @@ const useInvalidateCategories = () => {
   return () => queryClient.invalidateQueries({ queryKey: categoryKey.all })
 }
 
-export const useMutateAddCategoryRule = () => {
+type UpdateRulesetProps = {
+  rulesetId: string
+  update: RulesetUpdate
+}
+
+/**
+ * Changes the stored rule set, see the changes in `ruleset.ts`.
+ */
+export const useMutateUpdateRuleset = () => {
   const onSettled = useInvalidateCategories()
 
   return useMutation({
-    mutationFn: (props: Parameters<typeof addCategoryRule>[0]) => {
-      return addCategoryRule(props)
+    mutationFn: async ({ rulesetId, update }: UpdateRulesetProps) => {
+      const ruleset = await getCategoryRuleset(rulesetId)
+      return putCategoryRuleset({ ...update(ruleset), modified: formatISO(new Date()) })
     },
     onSettled,
   })
 }
 
-export const useMutateRemoveCategoryRule = () => {
-  const onSettled = useInvalidateCategories()
-
-  return useMutation({
-    mutationFn: (props: Parameters<typeof removeCategoryRule>[0]) => {
-      return removeCategoryRule(props)
-    },
-    onSettled,
-  })
-}
-
-type AddCategoryRulesetProps = {
+type AddRulesetProps = {
   name: string
   /**
-   * Built-in rule set whose rules it starts with, otherwise empty.
+   * Its categories and rules are copied, otherwise those of `copyOfId`, empty without either.
    */
-  copyFrom?: string
+  templateId?: string
+  copyOfId?: string
 }
 
-export const useMutateAddCategoryRuleset = () => {
+export const useMutateAddRuleset = () => {
   const onSettled = useInvalidateCategories()
 
   return useMutation({
-    mutationFn: ({ name, copyFrom }: AddCategoryRulesetProps) => {
-      const builtIn = copyFrom ? getBuiltInRuleset(copyFrom) : undefined
-      return addCategoryRuleset({ name, rules: builtIn ? toCategoryRules(builtIn) : [] })
+    mutationFn: async ({ name, templateId, copyOfId }: AddRulesetProps) => {
+      const rulesets = await loadCategoryRulesets()
+      const ruleset = createRuleset({
+        name,
+        number: getNextNumber(rulesets),
+        now: formatISO(new Date()),
+        template: templateId ? getTemplate(templateId) : undefined,
+        copyOf: rulesets.find((other) => other.id === copyOfId),
+      })
+      return putCategoryRuleset(ruleset)
     },
     onSettled,
   })
 }
 
-export const useMutateRemoveCategoryRuleset = () => {
+export const useMutateRemoveRuleset = () => {
   const onSettled = useInvalidateCategories()
 
   return useMutation({
@@ -187,6 +192,33 @@ export const useMutateRemoveCategoryRuleset = () => {
     },
     onSettled,
   })
+}
+
+type AddCategoryRuleProps = {
+  rulesetId: string
+  rule: CategoryRuleDraft
+}
+
+export const useMutateAddCategoryRule = () => {
+  const { mutateAsync, ...mutation } = useMutateUpdateRuleset()
+  return {
+    ...mutation,
+    mutateAsync: ({ rulesetId, rule }: AddCategoryRuleProps) => mutateAsync({ rulesetId, update: addRule(rule) }),
+  }
+}
+
+type RemoveCategoryRuleProps = {
+  rulesetId: string
+  ruleId: string
+}
+
+export const useMutateRemoveCategoryRule = () => {
+  const { mutateAsync, ...mutation } = useMutateUpdateRuleset()
+  return {
+    ...mutation,
+    mutateAsync: ({ rulesetId, ruleId }: RemoveCategoryRuleProps) =>
+      mutateAsync({ rulesetId, update: removeRule(ruleId) }),
+  }
 }
 
 type SetCategoryOverrideProps = {

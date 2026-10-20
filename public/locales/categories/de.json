@@ -21,8 +21,9 @@
   "SIN": "Einnahmen",
   "SIN_01": "Einkommen",
   "SIN_02": "Staat & Versicherung",
-  "TFI": "Umbuchungen & Nicht kategorisiert",
-  "TFI_01": "Interne Umbuchung",
+  "TRI": "Umbuchungen",
+  "TRI_01": "Interne Umbuchung",
+  "TFI": "Nicht kategorisiert",
   "TFI_02": "Nicht kategorisiert",
   "HOU": "Wohnen & Nebenkosten",
   "HOU_01": "Miete & Hypothek",
@@ -87,8 +88,9 @@
   "SOU_03": "Software & SaaS",
   "SOU_04": "Reisen",
   "SOU_05": "Büroausstattung",
-  "TFO": "Umbuchungen & Nicht kategorisiert",
-  "TFO_01": "Interne Umbuchung",
+  "TRO": "Umbuchungen",
+  "TRO_01": "Interne Umbuchung",
+  "TFO": "Nicht kategorisiert",
   "TFO_02": "Nicht kategorisiert",
   "UNCATEGORISED": "Nicht kategorisiert"
 }

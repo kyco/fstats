@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 import type { NumberString, ParentCategoryWithTransactions } from '@/types'
 import { Currency } from '@/types-enums'
-import { PARENT_CATEGORY_COLORS } from '@/common'
 import { Big } from '@/lib/w-big'
 
 import { getSortedCategories } from '../../actions'
@@ -20,12 +19,14 @@ type BreakdownRowProps = {
 const Component = ({ category, parentCategoryTotal, currency }: BreakdownRowProps) => {
   const theme = useTheme()
   const sx = ui(theme)
-  const color = PARENT_CATEGORY_COLORS[category.code]
+  const { color } = category
   const [expanded, setExpanded] = useState(false)
   const subcategories = getSortedCategories(Object.values(category.subcategories), 'totalDesc')
+  // A single subcategory (e.g. "Uncategorised") would repeat the parent
+  const isExpandable = subcategories.length > 1
 
   return (
-    <ButtonBase sx={sx.button} onClick={() => setExpanded(!expanded)}>
+    <ButtonBase sx={sx.button} disabled={!isExpandable} onClick={() => setExpanded(!expanded)}>
       <BreakdownCells
         label={category.label}
         total={category.total}
@@ -35,7 +36,7 @@ const Component = ({ category, parentCategoryTotal, currency }: BreakdownRowProp
         size="md"
       />
 
-      {expanded
+      {expanded && isExpandable
         ? subcategories.map((subcategory) => (
             <BreakdownCells
               key={subcategory.code}

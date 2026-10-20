@@ -1,20 +1,39 @@
-import { defaultRuleset, minimalGermanyRuleset } from './rulesets'
+import type { ParentCategoryDef } from '@/types'
+import { CategoryDirection } from '@/types-enums'
+
+import { defaultTemplate, minimalGermanyTemplate } from './templates'
 
 /**
- * The built-in rule sets, checked in the stats page toolbar. Their IDs are stored as the checked rule sets, never change
- * them.
+ * The templates users can create a rule set from, see `createRulesetFromTemplate`.
  */
-export const RULESETS = [defaultRuleset, minimalGermanyRuleset] as const
+export const TEMPLATES = [defaultTemplate, minimalGermanyTemplate] as const
 
-export type BuiltInRulesetId = (typeof RULESETS)[number]['id']
-
-export const DEFAULT_RULESET_ID: BuiltInRulesetId = 'default'
+export type TemplateId = (typeof TEMPLATES)[number]['id']
 
 /**
- * ID of the stored rule set holding "My rules", which apply with every rule set.
+ * Rule set of new users.
  */
-export const MY_RULES_ID = 'my_rules'
+export const DEFAULT_TEMPLATE_ID: TemplateId = 'default'
 
-export const getBuiltInRuleset = (id: string) => {
-  return RULESETS.find((ruleset) => ruleset.id === id)
+export const getTemplate = (id: string) => {
+  return TEMPLATES.find((template) => template.id === id)
 }
+
+/**
+ * Of every rule set, can't be changed: uncategorised, for money in and out, where transactions no rule matches end up.
+ * Listed after the user's categories.
+ */
+export const SYSTEM_CATEGORIES: ParentCategoryDef[] = [
+  {
+    code: 'TFI',
+    color: 'blueGrey',
+    direction: CategoryDirection.IN,
+    children: [{ code: 'TFI_02' }],
+  },
+  {
+    code: 'TFO',
+    color: 'blueGrey',
+    direction: CategoryDirection.OUT,
+    children: [{ code: 'TFO_02' }],
+  },
+]

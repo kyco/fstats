@@ -11,22 +11,26 @@ import {
   getNewRuleEffect,
   getRuleDescriptionMatches,
   matchesRule,
-  useCategoryEngine,
   useCategoryRulesets,
 } from '@/m-category/service'
 import { isParsed } from '@/m-stats-file/service'
 import { filterTransactions, getSourcedTransactions, getTransactionCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
 import { getTransactionDay } from '@/utils/Date'
+import { filterBySearch, highlightMatches, toSearchText } from '@/utils/Search'
 import { useTranslation } from '@/lib/i18n'
 
 import { getTransactionCountText } from '../../actions'
-import { useWorkspace, useWorkspaceDayFilter, useWorkspaceSelectedTransaction } from '../../context'
+import {
+  useWorkspace,
+  useWorkspaceCategories,
+  useWorkspaceDayFilter,
+  useWorkspaceSelectedTransaction,
+} from '../../context'
 import FileMessage from '../FileMessage'
 import PreviewSection from '../PreviewSection'
 import { STICKY_HEADER_OFFSET } from '../PreviewSection/actions'
 import VirtualTable from '../VirtualTable'
-import { filterBySearch, highlightMatches, toSearchText } from '../VirtualTable/actions'
 import {
   getCategoryInfo,
   getCategoryPreview,
@@ -93,7 +97,8 @@ const Component = ({
   const { locale, dateFormat } = useUserPreferences()
   const { deselectedDays } = useWorkspaceDayFilter()
   const selected = useWorkspaceSelectedTransaction()
-  const { engine } = useCategoryEngine()
+  const engine = useWorkspaceCategories()
+  const { tree } = engine
   const { data: rulesets = NO_RULESETS } = useCategoryRulesets()
   const { edit, guard } = selected
   // Asks first while the category form is open in the sidebar, it would be discarded
@@ -139,7 +144,10 @@ const Component = ({
         : shownTransactions.filter((transaction) => !deselectedDays.has(getTransactionDay(transaction))),
     [shownTransactions, includeDateExcluded, deselectedDays],
   )
-  const cellOptions = useMemo(() => ({ currency, locale, dateFormat, t }), [currency, locale, dateFormat, t])
+  const cellOptions = useMemo(
+    () => ({ currency, locale, dateFormat, tree, t }),
+    [currency, locale, dateFormat, tree, t],
+  )
   // Computed once a search starts, so typing only compares strings
   const isSearching = !!search
   const searchTexts = useMemo(
@@ -160,7 +168,7 @@ const Component = ({
       ),
     [transactions, deselectedDays],
   )
-  // Where the categories are from and other rule sets that would categorise differently, for the info column
+  // Where the categories are from, for the info column
   const categoryInfos = useMemo(
     () => transactions.map((transaction) => getCategoryInfo({ transaction, engine, rulesets, isDemoMode, t })),
     [transactions, engine, rulesets, isDemoMode, t],
@@ -176,7 +184,6 @@ const Component = ({
                     transaction,
                     engine,
                     rule: ruleMatcher,
-                    isMyRules: rulePreview.isMyRules,
                     editedId: rulePreview.editedId,
                   }),
                 }
@@ -202,6 +209,7 @@ const Component = ({
             effect: ruleEffects?.[rowIndex],
             current: transactions[rowIndex].category,
             category: rulePreview?.category ?? null,
+            tree,
             t,
           })}
           onClick={isDemoMode ? undefined : (anchor) => editCategory(transactions[rowIndex], anchor)}
@@ -211,25 +219,9 @@ const Component = ({
       getDescriptionHighlights: ruleMatcher
         ? (rowIndex) => getRuleDescriptionMatches(transactions[rowIndex], ruleMatcher)
         : undefined,
-      conflicts: {
-        isShown: categoryInfos.some((info) => info.conflicts),
-        getText: (rowIndex) => categoryInfos[rowIndex].conflicts,
-      },
       tags: shownTags.length ? { shown: shownTags, getTag: (rowIndex) => tags[rowIndex] } : undefined,
     })
-  }, [
-    currency,
-    t,
-    tags,
-    transactions,
-    search,
-    isDemoMode,
-    editCategory,
-    ruleMatcher,
-    ruleEffects,
-    rulePreview,
-    categoryInfos,
-  ])
+  }, [currency, t, tags, transactions, search, isDemoMode, editCategory, ruleMatcher, ruleEffects, rulePreview, tree])
 
   // Only tables with matches are shown, see `NoSearchResultsDisplay`
   if (parsedFiles.length && search && !transactions.length) {
@@ -264,7 +256,7 @@ const Component = ({
               transaction: transactions[index],
               showSource: isCombined,
               tag: tags[index],
-              categoryLines: categoryInfos[index].lines,
+              categoryLines: categoryInfos[index],
               t,
             }),
           ]}

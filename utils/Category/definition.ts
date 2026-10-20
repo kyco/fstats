@@ -1,5 +1,7 @@
-import type { RulesetDef } from '@/types'
+import type { CategoryTemplateDef } from '@/types'
 
-export const defineRuleset = <const Id extends string>(ruleset: RulesetDef & { id: Id }): RulesetDef & { id: Id } => {
-  return ruleset
+export const defineTemplate = <const Id extends string>(
+  template: CategoryTemplateDef & { id: Id },
+): CategoryTemplateDef & { id: Id } => {
+  return template
 }

@@ -1,8 +1,8 @@
 import { groupBy, mapValues, uniq } from 'lodash'
 
 import type {
+  CategoryTree,
   CheckedTransactions,
-  ParentCategory,
   ParsedStatsFile,
   SourcedTransaction,
   StatsTransactions,
@@ -11,8 +11,8 @@ import type {
   TransactionFilter,
 } from '@/types'
 import type { Currency } from '@/types-enums'
-import { AmountFilter } from '@/types-enums'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/common'
+import { AmountFilter, CategoryDirection } from '@/types-enums'
+import { getDirectionParents } from '@/m-category/service'
 import { getFileCurrency, getFileTransactions } from '@/m-stats-file/service'
 import { getTransactionDay } from '@/utils/Date'
 import { isExpense, isIncome } from '@/utils/Stats'
@@ -60,29 +60,31 @@ export const filterTransactions = <T extends Transaction>(
     : amountTransactions
 }
 
-const getSubcategoryKeys = (categories: Record<string, ParentCategory>) => {
-  return Object.values(categories).flatMap((parent) => Object.keys(parent.subcategories))
+type IsAllExcludedProps = {
+  excludedCategories: Set<string>
+  tree: CategoryTree
+  direction: CategoryDirection
 }
 
 /**
- * Category filter keys of the income and expense categories (and transactions without a category, like the filters).
+ * Whether all categories of the direction (and transactions without a category for expenses, like the filters) are
+ * excluded.
  */
-const DIRECTION_KEYS = {
-  [AmountFilter.IN]: getSubcategoryKeys(INCOME_CATEGORIES),
-  [AmountFilter.OUT]: [...getSubcategoryKeys(EXPENSE_CATEGORIES), NO_CATEGORY],
-}
-
-const isAllExcluded = (excludedCategories: Set<string>, direction: keyof typeof DIRECTION_KEYS) => {
-  return DIRECTION_KEYS[direction].every((key) => excludedCategories.has(key))
+const isAllExcluded = ({ excludedCategories, tree, direction }: IsAllExcludedProps) => {
+  const keys = [
+    ...getDirectionParents(tree, direction).flatMap((parent) => parent.children.map((child) => child.code)),
+    ...(direction === CategoryDirection.OUT ? [NO_CATEGORY] : []),
+  ]
+  return keys.every((key) => excludedCategories.has(key))
 }
 
 /**
  * Direction shown by the category filter: income or expenses when all categories of the other are excluded, all when
  * neither, `null` when both.
  */
-export const getDirection = (excludedCategories: Set<string>): AmountFilter | null => {
-  const isInExcluded = isAllExcluded(excludedCategories, AmountFilter.IN)
-  const isOutExcluded = isAllExcluded(excludedCategories, AmountFilter.OUT)
+export const getDirection = (excludedCategories: Set<string>, tree: CategoryTree): AmountFilter | null => {
+  const isInExcluded = isAllExcluded({ excludedCategories, tree, direction: CategoryDirection.IN })
+  const isOutExcluded = isAllExcluded({ excludedCategories, tree, direction: CategoryDirection.OUT })
 
   if (isInExcluded && isOutExcluded) {
     return null

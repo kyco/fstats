@@ -1,6 +1,7 @@
 import type { ParsedStatsFile } from '@/types'
 import { StatsFileStatus } from '@/types-enums'
 import { DEMO_TRANSACTIONS, MISC } from '@/common'
+import { PARSER_VERSION } from '@/utils/Parser'
 import { Big } from '@/lib/w-big'
 
 export const DEMO_FILE_ID = 'demo'
@@ -92,6 +93,7 @@ export const getDemoFile = (): ParsedStatsFile => {
     hash: DEMO_FILE_ID,
     status: StatsFileStatus.PARSED,
     sections: [{ parserId: 'lloyds__current', transactions: DEMO_TRANSACTIONS }],
+    parserVersion: PARSER_VERSION,
   }
 
   return demoFile

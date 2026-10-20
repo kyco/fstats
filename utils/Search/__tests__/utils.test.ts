@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { filterBySearch, splitMatches, toSearchQuery, toSearchText } from '../actions'
+import { filterBySearch, splitMatches, toSearchQuery, toSearchText } from '../utils'
 
 describe('search', () => {
   const rows = [

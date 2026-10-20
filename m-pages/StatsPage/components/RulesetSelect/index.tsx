@@ -1,65 +1,29 @@
 'use client'
 
-import { ArrowDropDown, DeleteOutlined, FilterAltOutlined } from '@mui/icons-material'
-import { Box, Button, Checkbox, IconButton, Tooltip } from '@mui/material'
-import type { ReactNode } from 'react'
+import { ArrowDropDown, Check, LabelOutlined, SettingsOutlined } from '@mui/icons-material'
+import { Box, Button, Tooltip } from '@mui/material'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import { DropdownMenu, DropdownMenuItem, DropdownMenuSubheader } from '@/components'
-import {
-  getCustomRulesets,
-  useCategoryRulesets,
-  useCheckedRulesets,
-  useMutateRemoveCategoryRuleset,
-} from '@/m-category/service'
-import { MY_RULES_ID, RULESETS } from '@/utils/Category'
+import { ROUTES } from '@/common'
+import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem } from '@/components'
+import { useActiveRuleset } from '@/m-category/service'
 import { useTranslation } from '@/lib/i18n'
 
-import { getRulesetName, getRulesetsLabel } from './actions'
 import { ui } from './styled'
 
 /**
- * Checks the rule sets that categorise the transactions, combined: "My rules", built-in ones and the user's. Categories
- * set for single transactions always apply.
+ * Switches the rule set that decides the categories (also in demo mode), and links to the rule sets page to manage
+ * them.
  */
 const Component = () => {
   const sx = ui()
   const { t } = useTranslation()
+  const router = useRouter()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
-  const { rulesetIds, toggleRuleset } = useCheckedRulesets()
-  const { data: rulesets = [] } = useCategoryRulesets()
-  const { mutate: removeRuleset } = useMutateRemoveCategoryRuleset()
-  const customRulesets = getCustomRulesets(rulesets)
+  const { ruleset: activeRuleset, rulesets, setActiveId } = useActiveRuleset()
   const title = t('STATS_PAGE.CATEGORY_RULES.TITLE')
-
-  const remove = (id: string, name: string) => {
-    if (confirm(t('STATS_PAGE.CATEGORY_RULES.CONFIRM_DELETE_RULESET', { name }))) {
-      removeRuleset(id)
-    }
-  }
-
-  const renderItem = (id: string, label: string, end?: ReactNode) => {
-    const isChecked = rulesetIds.includes(id)
-
-    return (
-      <DropdownMenuItem
-        key={id}
-        // The menu stays open, so rule sets can be combined
-        onClick={() => toggleRuleset(id)}
-        role="menuitemcheckbox"
-        aria-checked={isChecked}
-        start={<Checkbox size="small" checked={isChecked} tabIndex={-1} sx={sx.checkbox} />}
-        label={
-          <Box component="span" sx={sx.option}>
-            <Box component="span" sx={sx.name}>
-              {label}
-            </Box>
-            {end}
-          </Box>
-        }
-      />
-    )
-  }
+  const label = activeRuleset?.name ?? t('STATS_PAGE.CATEGORY_RULES.NONE')
 
   return (
     <>
@@ -68,7 +32,7 @@ const Component = () => {
           size="small"
           variant="outlined"
           color="inherit"
-          startIcon={<FilterAltOutlined />}
+          startIcon={<LabelOutlined />}
           endIcon={<ArrowDropDown />}
           onClick={(event) => setAnchor(event.currentTarget)}
           aria-label={title}
@@ -77,35 +41,38 @@ const Component = () => {
           sx={sx.button}
         >
           <Box component="span" sx={sx.buttonLabel}>
-            {getRulesetsLabel({ ids: rulesetIds, rulesets, t })}
+            {label}
           </Box>
         </Button>
       </Tooltip>
       <DropdownMenu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
-        <DropdownMenuSubheader>{t('STATS_PAGE.CATEGORY_RULES.BUILT_IN')}</DropdownMenuSubheader>
-        {RULESETS.map((ruleset) => renderItem(ruleset.id, getRulesetName({ id: ruleset.id, rulesets, t })))}
-        <DropdownMenuSubheader>{t('STATS_PAGE.CATEGORY_RULES.CUSTOM')}</DropdownMenuSubheader>
-        {/* Applied before the rule sets */}
-        {renderItem(MY_RULES_ID, t('STATS_PAGE.CATEGORY_RULES.MY_RULES'))}
-        {customRulesets.map((ruleset) =>
-          renderItem(
-            ruleset.id,
-            ruleset.name,
-            <Tooltip title={t('STATS_PAGE.CATEGORY_RULES.DELETE_RULESET')}>
-              <IconButton
-                size="small"
-                aria-label={t('STATS_PAGE.CATEGORY_RULES.DELETE_RULESET')}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  remove(ruleset.id, ruleset.name)
-                }}
-                sx={sx.deleteButton}
-              >
-                <DeleteOutlined sx={sx.deleteIcon} />
-              </IconButton>
-            </Tooltip>,
-          ),
-        )}
+        {rulesets.map((ruleset) => {
+          const isActive = ruleset.id === activeRuleset?.id
+
+          return (
+            <DropdownMenuItem
+              key={ruleset.id}
+              onClick={() => {
+                setActiveId(ruleset.id)
+                setAnchor(null)
+              }}
+              role="menuitemradio"
+              aria-checked={isActive}
+              start={<Check sx={sx.check(isActive)} />}
+              label={
+                <Box component="span" sx={sx.name}>
+                  {ruleset.name}
+                </Box>
+              }
+            />
+          )
+        })}
+        <DropdownMenuDivider />
+        <DropdownMenuItem
+          onClick={() => router.push(ROUTES.RULESETS)}
+          start={<SettingsOutlined sx={sx.icon} />}
+          label={t('STATS_PAGE.CATEGORY_RULES.MANAGE')}
+        />
       </DropdownMenu>
     </>
   )

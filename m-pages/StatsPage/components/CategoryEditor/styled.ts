@@ -195,16 +195,6 @@ export const ui = (theme: Theme) => {
     noticeIcon: {
       fontSize: 16,
     },
-    checkboxes: {
-      display: 'flex',
-      gap: 2,
-    },
-    checkbox: {
-      mx: 0,
-      gap: 0.5,
-      '& .MuiCheckbox-root': sxSmallCheckbox,
-      '& .MuiFormControlLabel-label': { fontSize: 13 },
-    },
     dot: (color?: GradientColorsLightDark) => ({
       flexShrink: 0,
       width: 6,
@@ -215,6 +205,12 @@ export const ui = (theme: Theme) => {
         backgroundColor: color ? color.dark.end : theme.vars.palette.grey[600],
       },
     }),
+    // Where the rule is saved, below the fields
+    saveTo: {
+      mt: -1,
+      fontSize: 12,
+      color: 'text.secondary',
+    },
     error: {
       fontSize: 12,
       color: 'error.main',
@@ -223,6 +219,14 @@ export const ui = (theme: Theme) => {
       display: 'flex',
       justifyContent: 'flex-end',
       gap: 1,
+    },
+    // Only the box and its label are clickable, not the whole width
+    checkbox: {
+      alignSelf: 'flex-start',
+      mx: 0,
+      gap: 0.5,
+      '& .MuiCheckbox-root': sxSmallCheckbox,
+      '& .MuiFormControlLabel-label': { fontSize: 13 },
     },
   }
 }

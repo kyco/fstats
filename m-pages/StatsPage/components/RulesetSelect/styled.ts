@@ -1,5 +1,3 @@
-import { sxSmallCheckbox } from '@/styles/styled'
-
 export const ui = () => {
   return {
     // Like the format selects of the parser setup
@@ -24,31 +22,19 @@ export const ui = () => {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
     },
-    option: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 1,
-      width: '100%',
-    },
     name: {
       minWidth: 0,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
     },
-    // The item handles the click
-    checkbox: {
-      ...sxSmallCheckbox,
-      p: 0,
-      ml: -0.25,
-      pointerEvents: 'none',
-    },
-    deleteButton: {
-      ml: 'auto',
-      my: -0.5,
-      p: 0.25,
-    },
-    deleteIcon: {
+    // Only shown for the active rule set, keeps the names aligned
+    check: (isActive: boolean) => ({
       fontSize: 16,
+      visibility: isActive ? 'visible' : 'hidden',
+    }),
+    icon: {
+      fontSize: 16,
+      color: 'text.secondary',
     },
   }
 }

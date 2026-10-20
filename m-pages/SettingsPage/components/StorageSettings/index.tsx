@@ -20,7 +20,6 @@ import {
 } from '@/m-category/service'
 import { useCustomParsers, useCustomParsersSize, useMutateRemoveAllCustomParsers } from '@/m-custom-parser/service'
 import { useFiles, useMutateRemoveAllFiles, useStorageSize } from '@/m-stats-file/service'
-import { MY_RULES_ID } from '@/utils/Category'
 import { formatFileSize } from '@/utils/File'
 import { useTranslation } from '@/lib/i18n'
 
@@ -105,9 +104,7 @@ const Component = () => {
                 id: ruleset.id,
                 label: (
                   <>
-                    <strong>
-                      {ruleset.id === MY_RULES_ID ? t('STATS_PAGE.CATEGORY_RULES.MY_RULES') : ruleset.name}
-                    </strong>{' '}
+                    <strong>{ruleset.name}</strong>{' '}
                     {t('SETTINGS_PAGE.STORAGE.RULE_COUNT', { count: ruleset.rules.length })}
                   </>
                 ),

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Transaction } from '@/types'
+import { getTemplateTree } from '@/m-category/service'
 import { NO_CATEGORY } from '@/m-transaction/service'
+import { DEFAULT_TEMPLATE_ID } from '@/utils/Category'
 import { i18n } from '@/lib/i18n'
 
 import { getCategoryGroups } from '../actions'
@@ -10,16 +12,17 @@ const toTransaction = (category: string | null, value = '-1') => ({ category, va
 
 describe('getCategoryGroups', () => {
   it('should count the categories of the transactions, income and expenses', () => {
-    const groups = getCategoryGroups(
-      [
+    const groups = getCategoryGroups({
+      transactions: [
         toTransaction('INC_01', '1'),
         toTransaction('HOU_01'),
         toTransaction('HOU_01', '1'),
         toTransaction('HOU_02'),
         toTransaction(null),
       ],
-      i18n.t,
-    )
+      tree: getTemplateTree(DEFAULT_TEMPLATE_ID),
+      t: i18n.t,
+    })
     const findParent = (groupIndex: number, key: string) =>
       groups[groupIndex].parents.find((parent) => parent.key === key)
 
@@ -32,6 +35,8 @@ describe('getCategoryGroups', () => {
     // All children are toggled, also those without transactions
     expect(findParent(1, 'HOU')?.children.length).toBeGreaterThan(2)
     expect(findParent(1, 'HOU')?.keys).toEqual(findParent(1, 'HOU')?.children.map((child) => child.key))
+    // A single subcategory is toggled with its parent
+    expect(findParent(1, 'TFO')).toMatchObject({ keys: ['TFO_02'], children: [] })
     // Without a category last
     expect(groups[1].parents.at(-1)?.keys).toEqual([NO_CATEGORY])
   })

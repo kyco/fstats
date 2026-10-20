@@ -6,9 +6,11 @@ import type { KeyboardEvent } from 'react'
 import { Fragment, useRef, useState } from 'react'
 
 import type { MenuSelectOption } from '@/types'
-import { DropdownMenu, DropdownMenuItem, DropdownMenuSubheader } from '@/components'
+import { highlightMatches } from '@/utils/Search'
 
-import { highlightMatches } from '../../../VirtualTable/actions'
+import DropdownMenu from '../DropdownMenu'
+import DropdownMenuItem from '../DropdownMenuItem'
+import DropdownMenuSubheader from '../DropdownMenuSubheader'
 import { filterOptions } from './actions'
 import { ui } from './styled'
 

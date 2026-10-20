@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import type { CategoryCode, ParsedStatsFile, Transaction } from '@/types'
 import { BreakdownPeriod, Currency, StatsFileStatus } from '@/types-enums'
+import { getTemplateTree } from '@/m-category/service'
+import { DEFAULT_TEMPLATE_ID } from '@/utils/Category'
 import { i18n } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
 import { getAccountTransactions, getCheckedTransactions, getPeriodKey, getProfitLoss, splitTransfers } from '..'
+
+const tree = getTemplateTree(DEFAULT_TEMPLATE_ID)
 
 const toTransaction = (
   day: string,
@@ -48,7 +52,10 @@ describe('splitTransfers', () => {
     const tooLate = toAccountTransaction('comdirect__current', '2026-01-10', '-50')
     const tooLateIncoming = toAccountTransaction('ing__current', '2026-01-14', '50')
 
-    const { transactions, transfers } = splitTransfers([outgoing, incoming, sameAccount, tooLate, tooLateIncoming])
+    const { transactions, transfers } = splitTransfers(
+      [outgoing, incoming, sameAccount, tooLate, tooLateIncoming],
+      tree,
+    )
 
     expect(transfers).toEqual([outgoing, incoming])
     expect(transactions).toEqual([sameAccount, tooLate, tooLateIncoming])
@@ -60,17 +67,17 @@ describe('splitTransfers', () => {
     const far = toAccountTransaction('comdirect__current', '2026-01-03', '100')
     const close = toAccountTransaction('comdirect__current', '2026-01-02', '100')
 
-    const { transactions, transfers } = splitTransfers([first, second, far, close])
+    const { transactions, transfers } = splitTransfers([first, second, far, close], tree)
 
     expect(transfers).toEqual([first, second, far, close])
     expect(transactions).toEqual([])
   })
 
-  it('should exclude transactions categorised as transfers without a counterpart', () => {
-    const transfer = toAccountTransaction('ing__current', '2026-01-01', '-100', 'TFO_01')
+  it('should exclude transactions in a transfer category without a counterpart', () => {
+    const transfer = toAccountTransaction('ing__current', '2026-01-01', '-100', 'TRO_01')
     const other = toAccountTransaction('ing__current', '2026-01-01', '-20', 'GRO_01')
 
-    expect(splitTransfers([transfer, other])).toEqual({ transactions: [other], transfers: [transfer] })
+    expect(splitTransfers([transfer, other], tree)).toEqual({ transactions: [other], transfers: [transfer] })
   })
 })
 
@@ -95,6 +102,7 @@ describe('getProfitLoss', () => {
     const [profitLoss] = getProfitLoss({
       accountTransactions: toAccountTransactions(files),
       period: BreakdownPeriod.MONTH,
+      tree,
       t: i18n.t,
     })
 
@@ -127,6 +135,7 @@ describe('getProfitLoss', () => {
     const [profitLoss] = getProfitLoss({
       accountTransactions: toAccountTransactions(files),
       period: BreakdownPeriod.MONTH,
+      tree,
       t: i18n.t,
     })
     const [health, grocery] = profitLoss.expenses.rows
@@ -158,6 +167,7 @@ describe('getProfitLoss', () => {
     const [profitLoss] = getProfitLoss({
       accountTransactions: toAccountTransactions(files),
       period: BreakdownPeriod.MONTH,
+      tree,
       t: i18n.t,
       filter: withoutIncoming,
     })
@@ -176,6 +186,7 @@ describe('getProfitLoss', () => {
       getProfitLoss({
         accountTransactions: toAccountTransactions(files),
         period: BreakdownPeriod.YEAR,
+        tree,
         t: i18n.t,
         filter: () => [],
       }),
@@ -194,9 +205,12 @@ describe('getProfitLoss', () => {
     ]
 
     expect(
-      getProfitLoss({ accountTransactions: toAccountTransactions(files), period: BreakdownPeriod.YEAR, t: i18n.t }).map(
-        (profitLoss) => profitLoss.currency,
-      ),
+      getProfitLoss({
+        accountTransactions: toAccountTransactions(files),
+        period: BreakdownPeriod.YEAR,
+        tree,
+        t: i18n.t,
+      }).map((profitLoss) => profitLoss.currency),
     ).toEqual([Currency.EUR, Currency.ZAR])
   })
 })
