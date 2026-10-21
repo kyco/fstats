@@ -1,41 +1,29 @@
 import type { TFunction } from 'i18next'
 
-import type {
-  CategoryCode,
-  CategoryTree,
-  ParentCategoryCode,
-  ParentCategoryDef,
-  ParentCategoryNode,
-  Transaction,
-} from '@/types'
+import type { CategoryTree, ParentCategoryDef, ParentCategoryNode, Transaction } from '@/types'
 import { CategoryDirection } from '@/types-enums'
 import { CATEGORY_COLORS } from '@/common'
-import { getTemplate, SYSTEM_CATEGORIES } from '@/utils/Category'
+import { getTemplate } from '@/utils/Category'
 import { isExpense } from '@/utils/Stats'
 
 import { toTemplateCategories } from './ruleset'
 
-const toParentNode = (parent: ParentCategoryDef, isSystem: boolean): ParentCategoryNode => {
-  return {
-    ...parent,
-    children: parent.children.map((child) => ({ ...child, parentCode: parent.code })),
-    isSystem,
-  }
+const toParentNode = (parent: ParentCategoryDef): ParentCategoryNode => {
+  return { ...parent, children: parent.children.map((child) => ({ ...child, parentId: parent.id })) }
 }
 
 /**
- * The categories with the system categories (last of their direction), income first.
+ * The categories, income first.
  */
 export const buildCategoryTree = (categories: ParentCategoryDef[]): CategoryTree => {
-  const parents = [CategoryDirection.IN, CategoryDirection.OUT].flatMap((direction) => [
-    ...categories.filter((parent) => parent.direction === direction).map((parent) => toParentNode(parent, false)),
-    ...SYSTEM_CATEGORIES.filter((parent) => parent.direction === direction).map((parent) => toParentNode(parent, true)),
-  ])
+  const parents = [CategoryDirection.IN, CategoryDirection.OUT].flatMap((direction) =>
+    categories.filter((parent) => parent.direction === direction).map(toParentNode),
+  )
 
   return {
     parents,
-    parentsByCode: new Map(parents.map((parent) => [parent.code, parent])),
-    categoriesByCode: new Map(parents.flatMap((parent) => parent.children.map((child) => [child.code, child]))),
+    parentsById: new Map(parents.map((parent) => [parent.id, parent])),
+    categoriesById: new Map(parents.flatMap((parent) => parent.children.map((child) => [child.id, child]))),
   }
 }
 
@@ -63,33 +51,33 @@ export const getDirectionParents = (tree: CategoryTree, direction: CategoryDirec
 /**
  * The parent category of a (sub)category of the tree.
  */
-export const getParentCategory = (tree: CategoryTree, code: CategoryCode | ParentCategoryCode | null) => {
-  if (!code) {
+export const getParentCategory = (tree: CategoryTree, id: string | null) => {
+  if (!id) {
     return undefined
   }
 
-  return tree.parentsByCode.get(tree.categoriesByCode.get(code)?.parentCode ?? code)
+  return tree.parentsById.get(tree.categoriesById.get(id)?.parentId ?? id)
 }
 
 type GetCategoryLabelProps = {
-  code: CategoryCode | ParentCategoryCode | null
+  id: string | null
   tree: CategoryTree
   t: TFunction
 }
 
 /**
- * As named by the user, otherwise translated (categories of the templates), the code itself when unknown.
+ * As named by the user, otherwise translated (categories of the templates), the ID itself when unknown.
  */
-export const getCategoryLabel = ({ code, tree, t }: GetCategoryLabelProps): string => {
-  const node = code ? (tree.categoriesByCode.get(code) ?? tree.parentsByCode.get(code)) : undefined
-  return node?.label ?? t(code ?? 'UNCATEGORISED', { ns: 'categories' })
+export const getCategoryLabel = ({ id, tree, t }: GetCategoryLabelProps): string => {
+  const node = id ? (tree.categoriesById.get(id) ?? tree.parentsById.get(id)) : undefined
+  return node?.label ?? t(id ?? 'UNCATEGORISED', { ns: 'categories' })
 }
 
 /**
  * Of the parent category, `undefined` when not in the tree.
  */
-export const getCategoryColor = (tree: CategoryTree, code: CategoryCode | ParentCategoryCode | null) => {
-  const parent = getParentCategory(tree, code)
+export const getCategoryColor = (tree: CategoryTree, id: string | null) => {
+  const parent = getParentCategory(tree, id)
   return parent ? CATEGORY_COLORS[parent.color] : undefined
 }
 
@@ -105,13 +93,13 @@ export const isExpenseCategory = (tree: CategoryTree, transaction: Transaction) 
 /**
  * Transfers between the user's own accounts, excluded from profit and loss, see `CategoryDef.isTransfer`.
  */
-export const isTransferCategory = (tree: CategoryTree, code: CategoryCode | null) => {
-  return !!code && !!tree.categoriesByCode.get(code)?.isTransfer
+export const isTransferCategory = (tree: CategoryTree, id: string | null) => {
+  return !!id && !!tree.categoriesById.get(id)?.isTransfer
 }
 
 /**
- * Whether the code is a category of the tree, e.g. not of another rule set.
+ * Whether the ID is a category of the tree, e.g. not of another rule set.
  */
-export const hasCategory = (tree: CategoryTree, code: CategoryCode) => {
-  return tree.categoriesByCode.has(code)
+export const hasCategory = (tree: CategoryTree, id: string) => {
+  return tree.categoriesById.has(id)
 }

@@ -13,7 +13,9 @@ import { useState } from 'react'
 
 import type { StorageDeleteAction, StorageListTab } from '@/types'
 import {
+  getRuleCount,
   useCategoryOverrides,
+  useCategoryRules,
   useCategoryRulesets,
   useCategoryStorageSize,
   useMutateRemoveAllCategoryData,
@@ -41,6 +43,7 @@ const Component = () => {
   const { mutateAsync: removeAllCustomParsers } = useMutateRemoveAllCustomParsers()
   const { data: rulesets = [], isLoading: isLoadingRulesets } = useCategoryRulesets()
   const { data: overrides = [], isLoading: isLoadingOverrides } = useCategoryOverrides()
+  const { data: rules = [], isLoading: isLoadingRules } = useCategoryRules()
   const { mutateAsync: removeAllCategoryData } = useMutateRemoveAllCategoryData()
   // One at a time, the others are disabled meanwhile
   const [running, setRunning] = useState<StorageDeleteAction | null>(null)
@@ -58,9 +61,9 @@ const Component = () => {
   const fileCount = files.length
   const hasFiles = fileCount > 0
   const hasParsers = parsers.length > 0
-  // Rules of all rule sets and the categories changed for single transactions
-  const ruleCount = rulesets.reduce((count, ruleset) => count + ruleset.rules.length, 0) + overrides.length
-  const hasRules = rulesets.length > 0 || overrides.length > 0
+  // The user's rules (their library) and the categories changed for single transactions
+  const ruleCount = rules.length + overrides.length
+  const hasRules = rulesets.length > 0 || rules.length > 0 || overrides.length > 0
 
   const runDelete = async ({ action, confirmKey, remove }: RunDeleteProps) => {
     if (!confirm(t(confirmKey))) {
@@ -105,10 +108,23 @@ const Component = () => {
                 label: (
                   <>
                     <strong>{ruleset.name}</strong>{' '}
-                    {t('SETTINGS_PAGE.STORAGE.RULE_COUNT', { count: ruleset.rules.length })}
+                    {t('SETTINGS_PAGE.STORAGE.RULE_COUNT', { count: getRuleCount(ruleset) })}
                   </>
                 ),
               })),
+              ...(rules.length
+                ? [
+                    {
+                      id: 'rules',
+                      label: (
+                        <>
+                          <strong>{t('SETTINGS_PAGE.STORAGE.YOUR_RULES')}</strong>{' '}
+                          {t('SETTINGS_PAGE.STORAGE.RULE_COUNT', { count: rules.length })}
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
               ...(overrides.length
                 ? [
                     {
@@ -181,7 +197,9 @@ const Component = () => {
           <ButtonBase {...getTabProps('rules')}>
             <RuleOutlined sx={sx.statIcon} />
             <Box sx={sx.statText}>
-              <Typography sx={sx.statValue(isLoadingRulesets || isLoadingOverrides)}>{ruleCount}</Typography>
+              <Typography sx={sx.statValue(isLoadingRulesets || isLoadingRules || isLoadingOverrides)}>
+                {ruleCount}
+              </Typography>
               <Typography variant="caption" sx={sx.statLabel}>
                 {t('SETTINGS_PAGE.STORAGE.CATEGORY_RULES', { count: ruleCount })}
               </Typography>

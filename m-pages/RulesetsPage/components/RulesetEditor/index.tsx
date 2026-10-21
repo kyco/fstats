@@ -11,6 +11,7 @@ import { buildCategoryTree, useMutateUpdateRuleset } from '@/m-category/service'
 import { useTranslation } from '@/lib/i18n'
 
 import CategorySection from './components/CategorySection'
+import LibrarySection from './components/LibrarySection'
 import { ui } from './styled'
 
 type RulesetEditorProps = {
@@ -20,7 +21,7 @@ type RulesetEditorProps = {
 }
 
 /**
- * The name, categories and rules of a rule set, changed in place.
+ * The name, categories, rules and library mappings of a rule set, changed in place.
  */
 const Component = ({ ruleset, rulesets, isActive }: RulesetEditorProps) => {
   const sx = ui()
@@ -71,6 +72,7 @@ const Component = ({ ruleset, rulesets, isActive }: RulesetEditorProps) => {
           title={t('MISC.EXPENSES')}
           onUpdate={update}
         />
+        <LibrarySection ruleset={ruleset} tree={tree} onUpdate={update} />
       </Box>
     </Card>
   )

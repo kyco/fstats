@@ -13,7 +13,6 @@ import type {
 import { BreakdownPeriod } from '@/types-enums'
 import type { Currency } from '@/types-enums'
 import { getCategoryLabel, isExpenseCategory, isTransferCategory } from '@/m-category/service'
-import { getParentCategoryCode, isUncategorisedCode } from '@/utils/Category'
 import { getTransactionDay } from '@/utils/Date'
 import { getBankAccountId } from '@/utils/Parser'
 import { getPercentage, isExpense, isIncome, sumValues } from '@/utils/Stats'
@@ -153,7 +152,7 @@ const sortRows = (rows: ProfitLossRow[]) => {
 }
 
 const isUncategorised = (transaction: Transaction) => {
-  return isUncategorisedCode(transaction.category)
+  return !transaction.category
 }
 
 type GetCategoryRowsProps = {
@@ -171,14 +170,14 @@ const getCategoryRows = ({ transactions, period, negate, tree, t }: GetCategoryR
   const uncategorised = transactions.filter(isUncategorised)
   const byParent = groupBy(
     transactions.filter((transaction) => !isUncategorised(transaction)),
-    (transaction) => getParentCategoryCode(transaction.category!),
+    (transaction) => tree.categoriesById.get(transaction.category!)?.parentId ?? transaction.category!,
   )
 
-  const rows = Object.entries(byParent).map(([parentCode, items]) => {
-    const children = Object.entries(groupBy(items, (transaction) => transaction.category)).map(([code, subItems]) =>
+  const rows = Object.entries(byParent).map(([parentId, items]) => {
+    const children = Object.entries(groupBy(items, (transaction) => transaction.category)).map(([id, subItems]) =>
       toRow({
-        key: code,
-        label: getCategoryLabel({ code, tree, t }),
+        key: id,
+        label: getCategoryLabel({ id, tree, t }),
         transactions: subItems,
         period,
         negate,
@@ -187,8 +186,8 @@ const getCategoryRows = ({ transactions, period, negate, tree, t }: GetCategoryR
     )
 
     return toRow({
-      key: parentCode,
-      label: getCategoryLabel({ code: parentCode, tree, t }),
+      key: parentId,
+      label: getCategoryLabel({ id: parentId, tree, t }),
       transactions: items,
       period,
       negate,

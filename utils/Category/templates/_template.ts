@@ -3,8 +3,8 @@
  *
  * 1. Copy to `utils/Category/templates/{template_id}.ts` and rename the export
  * 2. Export it from `templates/index.ts` and add it to `TEMPLATES` in `registry.ts`
- * 3. Add its name to `RULESETS_PAGE.TEMPLATES` and the labels of new category codes to
- *    `public/locales/categories/{en,de}.json`
+ * 3. Add its name and description to `RULESETS_PAGE.TEMPLATES` and `RULESETS_PAGE.TEMPLATE_DESCRIPTIONS`, and the
+ *    labels of new categories to `public/locales/categories/{en,de}.json`
  * 4. Run `pnpm typecheck` and `pnpm test`
  */
 import { defineTemplate } from '../definition'
@@ -16,37 +16,39 @@ export const newTemplate = defineTemplate({
   id: 'new_template',
   income: {
     /**
-     * Parent categories for money in, with the codes of their subcategories (`{PARENT}_{NN}`). Codes of other
-     * templates can be reused when they mean the same, a category set for a single transaction then stays when
-     * switching rule sets. The system category "Uncategorised" (`SYSTEM_CATEGORIES`) is always there. With
-     * `isTransfer`, the subcategories are internal transfers, excluded from profit and loss (e.g. 'TRI' and 'TRO' of
-     * the standard template).
+     * Parent categories for money in, with the IDs of their subcategories. IDs are slugs, unique in the template (parent
+     * categories and subcategories), labelled by their translations. Reuse an ID of another template only when it means
+     * the same. With `isTransfer`, the subcategories are internal transfers, excluded from profit and loss.
+     * Transactions nothing assigns are uncategorised, there's no category for that.
      */
     categories: [
-      { code: 'INC', color: 'green', children: ['INC_01'] },
-      { code: 'TRI', color: 'cyan', children: ['TRI_01'], isTransfer: true },
+      { id: 'income', color: 'green', children: ['salary'] },
+      { id: 'income_transfers', color: 'cyan', children: ['transfers_in'], isTransfer: true },
     ],
     /**
-     * Rules for money in (also zero amounts). Keywords match whole words of the description, ignoring case. When
-     * several keywords match, the longest wins.
+     * Categories of what the library recognises (see `utils/Category/library/`), by hint (`HINTS`), for money in (also
+     * zero amounts). Unmapped hints stay uncategorised.
      */
-    rules: [
-      {
-        category: 'INC_01',
-        keywords: ['SALARY'],
-      },
-    ],
+    hints: {
+      salary: 'salary',
+      own_account_transfer: 'transfers_in',
+      card_settlement: 'transfers_in',
+    },
+    /**
+     * Optional: categories of single library keywords, before their hints (`null` leaves them uncategorised).
+     */
+    keywords: {
+      'global.dividends': 'salary',
+    },
   },
   /**
    * Like `income`, for money out.
    */
   expense: {
-    categories: [{ code: 'GRO', color: 'orange', children: ['GRO_01'] }],
-    rules: [
-      {
-        category: 'GRO_01',
-        keywords: ['REWE', 'ALDI'],
-      },
-    ],
+    categories: [{ id: 'food', color: 'orange', children: ['groceries'] }],
+    hints: {
+      supermarket: 'groceries',
+      bakery: 'groceries',
+    },
   },
 })

@@ -1,0 +1,428 @@
+import { CategoryRuleDirection, Country } from '@/types-enums'
+
+import { defineLibraryPack } from '../definition'
+
+/**
+ * South Africa.
+ */
+export const zaPack = defineLibraryPack({
+  id: 'za',
+  libraryKeywords: [
+    // Income
+    {
+      id: 'sassa',
+      name: 'SASSA',
+      hint: 'benefits',
+      keywords: ['SASSA'],
+      direction: CategoryRuleDirection.IN,
+      examples: ['SASSA GRANT 0426'],
+    },
+
+    // Housing
+    {
+      id: 'eskom',
+      name: 'Eskom',
+      hint: 'energy',
+      keywords: ['ESKOM'],
+      examples: ['ESKOM PREPAID 1234'],
+    },
+    {
+      id: 'prepaid_electricity',
+      name: 'Prepaid electricity',
+      hint: 'energy',
+      keywords: ['PREPAID ELECTRICITY', 'PREPAID ELEC', 'CITY POWER'],
+      examples: ['Prepaid Electricity 01234567890'],
+    },
+    {
+      id: 'municipality',
+      name: 'Municipality',
+      hint: 'utilities',
+      keywords: ['CITY OF CAPE TOWN', 'CITY OF JOHANNESBURG', 'CITY OF TSHWANE', 'ETHEKWINI'],
+      examples: ['CITY OF CAPE TOWN 1234567890'],
+    },
+    {
+      id: 'levies',
+      name: 'Levies',
+      hint: 'levies',
+      keywords: ['LEVIES', 'BODY CORPORATE'],
+      examples: ['BODY CORPORATE UNIT 12 LEVIES'],
+    },
+    {
+      id: 'adt',
+      name: 'ADT',
+      hint: 'home_security',
+      keywords: ['ADT', 'FIDELITY ADT'],
+      countries: [Country.ZA],
+      examples: ['FIDELITY ADT 1234567'],
+    },
+    {
+      id: 'armed_response',
+      name: 'Armed response',
+      hint: 'home_security',
+      keywords: ['ARMED RESPONSE'],
+      examples: ['ARMED RESPONSE MONTHLY'],
+    },
+    {
+      id: 'builders',
+      name: 'Builders',
+      hint: 'diy',
+      keywords: ['BUILDERS WAREHOUSE', 'BUILDERS EXPRESS'],
+      examples: ['BUILDERS WAREHOUSE 123'],
+    },
+    {
+      id: 'cashbuild',
+      name: 'Cashbuild',
+      hint: 'diy',
+      keywords: ['CASHBUILD'],
+      examples: ['CASHBUILD 123'],
+    },
+    {
+      id: 'tv_licence',
+      name: 'SABC TV Licence',
+      hint: 'broadcasting_fee',
+      keywords: ['SABC'],
+      examples: ['SABC TV LIC 123456'],
+    },
+
+    // Telecom
+    {
+      id: 'vodacom',
+      name: 'Vodacom',
+      hint: 'mobile',
+      keywords: ['VODACOM'],
+      examples: ['VODACOM 0821234567'],
+    },
+    {
+      id: 'mtn',
+      name: 'MTN',
+      hint: 'mobile',
+      keywords: ['MTN'],
+      countries: [Country.ZA],
+      examples: ['MTN PREPAID 0831234567'],
+    },
+    {
+      id: 'cell_c',
+      name: 'Cell C',
+      hint: 'mobile',
+      keywords: ['CELL C'],
+      examples: ['CELL C AIRTIME'],
+    },
+    {
+      id: 'telkom',
+      name: 'Telkom',
+      hint: 'telecom',
+      keywords: ['TELKOM'],
+      examples: ['TELKOM SA 1234567'],
+    },
+
+    // Groceries
+    {
+      id: 'checkers',
+      name: 'Checkers',
+      hint: 'supermarket',
+      keywords: ['CHECKERS'],
+      examples: ['CHECKERS HYPER 1234', 'Checkers Sixty60'],
+    },
+    {
+      id: 'shoprite',
+      name: 'Shoprite',
+      hint: 'supermarket',
+      keywords: ['SHOPRITE'],
+      examples: ['SHOPRITE 1234'],
+    },
+    {
+      id: 'pick_n_pay',
+      name: 'Pick n Pay',
+      hint: 'supermarket',
+      keywords: ['PICK N PAY', 'PNP'],
+      examples: ['PNP FAM MENLYN', 'PICK N PAY 123'],
+    },
+    {
+      id: 'woolworths',
+      name: 'Woolworths',
+      hint: 'supermarket',
+      keywords: ['WOOLWORTHS'],
+      examples: ['WOOLWORTHS 1234'],
+    },
+    {
+      id: 'food_lovers',
+      name: "Food Lover's Market",
+      hint: 'supermarket',
+      keywords: ["FOOD LOVER'S", 'FOOD LOVERS'],
+      examples: ['FOOD LOVERS MARKET 123'],
+    },
+    {
+      id: 'boxer',
+      name: 'Boxer',
+      hint: 'supermarket',
+      keywords: ['BOXER SUPERSTORES', 'BOXER'],
+      countries: [Country.ZA],
+      examples: ['BOXER SUPERSTORES 12'],
+    },
+    {
+      id: 'makro',
+      name: 'Makro',
+      hint: 'general_stores',
+      keywords: ['MAKRO'],
+      examples: ['MAKRO 123'],
+    },
+
+    // Food
+    {
+      id: 'mr_d',
+      name: 'Mr D',
+      hint: 'food_delivery',
+      keywords: ['MR D FOOD'],
+      examples: ['MR D FOOD 1234'],
+    },
+    {
+      id: 'steers',
+      name: 'Steers',
+      hint: 'fast_food',
+      keywords: ['STEERS'],
+      examples: ['STEERS 1234'],
+    },
+    {
+      id: 'debonairs',
+      name: 'Debonairs Pizza',
+      hint: 'fast_food',
+      keywords: ['DEBONAIRS'],
+      examples: ['DEBONAIRS PIZZA 123'],
+    },
+    {
+      id: 'romans_pizza',
+      name: "Roman's Pizza",
+      hint: 'fast_food',
+      keywords: ['ROMANS PIZZA', "ROMAN'S PIZZA"],
+      examples: ['ROMANS PIZZA 123'],
+    },
+    {
+      id: 'wimpy',
+      name: 'Wimpy',
+      hint: 'restaurant',
+      keywords: ['WIMPY'],
+      examples: ['WIMPY 1234'],
+    },
+    {
+      id: 'spur',
+      name: 'Spur',
+      hint: 'restaurant',
+      // "Spur" alone is also German (lane, trace)
+      keywords: ['SPUR STEAK'],
+      examples: ['SPUR STEAK RANCHES 123'],
+    },
+    {
+      id: 'mugg_and_bean',
+      name: 'Mugg & Bean',
+      hint: 'coffee',
+      keywords: ['MUGG & BEAN', 'MUGG AND BEAN', 'MUGG&BEAN'],
+      examples: ['MUGG & BEAN 123'],
+    },
+    {
+      id: 'vida_e_caffe',
+      name: 'Vida e Caffè',
+      hint: 'coffee',
+      keywords: ['VIDA E CAFFE'],
+      examples: ['VIDA E CAFFE 123'],
+    },
+
+    // Transport
+    {
+      id: 'engen',
+      name: 'Engen',
+      hint: 'fuel',
+      keywords: ['ENGEN'],
+      examples: ['ENGEN 1234'],
+    },
+    {
+      id: 'sasol',
+      name: 'Sasol',
+      hint: 'fuel',
+      keywords: ['SASOL'],
+      examples: ['SASOL 1234'],
+    },
+    {
+      id: 'caltex',
+      name: 'Caltex',
+      hint: 'fuel',
+      keywords: ['CALTEX', 'ASTRON ENERGY'],
+      examples: ['CALTEX 1234'],
+    },
+    {
+      id: 'sanral',
+      name: 'SANRAL (e-toll)',
+      hint: 'tolls',
+      keywords: ['SANRAL', 'E-TOLL', 'ETOLL', 'TOLL PLAZA'],
+      examples: ['SANRAL E-TOLL 1234'],
+    },
+    {
+      id: 'gautrain',
+      name: 'Gautrain',
+      hint: 'public_transport',
+      keywords: ['GAUTRAIN'],
+      examples: ['GAUTRAIN 1234'],
+    },
+    {
+      id: 'myciti',
+      name: 'MyCiTi',
+      hint: 'public_transport',
+      keywords: ['MYCITI'],
+      examples: ['MYCITI 1234'],
+    },
+    {
+      id: 'flysafair',
+      name: 'FlySafair',
+      hint: 'flights',
+      keywords: ['FLYSAFAIR', 'SAFAIR'],
+      examples: ['FLYSAFAIR 1234'],
+    },
+    {
+      id: 'kulula',
+      name: 'kulula.com',
+      hint: 'flights',
+      keywords: ['KULULA'],
+      examples: ['KULULA.COM 1234'],
+    },
+
+    // Health & insurance
+    {
+      id: 'clicks',
+      name: 'Clicks',
+      hint: 'pharmacy',
+      keywords: ['CLICKS'],
+      countries: [Country.ZA],
+      examples: ['CLICKS 1234'],
+    },
+    {
+      id: 'dis_chem',
+      name: 'Dis-Chem',
+      hint: 'pharmacy',
+      keywords: ['DIS-CHEM', 'DISCHEM'],
+      examples: ['DIS-CHEM 123'],
+    },
+    {
+      id: 'medical_aid',
+      name: 'Medical aid',
+      hint: 'health_insurance',
+      keywords: ['MEDICAL AID', 'DISCOVERY HEALTH', 'BONITAS', 'MEDSHIELD', 'MOMENTUM HEALTH'],
+      examples: ['DISCOVERY HEALTH 123456', 'MEDICAL AID CLAIM'],
+    },
+    {
+      id: 'discovery_insure',
+      name: 'Discovery Insure',
+      hint: 'vehicle_insurance',
+      keywords: ['DISCOVERY INSURE'],
+      examples: ['DISCOVERY INSURE 1234'],
+    },
+    {
+      id: 'discovery_life',
+      name: 'Discovery Life',
+      hint: 'life_insurance',
+      keywords: ['DISCOVERY LIFE'],
+      examples: ['DISCOVERY LIFE 1234'],
+    },
+    {
+      id: 'outsurance',
+      name: 'OUTsurance',
+      hint: 'insurance',
+      keywords: ['OUTSURANCE'],
+      examples: ['OUTSURANCE 1234567'],
+    },
+    {
+      id: 'santam',
+      name: 'Santam',
+      hint: 'insurance',
+      keywords: ['SANTAM'],
+      examples: ['SANTAM 1234'],
+    },
+    {
+      id: 'old_mutual',
+      name: 'Old Mutual',
+      hint: 'insurance',
+      keywords: ['OLD MUTUAL'],
+      examples: ['OLD MUTUAL 1234'],
+    },
+
+    // Shopping & subscriptions
+    {
+      id: 'takealot',
+      name: 'Takealot',
+      hint: 'online_shopping',
+      keywords: ['TAKEALOT'],
+      examples: ['TAKEALOT.COM'],
+    },
+    {
+      id: 'edgars',
+      name: 'Edgars',
+      hint: 'clothing',
+      keywords: ['EDGARS'],
+      examples: ['EDGARS 1234'],
+    },
+    {
+      id: 'ackermans',
+      name: 'Ackermans',
+      hint: 'clothing',
+      keywords: ['ACKERMANS'],
+      examples: ['ACKERMANS 1234'],
+    },
+    {
+      id: 'pep',
+      name: 'PEP',
+      hint: 'clothing',
+      keywords: ['PEP STORES'],
+      examples: ['PEP STORES 1234'],
+    },
+    {
+      id: 'truworths',
+      name: 'Truworths',
+      hint: 'clothing',
+      keywords: ['TRUWORTHS'],
+      examples: ['TRUWORTHS 123'],
+    },
+    {
+      id: 'incredible_connection',
+      name: 'Incredible Connection',
+      hint: 'electronics',
+      keywords: ['INCREDIBLE CONNECTION'],
+      examples: ['INCREDIBLE CONNECTION 12'],
+    },
+    {
+      id: 'dstv',
+      name: 'DStv',
+      hint: 'streaming',
+      keywords: ['DSTV', 'MULTICHOICE'],
+      examples: ['DSTV 1234567'],
+    },
+    {
+      id: 'showmax',
+      name: 'Showmax',
+      hint: 'streaming',
+      keywords: ['SHOWMAX'],
+      examples: ['SHOWMAX 1234'],
+    },
+
+    // Finance
+    {
+      id: 'sars',
+      name: 'SARS',
+      hint: 'tax',
+      keywords: ['SARS'],
+      countries: [Country.ZA],
+      examples: ['SARS EFILING 1234567890'],
+    },
+    {
+      id: 'luno',
+      name: 'Luno',
+      hint: 'investments',
+      keywords: ['LUNO'],
+      examples: ['Internet Banking Payment: Luno (stb) 42'],
+    },
+    {
+      id: 'easyequities',
+      name: 'EasyEquities',
+      hint: 'investments',
+      keywords: ['EASYEQUITIES', 'EASY EQUITIES'],
+      examples: ['EASYEQUITIES 1234'],
+    },
+  ],
+})

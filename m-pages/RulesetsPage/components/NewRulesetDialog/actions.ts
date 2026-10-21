@@ -1,9 +1,15 @@
 import type { TFunction } from 'i18next'
 
-import type { CategoryRuleset, CategoryTemplateDef, ParentCategoryDef, RulesetStartOption } from '@/types'
-import { getCategoryCount, isUnchangedTemplate, toTemplateCategories, toTemplateRules } from '@/m-category/service'
+import type { CategoryRuleset, CategoryTemplateDef, RulesetStartOption } from '@/types'
+import {
+  getMappingCount,
+  getRuleCount,
+  isUnchangedTemplate,
+  toTemplateCategories,
+  toTemplateMappings,
+} from '@/m-category/service'
 
-import { getCopyName } from '../../actions'
+import { getCopyName, getRulesetCounts } from '../../actions'
 
 /**
  * Value of the option starting without categories (other than the system ones) and rules.
@@ -11,16 +17,6 @@ import { getCopyName } from '../../actions'
 export const EMPTY_START = 'empty'
 
 export const toTemplateStart = (templateId: string) => `template:${templateId}`
-
-type GetCountsProps = {
-  categories: ParentCategoryDef[]
-  ruleCount: number
-  t: TFunction
-}
-
-const getCounts = ({ categories, ruleCount, t }: GetCountsProps) => {
-  return `${t('RULESETS_PAGE.CATEGORY_COUNT', { count: getCategoryCount(categories) })} · ${t('RULESETS_PAGE.RULE_COUNT', { count: ruleCount })}`
-}
 
 type GetStartGroupsProps = {
   templates: readonly CategoryTemplateDef[]
@@ -44,9 +40,10 @@ export const getStartGroups = ({ templates, rulesets, t }: GetStartGroupsProps) 
             value: toTemplateStart(template.id),
             label: name,
             description: t(`RULESETS_PAGE.TEMPLATE_DESCRIPTIONS.${template.id}`),
-            counts: getCounts({
+            counts: getRulesetCounts({
               categories: toTemplateCategories(template),
-              ruleCount: toTemplateRules(template).length,
+              ruleCount: 0,
+              mappingCount: getMappingCount(toTemplateMappings(template)),
               t,
             }),
             name: getCopyName({ name, rulesets, t }),
@@ -56,7 +53,7 @@ export const getStartGroups = ({ templates, rulesets, t }: GetStartGroupsProps) 
           value: EMPTY_START,
           label: t('RULESETS_PAGE.EMPTY'),
           description: t('RULESETS_PAGE.EMPTY_DESCRIPTION'),
-          counts: getCounts({ categories: [], ruleCount: 0, t }),
+          counts: getRulesetCounts({ categories: [], ruleCount: 0, mappingCount: 0, t }),
           name: '',
         },
       ],
@@ -68,7 +65,12 @@ export const getStartGroups = ({ templates, rulesets, t }: GetStartGroupsProps) 
         .map((ruleset) => ({
           value: `copy:${ruleset.id}`,
           label: ruleset.name,
-          counts: getCounts({ categories: ruleset.categories, ruleCount: ruleset.rules.length, t }),
+          counts: getRulesetCounts({
+            categories: ruleset.categories,
+            ruleCount: getRuleCount(ruleset),
+            mappingCount: getMappingCount(ruleset.mappings),
+            t,
+          }),
           name: getCopyName({ name: ruleset.name, rulesets, t }),
         })),
     },

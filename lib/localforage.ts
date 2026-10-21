@@ -10,6 +10,7 @@ let userStore: LocalForage | null = null
 let customParsersStore: LocalForage | null = null
 let categoryRulesetsStore: LocalForage | null = null
 let categoryOverridesStore: LocalForage | null = null
+let categoryRulesStore: LocalForage | null = null
 
 export const initStorage = () => {
   filesStore = localforage.createInstance({
@@ -40,6 +41,12 @@ export const initStorage = () => {
     ...baseConfig,
     storeName: 'fstats__category_overrides',
     description: 'Category overrides store',
+  })
+
+  categoryRulesStore = localforage.createInstance({
+    ...baseConfig,
+    storeName: 'fstats__category_rules',
+    description: 'Category rules store (the user library)',
   })
 }
 
@@ -84,5 +91,11 @@ export const db = {
       throw new Error('DB not initialised! Call initStorage() first.')
     }
     return categoryOverridesStore
+  },
+  get categoryRulesStore() {
+    if (!categoryRulesStore) {
+      throw new Error('DB not initialised! Call initStorage() first.')
+    }
+    return categoryRulesStore
   },
 }

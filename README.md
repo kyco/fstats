@@ -39,7 +39,7 @@ By default, your files **get deleted** when you close the tab or browser window.
 
 ### Categories
 
-Transactions are categorised by the active rule set, chosen in the toolbar of the stats page. A rule set has your own categories (parent categories with subcategories, for money in or out) and the keyword rules that assign them (the longest matching keyword wins). Manage them on the rule sets page: create a rule set from a template ([Standard](utils/Category/templates/default.ts), [Minimal - Germany](utils/Category/templates/minimal_germany.ts)), as a copy or empty, then rename, add, reorder or delete categories and rules. Click the category of a transaction to change it for that transaction only, or to create a rule for all matching transactions in the active rule set.
+Transactions are categorised by the active rule set, chosen in the toolbar of the stats page. A rule set has your own categories (parent categories with subcategories, for money in or out) and the keyword rules that assign them (the longest matching keyword wins). Manage them on the rule sets page: create a rule set from the [Personal](utils/Category/templates/default.ts) template, as a copy or empty, then rename, add, reorder or delete categories and rules. Click the category of a transaction to change it for that transaction only, or to create a rule for all matching transactions in the active rule set.
 
 ## Development
 

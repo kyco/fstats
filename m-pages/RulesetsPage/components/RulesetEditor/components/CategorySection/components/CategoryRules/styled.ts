@@ -46,6 +46,50 @@ export const ui = () => {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
     },
+    // The name of a hint or library keyword, expanding to its library keywords
+    toggle: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.25,
+      flexGrow: 1,
+      minWidth: 0,
+      justifyContent: 'flex-start',
+      textAlign: 'left',
+    },
+    // Underlined, it expands like a link opens
+    toggleName: {
+      minWidth: 0,
+      fontWeight: 500,
+      textDecoration: 'underline',
+      textUnderlineOffset: 2,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+    // Below the hint, aligned with its name
+    expanded: {
+      display: 'flex',
+      flexDirection: 'column',
+      ml: 14,
+      mb: 0.5,
+      pl: 0.75,
+      borderLeft: 1,
+      borderColor: 'divider',
+    },
+    expandedKeyword: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+      minHeight: 28,
+      fontSize: 12,
+    },
+    // Underlined, it expands like a link opens
+    expandedName: {
+      fontSize: 12,
+      fontWeight: 500,
+      textDecoration: 'underline',
+      textUnderlineOffset: 2,
+    },
     direction: {
       flexShrink: 0,
       fontSize: 12,
@@ -58,10 +102,14 @@ export const ui = () => {
       p: 0.5,
       fontSize: 16,
     },
-    // Like the text around it, underlined
-    addLink: {
-      font: 'inherit',
-      verticalAlign: 'baseline',
+    adds: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 0.5,
+    },
+    // Like "Add subcategory", aligned with the rows
+    add: {
+      fontSize: 12,
     },
     empty: {
       py: 0.75,

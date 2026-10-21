@@ -1,5 +1,6 @@
 export { default as AboutPage } from './AboutPage'
 export { default as RulesetsPage } from './RulesetsPage'
 export { default as HomePage } from './HomePage'
+export { default as LibraryPage } from './LibraryPage'
 export { default as SettingsPage } from './SettingsPage'
 export { default as StatsPage } from './StatsPage'

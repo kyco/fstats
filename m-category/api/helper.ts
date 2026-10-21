@@ -1,5 +1,5 @@
-import type { CategoryOverride, CategoryRuleset } from '@/types'
-import { zCategoryOverride, zCategoryRuleset } from '@/types'
+import type { CategoryOverride, CategoryRule, CategoryRuleset } from '@/types'
+import { zCategoryOverride, zCategoryRule, zCategoryRuleset } from '@/types'
 import { parseOrThrow } from '@/lib/zod'
 
 export const syncCategoryRuleset = (dataToSync: CategoryRuleset): CategoryRuleset => {
@@ -8,4 +8,8 @@ export const syncCategoryRuleset = (dataToSync: CategoryRuleset): CategoryRulese
 
 export const syncCategoryOverride = (dataToSync: CategoryOverride): CategoryOverride => {
   return parseOrThrow({ schema: zCategoryOverride, data: dataToSync, label: 'Cannot sync CategoryOverride' })
+}
+
+export const syncCategoryRule = (dataToSync: CategoryRule): CategoryRule => {
+  return parseOrThrow({ schema: zCategoryRule, data: dataToSync, label: 'Cannot sync CategoryRule' })
 }

@@ -9,16 +9,19 @@ import { zDateTimeString, zIdString, zNumberString } from '../global'
 import type { _KeysCheck } from '../key-check'
 
 /**
- * E.g. 'HOU' (of the templates) or a generated one, see `createCategoryCode`.
+ * ID of a category (a parent category or a subcategory), unique in its rule set: a slug of the templates (e.g.
+ * 'groceries') or generated (see `createCategoryId`). Nothing is encoded in it, the parent is known from the tree.
  */
-export const zParentCategoryCode = z.string().regex(/^[A-Z0-9]{3,12}$/)
-/**
- * The parent category code with a suffix, e.g. 'HOU_01' (of the templates) or 'HOU_K3M9QZ' (generated).
- */
-export const zCategoryCode = z.string().regex(/^[A-Z0-9]{3,12}_[A-Z0-9]{2,12}$/)
+export const zCategoryId = z
+  .string()
+  .regex(/^[a-z0-9_]{1,40}$/)
+  .brand<'CategoryId'>()
 
-export type ParentCategoryCode = z.infer<typeof zParentCategoryCode>
-export type CategoryCode = z.infer<typeof zCategoryCode>
+/**
+ * Branded, so it isn't mixed up with other strings, e.g. hints. Plain strings (e.g. of templates or selects) are
+ * converted with `toCategoryId`.
+ */
+export type CategoryId = z.infer<typeof zCategoryId>
 
 export const zTransaction = z.object({
   /**
@@ -30,7 +33,7 @@ export const zTransaction = z.object({
   description: z.string(),
   value: zNumberString,
   currency: zCurrency,
-  category: zCategoryCode.nullable(),
+  category: zCategoryId.nullable(),
   /**
    * Optional bank specific columns, see `extraColumns` in the bank definitions (`utils/Parser/banks/`).
    */
@@ -62,7 +65,7 @@ true satisfies _KeysCheck<Transaction, z.infer<typeof zTransactionAtRest>>
 export type TransactionFilter = {
   amount: AmountFilter
   /**
-   * Category codes (or `NO_CATEGORY`) deselected in the filters.
+   * Category IDs (or `NO_CATEGORY`) deselected in the filters.
    */
   excludedCategories: Set<string>
 }

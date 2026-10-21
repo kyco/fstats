@@ -84,6 +84,9 @@ export const ui = (theme: Theme) => {
       fontSize: 12,
       color: 'text.secondary',
     },
+    sourceText: {
+      flexBasis: '100%',
+    },
     sourceAction: {
       minWidth: 0,
       py: 0,

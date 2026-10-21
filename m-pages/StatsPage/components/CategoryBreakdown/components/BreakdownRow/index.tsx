@@ -39,7 +39,7 @@ const Component = ({ category, parentCategoryTotal, currency }: BreakdownRowProp
       {expanded && isExpandable
         ? subcategories.map((subcategory) => (
             <BreakdownCells
-              key={subcategory.code}
+              key={subcategory.id}
               label={subcategory.label}
               total={subcategory.total}
               parentCategoryTotal={Big(category.total).abs().toString()}

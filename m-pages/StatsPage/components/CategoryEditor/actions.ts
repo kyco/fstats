@@ -2,16 +2,24 @@ import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material'
 import type { TFunction } from 'i18next'
 
 import type {
+  CategoryEngine,
   CategoryRuleDraft,
-  CategoryRuleset,
   CategoryTree,
   MenuSelectOption,
   ResolvedCategory,
   Transaction,
 } from '@/types'
-import { CategoryDirection, CategoryRuleField } from '@/types-enums'
-import { compileRule, getCategoryLabel, getDirectionParents, getRuleRef, matchesRule } from '@/m-category/service'
+import { CategoryDirection, CategoryRuleField, CategorySource } from '@/types-enums'
+import {
+  compileRule,
+  getCategoryLabel,
+  getDirectionParents,
+  getRuleRef,
+  matchesRule,
+  recogniseTransaction,
+} from '@/m-category/service'
 import { sortNewestFirst } from '@/m-transaction/service'
+import { isExpense } from '@/utils/Stats'
 
 /**
  * Arrows scrolling the table to the previous and next match of the rule.
@@ -43,9 +51,9 @@ export const getCategoryPickerOptions = ({ isIncome, tree, t }: GetCategoryPicke
   return (isIncome ? directions : directions.toReversed()).flatMap(({ direction, label }) =>
     getDirectionParents(tree, direction).flatMap((parent) =>
       parent.children.map((category) => ({
-        value: category.code,
-        label: getCategoryLabel({ code: category.code, tree, t }),
-        group: `${getCategoryLabel({ code: parent.code, tree, t })} · ${label}`,
+        value: category.id,
+        label: getCategoryLabel({ id: category.id, tree, t }),
+        group: `${getCategoryLabel({ id: parent.id, tree, t })} · ${label}`,
       })),
     ),
   )
@@ -73,7 +81,7 @@ type GetRuleMatchesProps = {
  * transactions table.
  */
 export const getRuleMatches = ({ rule, transaction, transactions }: GetRuleMatchesProps) => {
-  const compiled = compileRule(rule)
+  const compiled = compileRule({ rule })
   const matched = rule.keyword ? sortNewestFirst(transactions.filter((other) => matchesRule(other, compiled))) : []
 
   return {
@@ -83,17 +91,54 @@ export const getRuleMatches = ({ rule, transaction, transactions }: GetRuleMatch
   }
 }
 
-type GetSourceTextProps = {
-  resolved: ResolvedCategory
-  rulesets: CategoryRuleset[]
+type GetKeywordMatchCountProps = {
+  keywordId: string
+  isIncome: boolean
+  transactions: Transaction[]
+  engine: CategoryEngine
 }
 
 /**
- * Where the current category comes from, e.g. "Set by rule <b>R1-003</b> of <b>Standard</b>.", for `Trans`.
+ * Transactions of the direction recognised as the library keyword, which a mapping of the library keyword changes.
  */
-export const getSourceText = ({ resolved: { source, rule }, rulesets }: GetSourceTextProps) => {
-  const name = rule ? rulesets.find((ruleset) => ruleset.id === rule.rulesetId)?.name : undefined
-  const ref = rule ? getRuleRef({ rulesetId: rule.rulesetId, number: rule.number, rulesets }) : undefined
+export const getKeywordMatchCount = ({ keywordId, isIncome, transactions, engine }: GetKeywordMatchCountProps) => {
+  return transactions.filter(
+    (transaction) =>
+      isExpense(transaction) !== isIncome &&
+      recogniseTransaction({ transaction, engine })?.libraryKeyword.id === keywordId,
+  ).length
+}
 
-  return { i18nKey: `STATS_PAGE.CATEGORY_RULES.SOURCE.${source}`, values: { rule: ref, name } }
+type GetSourceTextProps = {
+  resolved: ResolvedCategory
+  /**
+   * Of the active rule set, which maps the rules and library keywords.
+   */
+  activeName?: string
+  t: TFunction
+}
+
+/**
+ * Where the current category comes from, e.g. "Set by your rule <b>R-003</b> (“REWE”), mapped by <b>Standard</b>." or
+ * "Recognised as <b>REWE</b> (Supermarket), mapped by <b>Standard</b>.", for `Trans`.
+ */
+export const getSourceText = ({ resolved: { source, rule, library }, activeName, t }: GetSourceTextProps) => {
+  if (library && (source === CategorySource.LIBRARY || source === CategorySource.NONE)) {
+    const key =
+      source === CategorySource.LIBRARY
+        ? 'library'
+        : library.mapping.type === 'excluded'
+          ? 'library_excluded'
+          : 'library_unmapped'
+    const values = {
+      keyword: library.libraryKeyword.name,
+      hint: t(library.libraryKeyword.hint, { ns: 'hints' }),
+      name: activeName,
+    }
+
+    return { i18nKey: `STATS_PAGE.CATEGORY_RULES.SOURCE.${key}`, values }
+  }
+
+  const values = rule ? { rule: getRuleRef(rule.number), keyword: rule.keyword, name: activeName } : {}
+  return { i18nKey: `STATS_PAGE.CATEGORY_RULES.SOURCE.${source}`, values }
 }

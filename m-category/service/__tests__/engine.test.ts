@@ -1,10 +1,26 @@
+import { omit } from 'lodash'
 import { describe, expect, it } from 'vitest'
 
-import type { CategoryCode, CategoryOverride, CategoryRule, CategoryRuleset, Transaction } from '@/types'
-import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch, CategorySource } from '@/types-enums'
-import { DEFAULT_TEMPLATE_ID, getTemplate } from '@/utils/Category'
+import type { CategoryId, CategoryOverride, CategoryRule, CategoryRuleset, Transaction } from '@/types'
+import {
+  CategoryDirection,
+  CategoryRuleDirection,
+  CategoryRuleField,
+  CategoryRuleMatch,
+  CategorySource,
+} from '@/types-enums'
+import { DEFAULT_TEMPLATE_ID, getTemplate, toCategoryId } from '@/utils/Category'
 
-import { compileRule, createCategoryEngine, createRuleset, getNewRuleEffect, getRuleRef, resolveCategory } from '..'
+import {
+  compileRule,
+  createCategoryEngine,
+  createRuleset,
+  getKeywordMappingEffect,
+  getLibraryDescriptionMatches,
+  getNewRuleEffect,
+  getRuleRef,
+  resolveCategory,
+} from '..'
 
 const NOW = '2026-01-01T00:00:00+00:00'
 
@@ -18,7 +34,9 @@ const toTransaction = (description: string, value = '-10.00', extra: Transaction
   extra,
 })
 
-const toRule = (keyword: string, category: CategoryCode, rule: Partial<CategoryRule> = {}): CategoryRule => ({
+type TestRule = CategoryRule & { category: CategoryId }
+
+const toRule = (keyword: string, category: CategoryId, rule: Partial<CategoryRule> = {}): TestRule => ({
   id: `${keyword}|${category}`,
   number: 1,
   field: CategoryRuleField.DESCRIPTION,
@@ -35,178 +53,267 @@ const fromTemplate = (templateId: string) => {
 }
 
 /**
- * With the standard categories.
+ * The rule set mapping the user's rules to their categories, and the rules.
  */
-const toRuleset = (rules: CategoryRule[]): CategoryRuleset => ({ ...fromTemplate(DEFAULT_TEMPLATE_ID), rules })
-
-type ResolveProps = {
-  ruleset?: CategoryRuleset | null
-  overrides?: CategoryOverride[]
-}
+const withRules = (base: CategoryRuleset, rules: TestRule[]) => ({
+  ruleset: { ...base, rules: Object.fromEntries(rules.map((rule) => [rule.id, rule.category])) },
+  rules: rules.map((rule) => omit(rule, 'category')),
+})
 
 const standard = fromTemplate(DEFAULT_TEMPLATE_ID)
 
-const resolve = (transaction: Transaction, { ruleset = standard, overrides = [] }: ResolveProps = {}) => {
-  return resolveCategory({ transaction, engine: createCategoryEngine({ ruleset, overrides }) })
+/**
+ * A rule set with a single category, for rent only.
+ */
+const other: CategoryRuleset = {
+  ...createRuleset({ name: 'Other', number: 2, now: NOW }),
+  categories: [
+    {
+      id: toCategoryId('spending'),
+      color: 'red',
+      direction: CategoryDirection.OUT,
+      children: [{ id: toCategoryId('everything') }],
+    },
+  ],
+  mappings: { in: { hints: {}, keywords: {} }, out: { hints: { rent: toCategoryId('everything') }, keywords: {} } },
+}
+
+/**
+ * With the standard categories, without library mappings.
+ */
+const toRuleset = (rules: TestRule[]) =>
+  withRules({ ...standard, mappings: { in: { hints: {}, keywords: {} }, out: { hints: {}, keywords: {} } } }, rules)
+
+type ResolveProps = {
+  ruleset?: CategoryRuleset | null
+  rules?: CategoryRule[]
+  overrides?: CategoryOverride[]
+  bankId?: string
+}
+
+const resolve = (
+  transaction: Transaction,
+  { ruleset = standard, rules = [], overrides = [], bankId }: ResolveProps = {},
+) => {
+  return resolveCategory({ transaction, engine: createCategoryEngine({ ruleset, rules, overrides }), bankId })
 }
 
 const category = (description: string, props?: ResolveProps) => resolve(toTransaction(description), props).category
 
 describe('resolveCategory', () => {
-  it('should match keywords of the standard template as whole words, ignoring case', () => {
-    expect(category('OBI Markt 123')).toBe('HOU_05')
-    expect(category('Lastschrift spar Filiale')).toBe('GRO_01')
-    expect(category('Müller Drogerie')).toBe('HLT_02')
+  it('should categorise what the library recognises as the rule set maps it', () => {
+    expect(category('OBI Markt 123')).toBe(toCategoryId('home'))
+    expect(category('Müller Drogerie')).toBe(toCategoryId('personal_care'))
+    expect(category('Internet Banking Payment: Luno (stb) 42')).toBe(toCategoryId('savings'))
+    expect(category('#INT PYMT FEE', { bankId: 'fnb' })).toBe(toCategoryId('fees_interest'))
   })
 
-  it('should not match keywords inside other words', () => {
-    expect(category('T-Mobile Rechnung')).toBe('TFO_02')
-    expect(category('Sparkasse Überweisung')).toBe('TFO_02')
-    expect(category('Nettogehalt')).toBe('TFO_02')
+  it('should not recognise keywords inside other words', () => {
+    expect(category('T-Mobile Rechnung')).toBeNull()
+    expect(category('Sparkasse Überweisung')).toBeNull()
+    expect(category('Nettogehalt')).toBeNull()
   })
 
-  it('should match keywords with non-word edges', () => {
-    expect(category('#INT PYMT FEE')).toBe('FIN_05')
-    expect(category('Internet Banking Payment: Luno (stb) 42')).toBe('FIN_04')
-  })
-
-  it('should reference the matching rule', () => {
+  it('should reference the library keyword and how the rule set maps it', () => {
     expect(resolve(toTransaction('REWE'))).toMatchObject({
-      category: 'GRO_01',
+      category: toCategoryId('groceries'),
+      source: CategorySource.LIBRARY,
+      library: {
+        libraryKeyword: { id: 'de.rewe', name: 'REWE' },
+        keyword: 'REWE',
+        mapping: { type: 'hint', hint: 'supermarket' },
+      },
+    })
+  })
+
+  it('should map by the direction of the transaction', () => {
+    expect(resolve(toTransaction('Interest Received', '5.00')).category).toBe(toCategoryId('investment_income'))
+    expect(resolve(toTransaction('Debit Interest', '-5.00')).category).toBe(toCategoryId('fees_interest'))
+    expect(resolve(toTransaction('Finanzamt Erstattung', '500.00')).category).toBe(toCategoryId('other_income'))
+    expect(resolve(toTransaction('Finanzamt Einkommensteuer', '-500.00')).category).toBe(toCategoryId('taxes'))
+  })
+
+  it('should leave recognised transactions uncategorised when the rule set does not map them', () => {
+    const ruleset = {
+      ...standard,
+      mappings: { ...standard.mappings, out: { ...standard.mappings.out, keywords: { 'de.obi': null } } },
+    }
+
+    expect(resolve(toTransaction('OBI Markt'), { ruleset })).toMatchObject({
+      category: null,
+      source: CategorySource.NONE,
+      library: { libraryKeyword: { id: 'de.obi' }, mapping: { type: 'excluded' } },
+    })
+    expect(resolve(toTransaction('REWE'), { ruleset: other })).toMatchObject({
+      category: null,
+      source: CategorySource.NONE,
+      library: { libraryKeyword: { id: 'de.rewe' }, mapping: { type: 'unmapped' } },
+    })
+  })
+
+  it('should only apply rules the rule set maps, to categories it has', () => {
+    const { rules } = toRuleset([toRule('REWE', toCategoryId('general_shopping'))])
+
+    // Mapped by another rule set only, the library applies
+    expect(resolve(toTransaction('REWE Markt'), { rules }).category).toBe(toCategoryId('groceries'))
+    expect(category('REWE Markt', withRules(other, [toRule('REWE', toCategoryId('general_shopping'))]))).toBeNull()
+  })
+
+  it('should apply rules before the library', () => {
+    const props = withRules(standard, [toRule('REWE', toCategoryId('general_shopping'))])
+
+    expect(resolve(toTransaction('REWE Markt'), props)).toMatchObject({
+      category: toCategoryId('general_shopping'),
       source: CategorySource.RULE,
-      rule: { rulesetId: standard.id, keyword: 'REWE' },
     })
   })
 
   it('should prefer the longest matching keyword', () => {
-    expect(category('STEAM PURCHASE AMAZON PRIM')).toBe('FAM_06')
+    expect(category('STEAM PURCHASE AMAZON PRIM')).toBe(toCategoryId('entertainment'))
   })
 
-  it('should apply the rules of the active rule set only', () => {
-    const ruleset = fromTemplate('minimal_germany')
-
-    expect(resolve(toTransaction('Gehalt Oktober', '3000.00'), { ruleset }).category).toBe('SIN_01')
-    expect(resolve(toTransaction('Nettogehalt', '3000.00'), { ruleset }).category).toBe('TFI_02')
-    expect(category('Deutsche Bahn Ticket', { ruleset })).toBe('SOU_04')
-    expect(category('REWE', { ruleset })).toBe('TFO_02')
+  it('should apply the mappings of the active rule set only', () => {
+    expect(resolve(toTransaction('Gehalt Oktober', '3000.00'), { ruleset: other }).category).toBeNull()
+    expect(category('Miete Januar', { ruleset: other })).toBe(toCategoryId('everything'))
+    expect(category('REWE', { ruleset: other })).toBeNull()
   })
 
   it('should leave transactions uncategorised by direction without a rule set', () => {
-    expect(resolve(toTransaction('REWE'), { ruleset: null })).toEqual({
-      category: 'TFO_02',
+    expect(resolve(toTransaction('REWE'), { ruleset: null })).toMatchObject({
+      category: null,
       source: CategorySource.NONE,
     })
-    expect(resolve(toTransaction('Interest Received', '5.00'), { ruleset: null }).category).toBe('TFI_02')
+    expect(resolve(toTransaction('Interest Received', '5.00'), { ruleset: null }).category).toBeNull()
   })
 
-  it('should apply overrides before all rules, only with categories of the rule set', () => {
+  it('should apply overrides of the rule set before all rules, only with its categories', () => {
     const transaction = toTransaction('REWE')
-    const overrides = [{ transactionId: transaction.id, category: 'HOU_01', created: NOW }]
+    const overrides = [
+      { rulesetId: standard.id, transactionId: transaction.id, category: toCategoryId('rent'), created: NOW },
+    ]
 
-    expect(resolve(transaction, { overrides })).toEqual({ category: 'HOU_01', source: CategorySource.OVERRIDE })
-    // The minimal template has no "HOU_01", its rules apply
-    expect(resolve(transaction, { overrides, ruleset: fromTemplate('minimal_germany') }).category).toBe('TFO_02')
-    // The system categories are in every rule set
-    expect(resolve(transaction, { overrides: [{ ...overrides[0], category: 'TFO_02' }], ruleset: null }).category).toBe(
-      'TFO_02',
+    expect(resolve(transaction, { overrides })).toEqual({
+      category: toCategoryId('rent'),
+      source: CategorySource.OVERRIDE,
+    })
+    // Of another rule set, its mappings apply
+    expect(resolve(transaction, { overrides, ruleset: other }).category).toBeNull()
+    // Overrides of another rule set don't apply
+    expect(resolve(transaction, { overrides: [{ ...overrides[0], rulesetId: 'another' }] }).category).toBe(
+      toCategoryId('groceries'),
     )
   })
 
-  it('should match keywords at the start or the whole value', () => {
-    const ruleset = toRuleset([
-      toRule('VISA NETTO', 'GRO_01', { match: CategoryRuleMatch.STARTS_WITH }),
-      toRule('Rent', 'HOU_01', { match: CategoryRuleMatch.EQUALS }),
-    ])
-    const props = { ruleset }
+  it('should reference stored rules', () => {
+    const props = toRuleset([toRule('REWE', toCategoryId('groceries'), { id: 'a', number: 3 })])
 
-    expect(category('visa netto Marken-Discount', props)).toBe('GRO_01')
-    expect(category('Payment VISA NETTO', props)).toBe('TFO_02')
-    expect(category('VISA NETTOS', props)).toBe('TFO_02')
-    expect(category(' rent ', props)).toBe('HOU_01')
-    expect(category('Rent January', props)).toBe('TFO_02')
-    expect(category('Parent', props)).toBe('TFO_02')
-    expect(category('January Rent', props)).toBe('TFO_02')
-    expect(category('Ren t', props)).toBe('TFO_02')
+    expect(resolve(toTransaction('REWE'), props)).toMatchObject({
+      category: toCategoryId('groceries'),
+      source: CategorySource.RULE,
+      rule: { id: 'a', number: 3, keyword: 'REWE' },
+    })
+  })
+
+  it('should match keywords at the start or the whole value', () => {
+    const props = toRuleset([
+      toRule('VISA NETTO', toCategoryId('groceries'), { match: CategoryRuleMatch.STARTS_WITH }),
+      toRule('Rent', toCategoryId('rent'), { match: CategoryRuleMatch.EQUALS }),
+    ])
+
+    expect(category('visa netto Marken-Discount', props)).toBe(toCategoryId('groceries'))
+    expect(category('Payment VISA NETTO', props)).toBeNull()
+    expect(category('VISA NETTOS', props)).toBeNull()
+    expect(category(' rent ', props)).toBe(toCategoryId('rent'))
+    expect(category('Rent January', props)).toBeNull()
+    expect(category('Parent', props)).toBeNull()
+    expect(category('January Rent', props)).toBeNull()
+    expect(category('Ren t', props)).toBeNull()
   })
 
   it('should match contained keywords inside words, unless matching whole words', () => {
-    const ruleset = toRuleset([
-      toRule('box', 'GRO_01'),
-      toRule('OBI', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
+    const props = toRuleset([
+      toRule('box', toCategoryId('groceries')),
+      toRule('OBI', toCategoryId('rent'), { match: CategoryRuleMatch.CONTAINS_WORD }),
     ])
 
-    expect(category('Amazon Boxes', { ruleset })).toBe('GRO_01')
-    expect(category('OBI Markt', { ruleset })).toBe('HOU_01')
-    expect(category('T-Mobile', { ruleset })).toBe('TFO_02')
+    expect(category('Amazon Boxes', props)).toBe(toCategoryId('groceries'))
+    expect(category('OBI Markt', props)).toBe(toCategoryId('rent'))
+    expect(category('T-Mobile', props)).toBeNull()
   })
 
   it('should match contained keywords when all their words are found, in any order', () => {
-    const ruleset = toRuleset([
-      toRule('here is text', 'GRO_01'),
-      toRule('OBI markt', 'HOU_01', { match: CategoryRuleMatch.CONTAINS_WORD }),
+    const props = toRuleset([
+      toRule('here is text', toCategoryId('groceries')),
+      toRule('OBI markt', toCategoryId('rent'), { match: CategoryRuleMatch.CONTAINS_WORD }),
     ])
 
-    expect(category('Here is some TEXT', { ruleset })).toBe('GRO_01')
-    expect(category('texts here, it is', { ruleset })).toBe('GRO_01')
-    expect(category('here is some', { ruleset })).toBe('TFO_02')
-    expect(category('Markt OBI 42', { ruleset })).toBe('HOU_01')
-    expect(category('Markt T-Mobile', { ruleset })).toBe('TFO_02')
+    expect(category('Here is some TEXT', props)).toBe(toCategoryId('groceries'))
+    expect(category('texts here, it is', props)).toBe(toCategoryId('groceries'))
+    expect(category('here is some', props)).toBeNull()
+    expect(category('Markt OBI 42', props)).toBe(toCategoryId('rent'))
+    expect(category('Markt T-Mobile', props)).toBeNull()
   })
 
   it('should match the case of the keyword unless ignoring it', () => {
-    const ruleset = toRuleset([toRule('REWE', 'FAM_01', { ignoreCase: false })])
+    const props = toRuleset([toRule('REWE', toCategoryId('children'), { ignoreCase: false })])
 
-    expect(category('REWE Markt', { ruleset })).toBe('FAM_01')
-    expect(category('Rewe Markt', { ruleset })).toBe('TFO_02')
+    expect(category('REWE Markt', props)).toBe(toCategoryId('children'))
+    expect(category('Rewe Markt', props)).toBeNull()
   })
 
   it('should only apply rules to their direction', () => {
-    const ruleset = toRuleset([toRule('Refund', 'OTH_04', { direction: CategoryRuleDirection.IN })])
+    const props = toRuleset([toRule('Refund', toCategoryId('other_income'), { direction: CategoryRuleDirection.IN })])
 
-    expect(resolve(toTransaction('Refund', '5.00'), { ruleset }).category).toBe('OTH_04')
-    expect(resolve(toTransaction('Refund', '-5.00'), { ruleset }).category).toBe('TFO_02')
+    expect(resolve(toTransaction('Refund', '5.00'), props).category).toBe(toCategoryId('other_income'))
+    expect(resolve(toTransaction('Refund', '-5.00'), props).category).toBeNull()
   })
 
   it('should match the category of the file, but not use it', () => {
-    const ruleset = toRuleset([toRule('Groceries', 'GRO_01', { field: CategoryRuleField.CATEGORY })])
+    const props = toRuleset([toRule('Groceries', toCategoryId('groceries'), { field: CategoryRuleField.CATEGORY })])
 
-    expect(resolve(toTransaction('Shop 42', '-5.00', { category: 'Groceries' }), { ruleset }).category).toBe('GRO_01')
-    expect(resolve(toTransaction('Groceries'), { ruleset }).category).toBe('TFO_02')
+    expect(resolve(toTransaction('Shop 42', '-5.00', { category: 'Groceries' }), props).category).toBe(
+      toCategoryId('groceries'),
+    )
+    expect(resolve(toTransaction('Groceries'), props).category).toBeNull()
   })
 
   it('should keep preset categories the rule set has in the demo only, categorise the others with its rules', () => {
-    const engine = createCategoryEngine({ ruleset: standard, overrides: [], usePresets: true })
+    const engine = createCategoryEngine({ ruleset: standard, rules: [], overrides: [], usePresets: true })
     const transaction = toTransaction('REWE')
 
-    expect(resolveCategory({ transaction, engine, preset: 'BUS_02' })).toEqual({
-      category: 'BUS_02',
+    expect(resolveCategory({ transaction, engine, preset: toCategoryId('workspace') })).toEqual({
+      category: toCategoryId('workspace'),
       source: CategorySource.PRESET,
     })
-    // Not in the standard categories, its rules apply
-    expect(resolveCategory({ transaction, engine, preset: 'SOU_01' }).category).toBe('GRO_01')
+    // Not a category of the rule set, the library applies
+    expect(resolveCategory({ transaction, engine, preset: toCategoryId('unknown') }).category).toBe(
+      toCategoryId('groceries'),
+    )
     expect(
       resolveCategory({
         transaction: toTransaction('Miete Januar'),
-        engine: createCategoryEngine({ ruleset: fromTemplate('minimal_germany'), overrides: [], usePresets: true }),
-        preset: 'HOU_01',
+        engine: createCategoryEngine({
+          ruleset: other,
+          rules: [],
+          overrides: [],
+          usePresets: true,
+        }),
+        preset: toCategoryId('rent'),
       }).category,
-    ).toBe('SOU_01')
+    ).toBe(toCategoryId('everything'))
     expect(
       resolveCategory({
         transaction,
-        engine: createCategoryEngine({ ruleset: standard, overrides: [] }),
-        preset: 'BUS_02',
+        engine: createCategoryEngine({ ruleset: standard, rules: [], overrides: [] }),
+        preset: toCategoryId('workspace'),
       }).category,
-    ).toBe('GRO_01')
+    ).toBe(toCategoryId('groceries'))
   })
 })
 
 describe('getRuleRef', () => {
-  it('should prefix the number with the rule set', () => {
-    const rulesets = [{ ...standard, number: 2 }]
-
-    expect(getRuleRef({ rulesetId: standard.id, number: 14, rulesets })).toBe('R2-014')
-    expect(getRuleRef({ rulesetId: 'removed', number: 3, rulesets })).toBe('R?-003')
+  it('should pad the number', () => {
+    expect(getRuleRef(14)).toBe('R-014')
   })
 })
 
@@ -214,11 +321,16 @@ describe('getNewRuleEffect', () => {
   const rewe = toTransaction('REWE Markt Berlin')
   const manual = toTransaction('REWE City')
   const engine = createCategoryEngine({
-    ruleset: toRuleset([toRule('REWE Markt', 'GRO_01', { id: 'a', number: 1 })]),
-    overrides: [{ transactionId: manual.id, category: 'HOU_01', created: NOW }],
+    ...toRuleset([toRule('REWE Markt', toCategoryId('groceries'), { id: 'a', number: 1 })]),
+    overrides: [{ rulesetId: standard.id, transactionId: manual.id, category: toCategoryId('rent'), created: NOW }],
   })
   const effect = (transaction: Transaction, keyword: string, editedId = '') =>
-    getNewRuleEffect({ transaction, engine, rule: compileRule(toRule(keyword, 'TFO_02')), editedId })
+    getNewRuleEffect({
+      transaction,
+      engine,
+      rule: compileRule({ rule: toRule(keyword, toCategoryId('groceries')) }),
+      editedId,
+    })
 
   it('should change the category unless a more specific rule or an override wins', () => {
     expect(effect(rewe, 'REWE Markt Berlin')).toBeNull()
@@ -226,5 +338,23 @@ describe('getNewRuleEffect', () => {
     expect(effect(manual, 'REWE')).toBe('override')
     // The override of the edited transaction is removed
     expect(effect(manual, 'REWE', manual.id)).toBeNull()
+  })
+})
+
+describe('getKeywordMappingEffect', () => {
+  const rewe = toTransaction('REWE Markt Berlin')
+  const ruled = toTransaction('REWE City')
+  const manual = toTransaction('REWE Center')
+  const engine = createCategoryEngine({
+    ...withRules(standard, [toRule('REWE City', toCategoryId('general_shopping'))]),
+    overrides: [{ rulesetId: standard.id, transactionId: manual.id, category: toCategoryId('rent'), created: NOW }],
+  })
+
+  it('should change the category unless a rule or an override wins, and highlight the keyword', () => {
+    expect(getKeywordMappingEffect({ transaction: rewe, engine, editedId: '' })).toBeNull()
+    expect(getKeywordMappingEffect({ transaction: ruled, engine, editedId: '' })).toBe('rule')
+    expect(getKeywordMappingEffect({ transaction: manual, engine, editedId: '' })).toBe('override')
+    expect(getKeywordMappingEffect({ transaction: manual, engine, editedId: manual.id })).toBeNull()
+    expect(getLibraryDescriptionMatches(rewe, engine)).toEqual([[0, 4]])
   })
 })

@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { zCategoryCode, zParentCategoryCode } from '@/types'
-import { SYSTEM_CATEGORIES, TEMPLATES } from '@/utils/Category'
+import { zCategoryId } from '@/types'
+import { HINT_GROUPS, HINTS, LIBRARY, TEMPLATES } from '@/utils/Category'
 
 import deCategories from '../../../public/locales/categories/de.json'
 import enCategories from '../../../public/locales/categories/en.json'
 import deLocale from '../../../public/locales/de.json'
 import enLocale from '../../../public/locales/en.json'
-
-const SYSTEM_CODES = SYSTEM_CATEGORIES.flatMap((parent) => parent.children.map((child) => child.code))
 
 describe('TEMPLATES', () => {
   it('should have unique IDs', () => {
@@ -17,33 +15,60 @@ describe('TEMPLATES', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('should have unique, valid category codes, children prefixed by their parent', () => {
+  it('should have unique, valid category IDs, never like generated ones', () => {
     TEMPLATES.forEach((template) => {
       const parents = [...template.income.categories, ...template.expense.categories]
-      const codes = parents.flatMap((parent) => [parent.code, ...parent.children])
+      const ids = parents.flatMap((parent) => [parent.id, ...parent.children])
 
-      expect(new Set(codes).size).toBe(codes.length)
-      parents.forEach((parent) => {
-        expect(zParentCategoryCode.safeParse(parent.code).success).toBe(true)
-        expect(SYSTEM_CATEGORIES.map((system) => system.code)).not.toContain(parent.code)
-        parent.children.forEach((child) => {
-          expect(zCategoryCode.safeParse(child).success).toBe(true)
-          expect(child.startsWith(`${parent.code}_`)).toBe(true)
+      expect(new Set(ids).size).toBe(ids.length)
+      ids.forEach((id) => {
+        expect(zCategoryId.safeParse(id).success).toBe(true)
+        expect(id.startsWith('c_')).toBe(false)
+      })
+    })
+  })
+
+  it('should map hints and library keywords to its own categories', () => {
+    const keywordIds = LIBRARY.flatMap((pack) =>
+      pack.libraryKeywords.map((libraryKeyword) => `${pack.id}.${libraryKeyword.id}`),
+    )
+
+    TEMPLATES.forEach((template) => {
+      ;[template.income, template.expense].forEach((direction) => {
+        const ids = [template.income, template.expense].flatMap(({ categories }) =>
+          categories.flatMap((parent) => parent.children),
+        )
+
+        Object.entries(direction.hints).forEach(([hint, id]) => {
+          expect(HINTS).toContain(hint)
+          expect(ids).toContain(id)
+        })
+        Object.entries(direction.keywords ?? {}).forEach(([keywordId, id]) => {
+          expect(keywordIds).toContain(keywordId)
+          if (id) {
+            expect(ids).toContain(id)
+          }
         })
       })
     })
   })
 
-  it('should only use its own categories of the right direction, or the system ones', () => {
-    TEMPLATES.forEach((template) => {
-      const toCodes = (direction: typeof template.income) => [
-        ...direction.categories.flatMap((parent) => parent.children),
-        ...SYSTEM_CODES,
-      ]
+  it('should map every hint the library uses for money out', () => {
+    const used = new Set(LIBRARY.flatMap((pack) => pack.libraryKeywords.map((libraryKeyword) => libraryKeyword.hint)))
+    // Only money in, or deliberately left uncategorised (e.g. cash, which could be anything)
+    const unmapped = ['salary', 'benefits', 'pension', 'dividends', 'cash']
 
-      template.income.rules.forEach((rule) => expect(toCodes(template.income)).toContain(rule.category))
-      template.expense.rules.forEach((rule) => expect(toCodes(template.expense)).toContain(rule.category))
+    TEMPLATES.forEach((template) => {
+      const hints = template.expense.hints as Record<string, string>
+      const missing = [...used].filter((hint) => !hints[hint] && !unmapped.includes(hint))
+
+      expect({ template: template.id, missing }).toEqual({ template: template.id, missing: [] })
     })
+  })
+
+  it('should list every hint once, in one group', () => {
+    expect(new Set(HINTS).size).toBe(HINTS.length)
+    expect(HINT_GROUPS.flatMap((group) => group.hints)).toEqual(HINTS)
   })
 
   it('should have translated names and category labels', () => {
@@ -51,15 +76,12 @@ describe('TEMPLATES', () => {
       expect(enLocale.RULESETS_PAGE.TEMPLATES).toHaveProperty(template.id)
       expect(deLocale.RULESETS_PAGE.TEMPLATES).toHaveProperty(template.id)
 
-      const parents = [...template.income.categories, ...template.expense.categories, ...SYSTEM_CATEGORIES]
+      const parents = [...template.income.categories, ...template.expense.categories]
       parents
-        .flatMap((parent) => [
-          parent.code,
-          ...parent.children.map((child) => (typeof child === 'string' ? child : child.code)),
-        ])
-        .forEach((code) => {
-          expect(enCategories).toHaveProperty(code)
-          expect(deCategories).toHaveProperty(code)
+        .flatMap((parent) => [parent.id, ...parent.children])
+        .forEach((id) => {
+          expect(enCategories).toHaveProperty(id)
+          expect(deCategories).toHaveProperty(id)
         })
     })
   })

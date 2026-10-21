@@ -60,6 +60,15 @@ export const ui = () => {
       fontSize: 16,
       color: 'text.secondary',
     },
+    // Below the matching options, separated from them
+    create: (hasOptions: boolean) => ({
+      ...(hasOptions ? { mt: 0.5, borderTop: 1, borderColor: 'divider' } : {}),
+      fontWeight: 500,
+    }),
+    createIcon: {
+      fontSize: 18,
+      color: 'text.secondary',
+    },
     noMatches: {
       px: 1.5,
       py: 0.5,

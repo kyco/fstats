@@ -1,9 +1,9 @@
 import { formatISO } from 'date-fns'
 
-import type { CategoryCode, CategoryOverride, CategoryRuleset } from '@/types'
+import type { CategoryId, CategoryOverride, CategoryRule, CategoryRuleset } from '@/types'
 import { db, getStoreSize } from '@/lib/localforage'
 
-import { syncCategoryOverride, syncCategoryRuleset } from './helper'
+import { syncCategoryOverride, syncCategoryRule, syncCategoryRuleset } from './helper'
 
 export const getCategoryRulesets = async (): Promise<CategoryRuleset[]> => {
   const rulesets: CategoryRuleset[] = []
@@ -39,20 +39,73 @@ export const getCategoryOverrides = async (): Promise<CategoryOverride[]> => {
   return overrides
 }
 
+export const getStoredCategoryRules = async (): Promise<CategoryRule[]> => {
+  const rules: CategoryRule[] = []
+  await db.categoryRulesStore.iterate<CategoryRule, void>((value) => {
+    rules.push(value)
+  })
+  return rules
+}
+
+export const putCategoryRule = async (rule: CategoryRule): Promise<CategoryRule> => {
+  return db.categoryRulesStore.setItem<CategoryRule>(rule.id, syncCategoryRule(rule))
+}
+
+export const removeCategoryRule = async (id: string) => {
+  await db.categoryRulesStore.removeItem(id)
+}
+
 export const getCategoryStoreSize = async () => {
-  const sizes = await Promise.all([getStoreSize(db.categoryRulesetsStore), getStoreSize(db.categoryOverridesStore)])
-  return sizes[0] + sizes[1]
+  const sizes = await Promise.all([
+    getStoreSize(db.categoryRulesetsStore),
+    getStoreSize(db.categoryOverridesStore),
+    getStoreSize(db.categoryRulesStore),
+  ])
+  return sizes.reduce((total, size) => total + size, 0)
 }
 
-export const setCategoryOverride = async (transactionId: string, category: CategoryCode) => {
-  const override: CategoryOverride = { transactionId, category, created: formatISO(new Date()) }
-  return db.categoryOverridesStore.setItem<CategoryOverride>(transactionId, syncCategoryOverride(override))
+const toOverrideKey = (rulesetId: string, transactionId: string) => `${rulesetId}:${transactionId}`
+
+export const setCategoryOverride = async (rulesetId: string, transactionId: string, category: CategoryId) => {
+  const override: CategoryOverride = { rulesetId, transactionId, category, created: formatISO(new Date()) }
+  return db.categoryOverridesStore.setItem<CategoryOverride>(
+    toOverrideKey(rulesetId, transactionId),
+    syncCategoryOverride(override),
+  )
 }
 
-export const removeCategoryOverride = async (transactionId: string) => {
-  await db.categoryOverridesStore.removeItem(transactionId)
+export const removeCategoryOverride = async (rulesetId: string, transactionId: string) => {
+  await db.categoryOverridesStore.removeItem(toOverrideKey(rulesetId, transactionId))
+}
+
+/**
+ * Of a removed rule set.
+ */
+export const removeRulesetOverrides = async (rulesetId: string) => {
+  const overrides = await getCategoryOverrides()
+  await Promise.all(
+    overrides
+      .filter((override) => override.rulesetId === rulesetId)
+      .map((override) => removeCategoryOverride(rulesetId, override.transactionId)),
+  )
+}
+
+/**
+ * Of a rule set, for a copy of it.
+ */
+export const copyRulesetOverrides = async (fromId: string, toId: string) => {
+  const overrides = await getCategoryOverrides()
+  await Promise.all(
+    overrides
+      .filter((override) => override.rulesetId === fromId)
+      .map((override) => setCategoryOverride(toId, override.transactionId, override.category)),
+  )
 }
 
 export const removeAllCategoryData = async () => {
-  await Promise.all([db.categoryRulesetsStore.clear(), db.categoryOverridesStore.clear()])
+  await Promise.all([
+    db.categoryRulesetsStore.clear(),
+    db.categoryOverridesStore.clear(),
+    db.categoryRulesStore.clear(),
+  ])
 }

@@ -5,9 +5,9 @@ import { uniq } from 'lodash'
 import type { ReactNode } from 'react'
 
 import type {
-  CategoryCode,
   CategoryEngine,
-  CategoryRuleset,
+  CategoryId,
+  CategoryRulePreview,
   CategoryTree,
   NewRuleKeptBy,
   ParsedStatsFile,
@@ -18,12 +18,23 @@ import type {
 } from '@/types'
 import { TransactionTag } from '@/types-enums'
 import type { Currency, DateFormat, UserLocale } from '@/types-enums'
-import { getCategoryLabel, resolveCategory } from '@/m-category/service'
+import {
+  compileRule,
+  getCategoryLabel,
+  getKeywordMappingEffect,
+  getLibraryDescriptionMatches,
+  getNewRuleEffect,
+  getRuleDescriptionMatches,
+  matchesRule,
+  recogniseTransaction,
+  resolveCategory,
+} from '@/m-category/service'
 import { getFileCurrency } from '@/m-stats-file/service'
 import { sxChartTooltip } from '@/styles/styled'
 import { getCurrencySymbol } from '@/utils/Currency'
 import { toDisplayDate } from '@/utils/Date'
 import { toFixedLocaleAmount, toFixedLocaleCurrency } from '@/utils/Number'
+import { isExpense } from '@/utils/Stats'
 
 import { getSourceText } from '../CategoryEditor/actions'
 import { ui } from './styled'
@@ -85,10 +96,44 @@ export const getSourceLabel = ({
   return [...sourceLines, ...categoryLines, ...tagLines].join('\n')
 }
 
+type CreatePreviewMatcherProps = {
+  preview: CategoryRulePreview
+  engine: CategoryEngine
+}
+
+/**
+ * Which rows the category form changes (see `CategoryRulePreview`), what wins over it, and the parts of their
+ * descriptions to highlight.
+ */
+export const createPreviewMatcher = ({ preview, engine }: CreatePreviewMatcherProps) => {
+  if (preview.type === 'library') {
+    return {
+      matches: (transaction: Transaction) =>
+        isExpense(transaction) !== preview.isIncome &&
+        recogniseTransaction({ transaction, engine })?.libraryKeyword.id === preview.keywordId,
+      getEffect: (transaction: Transaction) =>
+        getKeywordMappingEffect({ transaction, engine, editedId: preview.editedId }),
+      getHighlights: (transaction: Transaction) => getLibraryDescriptionMatches(transaction, engine),
+    }
+  }
+
+  const rule = compileRule({ rule: preview.rule })
+
+  return {
+    matches: (transaction: Transaction) => matchesRule(transaction, rule),
+    getEffect: (transaction: Transaction) =>
+      getNewRuleEffect({ transaction, engine, rule, editedId: preview.editedId }),
+    getHighlights: (transaction: Transaction) => getRuleDescriptionMatches(transaction, rule),
+  }
+}
+
 type GetCategoryInfoProps = {
   transaction: SourcedTransaction
   engine: CategoryEngine
-  rulesets: CategoryRuleset[]
+  /**
+   * Of the active rule set.
+   */
+  activeName?: string
   /**
    * Categories of the demo data are only in the transaction.
    */
@@ -99,9 +144,9 @@ type GetCategoryInfoProps = {
 /**
  * Where the category of the transaction is from, as plain text for the tooltip.
  */
-export const getCategoryInfo = ({ transaction, engine, rulesets, isDemoMode, t }: GetCategoryInfoProps) => {
+export const getCategoryInfo = ({ transaction, engine, activeName, isDemoMode, t }: GetCategoryInfoProps) => {
   const resolved = resolveCategory({ transaction, engine, preset: isDemoMode ? transaction.category : null })
-  const { i18nKey, values } = getSourceText({ resolved, rulesets })
+  const { i18nKey, values } = getSourceText({ resolved, activeName, t })
   return [t(i18nKey, values).replace(/<\/?b>/g, '')]
 }
 
@@ -220,7 +265,7 @@ export const getTransactionCells = (
     toDisplayDate({ date: transaction.date, locale, formatTo: dateFormat }),
     transaction.description,
     formatAmount({ value: transaction.value, currency: transaction.currency, locale, showPlusSign: true }),
-    getCategoryLabel({ code: transaction.category, tree, t }),
+    getCategoryLabel({ id: transaction.category, tree, t }),
   ]
 }
 
@@ -229,11 +274,11 @@ type GetCategoryPreviewProps = {
    * Of the rule being created, `null` (or `undefined`) when it doesn't match the transaction.
    */
   effect: { keptBy: NewRuleKeptBy | null } | null | undefined
-  current: CategoryCode | null
+  current: CategoryId | null
   /**
    * Chosen in the category form.
    */
-  category: CategoryCode | null
+  category: CategoryId | null
   tree: CategoryTree
   t: TFunction
 }
@@ -261,7 +306,7 @@ export const getCategoryPreview = ({ effect, current, category, tree, t }: GetCa
     ? {
         category,
         title: t('STATS_PAGE.CATEGORY_RULES.CURRENT_CATEGORY', {
-          category: getCategoryLabel({ code: current, tree, t }),
+          category: getCategoryLabel({ id: current, tree, t }),
         }),
       }
     : null

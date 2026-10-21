@@ -1,13 +1,16 @@
 'use client'
 
-import { Add, DeleteOutlined, EditOutlined } from '@mui/icons-material'
+import { Add, DeleteOutlined, EditOutlined, LinkOff, MenuBookOutlined } from '@mui/icons-material'
 import { Box, Button, Typography } from '@mui/material'
 import { pick } from 'lodash'
-import { Fragment, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Fragment, useMemo, useState } from 'react'
 
 import type {
   CategoryDialogState,
   CategoryDialogValues,
+  CategoryId,
+  CategoryMappingRef,
   CategoryRule,
   CategoryRuleset,
   CategoryTree,
@@ -16,27 +19,35 @@ import type {
 } from '@/types'
 import type { CategoryDirection } from '@/types-enums'
 import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch } from '@/types-enums'
-import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem } from '@/components'
+import { getLibraryHref } from '@/common'
+import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem, LibraryRef } from '@/components'
 import type { RulesetUpdate } from '@/m-category/service'
 import {
   addCategory,
   addParentCategory,
-  addRule,
-  createCategoryCode,
+  createCategoryId,
   getCategoryLabel,
+  getCategoryMappings,
   getCategoryRules,
   getDirectionParents,
+  getLibraryKeywords,
+  getNextColor,
   getRuleRef,
   moveCategory,
   removeCategory,
-  removeRule,
+  removeMapping,
+  setRuleMapping,
   updateCategory,
-  updateRule,
+  useCategoryRules,
+  useMutateAddCategoryRule,
+  useMutateRemoveCategoryRule,
+  useMutateUpdateCategoryRule,
 } from '@/m-category/service'
 import { toggleKeys } from '@/utils/Set'
 import { useTranslation } from '@/lib/i18n'
 
-import { getNextColor, getTemplateLabel } from '../../actions'
+import { getTemplateLabel } from '../../actions'
+import { getLibraryPickerOptions, toLibraryMapping, toLibraryRefProps } from './actions'
 import CategoryDialog from './components/CategoryDialog'
 import CategoryRow from './components/CategoryRow'
 import CategoryRules from './components/CategoryRules'
@@ -46,7 +57,7 @@ import { ui } from './styled'
 type CategorySectionProps = {
   ruleset: CategoryRuleset
   /**
-   * For the references of the rules, e.g. "R1-003".
+   * To tell where the user's rules are used too.
    */
   rulesets: CategoryRuleset[]
   tree: CategoryTree
@@ -55,47 +66,76 @@ type CategorySectionProps = {
   onUpdate: (update: RulesetUpdate) => void
 }
 
+const NO_RULES: CategoryRule[] = []
+
 /**
  * The parent categories of a direction with their subcategories, the system ones last and fixed. Added and edited in a
- * dialog, subcategories expand to their rules (added, edited and deleted in the menus).
+ * dialog, subcategories expand to what assigns them: library hints and library keywords, and the user's rules (added there,
+ * changed in the menus).
  */
 const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: CategorySectionProps) => {
   const sx = ui()
   const { t, i18n } = useTranslation()
+  const router = useRouter()
   const [dialog, setDialog] = useState<CategoryDialogState | null>(null)
   // Parent categories showing their subcategories, and subcategories showing their rules, all collapsed at first
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const toggle = (code: string) => setExpanded((prev) => toggleKeys(prev, [code]))
-  const expand = (code: string) => setExpanded((prev) => new Set([...prev, code]))
+  const toggle = (id: string) => setExpanded((prev) => toggleKeys(prev, [id]))
+  const expand = (id: string) => setExpanded((prev) => new Set([...prev, id]))
   // One menu for all categories, and one for all rules
-  const [menu, setMenu] = useState<{ anchor: HTMLElement; code: string } | null>(null)
+  const [menu, setMenu] = useState<{ anchor: HTMLElement; id: CategoryId } | null>(null)
   const [ruleMenu, setRuleMenu] = useState<{ anchor: HTMLElement; rule: CategoryRule } | null>(null)
+  const [mappingMenu, setMappingMenu] = useState<{
+    anchor: HTMLElement
+    mapping: CategoryMappingRef
+    name: string
+  } | null>(null)
   const [ruleDialog, setRuleDialog] = useState<RuleDialogState | null>(null)
   const parents = getDirectionParents(tree, direction)
-  const ownParents = parents.filter((parent) => !parent.isSystem)
+  const { data: rules = NO_RULES } = useCategoryRules()
+  const { mutateAsync: addRule } = useMutateAddCategoryRule()
+  const { mutateAsync: updateRule } = useMutateUpdateCategoryRule()
+  const { mutateAsync: deleteRule } = useMutateRemoveCategoryRule()
+  const libraryKeywords = useMemo(() => getLibraryKeywords(), [])
+  const getRules = (id: CategoryId) => getCategoryRules({ ruleset, rules, id })
 
-  const remove = (code: string) => {
-    const name = getCategoryLabel({ code, tree, t })
-    const ruleCount = getCategoryRules(ruleset, code).length
+  const remove = (id: CategoryId) => {
+    const name = getCategoryLabel({ id, tree, t })
+    const ruleCount = getRules(id).length
+    const mappingCount = getCategoryMappings(ruleset, id).length
     const text = [
       t('RULESETS_PAGE.CONFIRM_DELETE_CATEGORY', { name }),
       ...(ruleCount ? [t('RULESETS_PAGE.CONFIRM_DELETE_CATEGORY_RULES', { count: ruleCount })] : []),
+      ...(mappingCount ? [t('RULESETS_PAGE.CONFIRM_DELETE_CATEGORY_MAPPINGS', { count: mappingCount })] : []),
     ].join(' ')
 
     if (confirm(text)) {
-      onUpdate(removeCategory(code))
+      onUpdate(removeCategory(id))
     }
   }
 
+  // From this rule set, it stays in the user's library
   const removeRuleWithConfirm = (rule: CategoryRule) => {
-    const ref = getRuleRef({ rulesetId: ruleset.id, number: rule.number, rulesets })
-    if (confirm(t('STATS_PAGE.CATEGORY_RULES.CONFIRM_DELETE_RULE', { rule: ref, keyword: rule.keyword }))) {
-      onUpdate(removeRule(rule.id))
+    const values = { rule: getRuleRef(rule.number), keyword: rule.keyword, name: ruleset.name }
+    if (confirm(t('STATS_PAGE.CATEGORY_RULES.CONFIRM_REMOVE_RULE', values))) {
+      onUpdate(setRuleMapping({ ruleId: rule.id, category: undefined }))
     }
   }
 
-  const openAddRule = (code: string) => {
-    setRuleDialog({ type: 'add', code })
+  // From the user's library and all rule sets
+  const deleteRuleWithConfirm = (rule: CategoryRule) => {
+    const values = { rule: getRuleRef(rule.number), keyword: rule.keyword }
+    if (confirm(t('STATS_PAGE.CATEGORY_RULES.CONFIRM_DELETE_RULE', values))) {
+      deleteRule(rule.id)
+    }
+  }
+
+  // Other rule sets using the rule, which an edit changes too
+  const getOtherUses = (rule: CategoryRule) =>
+    rulesets.filter((other) => other.id !== ruleset.id && rule.id in other.rules).length
+
+  const openAddRule = (id: CategoryId) => {
+    setRuleDialog({ type: 'add', id })
   }
 
   const saveRule = (values: RuleDialogValues) => {
@@ -104,23 +144,28 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
     }
 
     if (ruleDialog.type === 'add') {
-      onUpdate(addRule({ ...values, field: CategoryRuleField.DESCRIPTION, category: ruleDialog.code }))
+      addRule({
+        rule: { ...values, field: CategoryRuleField.DESCRIPTION },
+        rulesetId: ruleset.id,
+        category: ruleDialog.id,
+      })
       // Shows it below its category
-      expand(ruleDialog.code)
+      expand(ruleDialog.id)
     } else {
-      onUpdate(updateRule({ ruleId: ruleDialog.rule.id, rule: values }))
+      updateRule({ rule: { ...ruleDialog.rule, ...values } })
     }
 
     setRuleDialog(null)
   }
 
-  const getRowProps = (code: string, index: number, count: number) => ({
-    label: getCategoryLabel({ code, tree, t }),
-    ruleCount: getCategoryRules(ruleset, code).length,
-    onMove: (step: -1 | 1) => onUpdate(moveCategory({ code, step })),
+  const getRowProps = (id: CategoryId, index: number, count: number) => ({
+    label: getCategoryLabel({ id, tree, t }),
+    ruleCount: getRules(id).length,
+    mappingCount: getCategoryMappings(ruleset, id).length,
+    onMove: (step: -1 | 1) => onUpdate(moveCategory({ id, step })),
     canMoveUp: index > 0,
     canMoveDown: index < count - 1,
-    onMenu: (anchor: HTMLElement) => setMenu({ anchor, code }),
+    onMenu: (anchor: HTMLElement) => setMenu({ anchor, id }),
   })
 
   const save = (values: CategoryDialogValues) => {
@@ -130,19 +175,17 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
 
     if (dialog.type === 'addParent') {
       // Shown with its first subcategory
-      const code = createCategoryCode()
-      onUpdate(
-        addParentCategory({ label: values.label, direction, color: values.color ?? getNextColor(ruleset), code }),
-      )
-      expand(code)
+      const id = createCategoryId()
+      onUpdate(addParentCategory({ label: values.label, direction, color: values.color ?? getNextColor(ruleset), id }))
+      expand(id)
     } else if (dialog.type === 'addChild') {
-      onUpdate(addCategory({ parentCode: dialog.parentCode, label: values.label, isTransfer: values.isTransfer }))
-      expand(dialog.parentCode)
+      onUpdate(addCategory({ parentId: dialog.parentId, label: values.label, isTransfer: values.isTransfer }))
+      expand(dialog.parentId)
     } else {
       // The translated name of a template's category isn't stored
-      const defaultLabel = getTemplateLabel({ code: dialog.code, i18n, t })
+      const defaultLabel = getTemplateLabel({ id: dialog.id, i18n, t })
       const label = values.label === defaultLabel ? '' : values.label
-      onUpdate(updateCategory({ code: dialog.code, label, color: values.color, isTransfer: values.isTransfer }))
+      onUpdate(updateCategory({ id: dialog.id, label, color: values.color, isTransfer: values.isTransfer }))
     }
 
     setDialog(null)
@@ -160,15 +203,15 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
     if (state.type === 'addChild') {
       return {
         title: t('RULESETS_PAGE.ADD_SUBCATEGORY_TO', {
-          name: getCategoryLabel({ code: state.parentCode, tree, t }),
+          name: getCategoryLabel({ id: state.parentId, tree, t }),
         }),
         initial: { label: '', isTransfer: false },
       }
     }
 
-    const parent = tree.parentsByCode.get(state.code)
-    const child = tree.categoriesByCode.get(state.code)
-    const defaultLabel = getTemplateLabel({ code: state.code, i18n, t })
+    const parent = tree.parentsById.get(state.id)
+    const child = tree.categoriesById.get(state.id)
+    const defaultLabel = getTemplateLabel({ id: state.id, i18n, t })
 
     return {
       title: t('RULESETS_PAGE.EDIT_CATEGORY'),
@@ -186,39 +229,53 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
       </Typography>
 
       {parents.map((parent) => (
-        <Box key={parent.code} sx={sx.parent}>
+        <Box key={parent.id} sx={sx.parent}>
           <CategoryRow
-            {...getRowProps(parent.code, ownParents.indexOf(parent), ownParents.length)}
+            {...getRowProps(parent.id, parents.indexOf(parent), parents.length)}
             isParent
-            isFixed={parent.isSystem}
             color={parent.color}
-            // "Uncategorised" has a single, fixed subcategory of the same name
-            {...(parent.isSystem ? {} : { isExpanded: expanded.has(parent.code), onToggle: () => toggle(parent.code) })}
+            isExpanded={expanded.has(parent.id)}
+            onToggle={() => toggle(parent.id)}
           />
-          {(parent.isSystem || !expanded.has(parent.code) ? [] : parent.children).map((child, index) => (
-            <Fragment key={child.code}>
+          {(expanded.has(parent.id) ? parent.children : []).map((child, index) => (
+            <Fragment key={child.id}>
               <CategoryRow
-                {...getRowProps(child.code, index, parent.children.length)}
+                {...getRowProps(child.id, index, parent.children.length)}
                 isTransfer={child.isTransfer}
-                isExpanded={expanded.has(child.code)}
-                onToggle={() => toggle(child.code)}
+                isExpanded={expanded.has(child.id)}
+                onToggle={() => toggle(child.id)}
               />
-              {expanded.has(child.code) ? (
+              {expanded.has(child.id) ? (
                 <CategoryRules
                   ruleset={ruleset}
-                  rulesets={rulesets}
-                  code={child.code}
+                  rules={getRules(child.id)}
+                  libraryKeywords={libraryKeywords}
+                  id={child.id}
                   onMenu={(anchor, rule) => setRuleMenu({ anchor, rule })}
-                  onAdd={() => openAddRule(child.code)}
+                  onAdd={() => openAddRule(child.id)}
+                  onMappingMenu={(anchor, mapping, name) => setMappingMenu({ anchor, mapping, name })}
+                  libraryOptions={getLibraryPickerOptions({
+                    ruleset,
+                    rules,
+                    libraryKeywords,
+                    id: child.id,
+                    direction,
+                    tree,
+                    t,
+                  }).map((option) => ({
+                    ...option,
+                    start: <LibraryRef {...toLibraryRefProps(option.value, rules)} />,
+                  }))}
+                  onAddFromLibrary={(value) => onUpdate(toLibraryMapping({ value, id: child.id, direction }))}
                 />
               ) : null}
             </Fragment>
           ))}
-          {parent.isSystem || !expanded.has(parent.code) ? null : (
+          {!expanded.has(parent.id) ? null : (
             <Button
               size="small"
               startIcon={<Add />}
-              onClick={() => setDialog({ type: 'addChild', parentCode: parent.code })}
+              onClick={() => setDialog({ type: 'addChild', parentId: parent.id })}
               sx={sx.addChild}
             >
               {t('RULESETS_PAGE.ADD_SUBCATEGORY')}
@@ -233,10 +290,10 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
 
       <DropdownMenu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}>
         {/* Rules assign subcategories */}
-        {menu && tree.categoriesByCode.has(menu.code) ? (
+        {menu && tree.categoriesById.has(menu.id) ? (
           <DropdownMenuItem
             onClick={() => {
-              openAddRule(menu.code)
+              openAddRule(menu.id)
               setMenu(null)
             }}
             start={<Add sx={sx.menuIcon} />}
@@ -245,7 +302,7 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
         ) : null}
         <DropdownMenuItem
           onClick={() => {
-            setDialog(menu ? { type: 'edit', code: menu.code } : null)
+            setDialog(menu ? { type: 'edit', id: menu.id } : null)
             setMenu(null)
           }}
           start={<EditOutlined sx={sx.menuIcon} />}
@@ -255,7 +312,7 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
         <DropdownMenuItem
           onClick={() => {
             if (menu) {
-              remove(menu.code)
+              remove(menu.id)
             }
             setMenu(null)
           }}
@@ -274,6 +331,16 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
           start={<EditOutlined sx={sx.menuIcon} />}
           label={t('RULESETS_PAGE.EDIT')}
         />
+        <DropdownMenuItem
+          onClick={() => {
+            if (ruleMenu) {
+              router.push(getLibraryHref({ rule: ruleMenu.rule.id }))
+            }
+            setRuleMenu(null)
+          }}
+          start={<MenuBookOutlined sx={sx.menuIcon} />}
+          label={t('RULESETS_PAGE.LIBRARY.SHOW_IN_LIBRARY')}
+        />
         <DropdownMenuDivider />
         <DropdownMenuItem
           onClick={() => {
@@ -282,8 +349,45 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
             }
             setRuleMenu(null)
           }}
+          start={<LinkOff sx={{ ...sx.menuIcon, ...sx.delete }} />}
+          label={t('RULESETS_PAGE.LIBRARY.REMOVE_MAPPING')}
+          sx={sx.delete}
+        />
+        <DropdownMenuItem
+          onClick={() => {
+            if (ruleMenu) {
+              deleteRuleWithConfirm(ruleMenu.rule)
+            }
+            setRuleMenu(null)
+          }}
           start={<DeleteOutlined sx={{ ...sx.menuIcon, ...sx.delete }} />}
-          label={t('RULESETS_PAGE.DELETE')}
+          label={t('RULESETS_PAGE.DELETE_RULE_EVERYWHERE')}
+          sx={sx.delete}
+        />
+      </DropdownMenu>
+
+      <DropdownMenu anchorEl={mappingMenu?.anchor} open={!!mappingMenu} onClose={() => setMappingMenu(null)}>
+        <DropdownMenuItem
+          onClick={() => {
+            if (mappingMenu) {
+              const { type, key } = mappingMenu.mapping
+              router.push(getLibraryHref(type === 'hint' ? { hint: key } : { keyword: key }))
+            }
+            setMappingMenu(null)
+          }}
+          start={<MenuBookOutlined sx={sx.menuIcon} />}
+          label={t('RULESETS_PAGE.LIBRARY.SHOW_IN_LIBRARY')}
+        />
+        <DropdownMenuDivider />
+        <DropdownMenuItem
+          onClick={() => {
+            if (mappingMenu && confirm(t('RULESETS_PAGE.LIBRARY.CONFIRM_REMOVE_MAPPING', { name: mappingMenu.name }))) {
+              onUpdate(removeMapping(mappingMenu.mapping))
+            }
+            setMappingMenu(null)
+          }}
+          start={<LinkOff sx={{ ...sx.menuIcon, ...sx.delete }} />}
+          label={t('RULESETS_PAGE.LIBRARY.REMOVE_MAPPING')}
           sx={sx.delete}
         />
       </DropdownMenu>
@@ -292,7 +396,7 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
         <RuleDialog
           title={
             ruleDialog.type === 'add'
-              ? t('RULESETS_PAGE.ADD_RULE_TO', { name: getCategoryLabel({ code: ruleDialog.code, tree, t }) })
+              ? t('RULESETS_PAGE.ADD_RULE_TO', { name: getCategoryLabel({ id: ruleDialog.id, tree, t }) })
               : t('RULESETS_PAGE.EDIT_RULE')
           }
           initial={
@@ -304,6 +408,11 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
                   direction: CategoryRuleDirection.ANY,
                 }
               : pick(ruleDialog.rule, ['match', 'keyword', 'ignoreCase', 'direction'])
+          }
+          note={
+            ruleDialog.type === 'edit' && getOtherUses(ruleDialog.rule)
+              ? t('RULESETS_PAGE.EDIT_RULE_SHARED', { count: getOtherUses(ruleDialog.rule) })
+              : undefined
           }
           onSave={saveRule}
           onClose={() => setRuleDialog(null)}

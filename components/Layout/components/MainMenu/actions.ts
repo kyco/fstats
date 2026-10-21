@@ -14,6 +14,9 @@ export const getActiveRouteLabel = (pathname: string) => {
     case ROUTES.RULESETS:
       activeLabel = i18n.t('NAVIGATION.RULESETS')
       break
+    case ROUTES.LIBRARY:
+      activeLabel = i18n.t('NAVIGATION.LIBRARY')
+      break
     case ROUTES.SETTINGS:
       activeLabel = i18n.t('NAVIGATION.SETTINGS')
       break

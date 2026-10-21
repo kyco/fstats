@@ -14,6 +14,8 @@ export const BANKS = [capitec, comdirect, fnb, ing, lloyds, n26, tradeRepublic] 
 
 type Bank = (typeof BANKS)[number]
 
+export type BuiltInBankId = Bank['id']
+
 export type BuiltInParserId = ParserIds<Bank>
 
 export type BuiltInBankAccountId = AccountIds<Bank>

@@ -32,7 +32,7 @@ type NewRulesetDialogProps = {
 
 /**
  * Creates a rule set from a template (e.g. to start over with the standard categories), as a copy of one of the user's
- * changed rule sets, or empty (only the system categories).
+ * changed rule sets, or empty (no categories).
  */
 const Component = ({ isOpen, rulesets, onClose, onCreated }: NewRulesetDialogProps) => {
   const sx = ui()

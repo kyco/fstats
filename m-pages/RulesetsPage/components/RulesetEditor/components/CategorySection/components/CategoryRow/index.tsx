@@ -20,13 +20,13 @@ type CategoryRowProps = {
   color?: CategoryColor
   ruleCount: number
   /**
+   * Library hints and library keywords mapped to it (or its subcategories), see `getCategoryMappings`.
+   */
+  mappingCount: number
+  /**
    * Of subcategories: internal transfers, excluded from profit and loss.
    */
   isTransfer?: boolean
-  /**
-   * The system categories can't be changed.
-   */
-  isFixed?: boolean
   /**
    * Shows or hides the subcategories of a parent category, or the rules of a subcategory, below it.
    */
@@ -49,8 +49,8 @@ const Component = ({
   isParent = false,
   color,
   ruleCount,
+  mappingCount,
   isTransfer = false,
-  isFixed = false,
   onToggle,
   isExpanded = false,
   onMenu,
@@ -80,7 +80,7 @@ const Component = ({
         {/* Fixed ones keep the space, so the names are aligned */}
         {onToggle ? <ChevronRight sx={sx.chevron(isExpanded)} /> : <Box component="span" sx={sx.chevronSpace} />}
         {isParent && color ? <Box component="span" sx={sx.dot(CATEGORY_COLORS[color])} /> : null}
-        <Box component="span" sx={sx.label(isParent, isFixed)}>
+        <Box component="span" sx={sx.label(isParent)}>
           {label}
         </Box>
 
@@ -96,41 +96,34 @@ const Component = ({
         ) : null}
 
         <Box component="span" sx={sx.count}>
-          {ruleCount
-            ? t('RULESETS_PAGE.RULE_COUNT', { count: ruleCount })
-            : onToggle
-              ? t('RULESETS_PAGE.NO_RULES_SHORT')
-              : null}
+          {[
+            ...(ruleCount ? [t('RULESETS_PAGE.RULE_COUNT', { count: ruleCount })] : []),
+            ...(mappingCount ? [t('RULESETS_PAGE.FROM_LIBRARY_COUNT', { count: mappingCount })] : []),
+          ].join(' · ') || (onToggle ? t('RULESETS_PAGE.NO_RULES_SHORT') : null)}
         </Box>
       </Box>
 
-      {isFixed ? (
-        <Box component="span" title={t('RULESETS_PAGE.FIXED_HINT')} sx={sx.fixed}>
-          {isParent ? t('RULESETS_PAGE.FIXED') : null}
+      <Box sx={sx.actions}>
+        <Box sx={sx.moves}>
+          {renderAction(t('RULESETS_PAGE.MOVE_UP'), <ArrowUpward fontSize="inherit" />, () => onMove(-1), !canMoveUp)}
+          {renderAction(
+            t('RULESETS_PAGE.MOVE_DOWN'),
+            <ArrowDownward fontSize="inherit" />,
+            () => onMove(1),
+            !canMoveDown,
+          )}
         </Box>
-      ) : (
-        <Box sx={sx.actions}>
-          <Box sx={sx.moves}>
-            {renderAction(t('RULESETS_PAGE.MOVE_UP'), <ArrowUpward fontSize="inherit" />, () => onMove(-1), !canMoveUp)}
-            {renderAction(
-              t('RULESETS_PAGE.MOVE_DOWN'),
-              <ArrowDownward fontSize="inherit" />,
-              () => onMove(1),
-              !canMoveDown,
-            )}
-          </Box>
-          <IconButton
-            size="small"
-            title={t('RULESETS_PAGE.ACTIONS')}
-            aria-label={t('RULESETS_PAGE.ACTIONS_NAMED', { name: label })}
-            aria-haspopup="menu"
-            onClick={(event) => onMenu(event.currentTarget)}
-            sx={sx.action}
-          >
-            <MoreHoriz fontSize="inherit" />
-          </IconButton>
-        </Box>
-      )}
+        <IconButton
+          size="small"
+          title={t('RULESETS_PAGE.ACTIONS')}
+          aria-label={t('RULESETS_PAGE.ACTIONS_NAMED', { name: label })}
+          aria-haspopup="menu"
+          onClick={(event) => onMenu(event.currentTarget)}
+          sx={sx.action}
+        >
+          <MoreHoriz fontSize="inherit" />
+        </IconButton>
+      </Box>
     </Box>
   )
 }

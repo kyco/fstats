@@ -2,11 +2,45 @@ export const ROUTES = {
   HOME: '/',
   STATS: '/stats',
   RULESETS: '/rule-sets',
+  LIBRARY: '/library',
   SETTINGS: '/settings',
   ABOUT: '/about',
 }
 
+type SearchParams = { get: (name: string) => string | null; toString: () => string }
+
 const VIEW_PARAM = 'view'
+
+const HINT_PARAM = 'hint'
+
+const KEYWORD_PARAM = 'keyword'
+
+const RULE_PARAM = 'rule'
+
+/**
+ * The library page showing a hint (e.g. 'transfer'), a library keyword (e.g. 'de.rewe') or one of the user's rules (by ID).
+ */
+export const getLibraryHref = ({ hint, keyword, rule }: { hint?: string; keyword?: string; rule?: string }) => {
+  const params = new URLSearchParams()
+  Object.entries({ [HINT_PARAM]: hint, [KEYWORD_PARAM]: keyword, [RULE_PARAM]: rule }).forEach(([name, value]) => {
+    if (value) {
+      params.set(name, value)
+    }
+  })
+  const query = params.toString()
+  return query ? `${ROUTES.LIBRARY}?${query}` : ROUTES.LIBRARY
+}
+
+/**
+ * The hint, library keyword or rule the library page shows, see `getLibraryHref`.
+ */
+export const getLibraryTarget = (searchParams: SearchParams) => {
+  return {
+    hint: searchParams.get(HINT_PARAM),
+    keyword: searchParams.get(KEYWORD_PARAM),
+    rule: searchParams.get(RULE_PARAM),
+  }
+}
 
 const DEMO_PARAM = 'demo'
 
@@ -23,8 +57,6 @@ export const WorkspaceView = {
 } as const
 
 export type WorkspaceView = (typeof WorkspaceView)[keyof typeof WorkspaceView]
-
-type SearchParams = { get: (name: string) => string | null; toString: () => string }
 
 export const getView = (searchParams: SearchParams): WorkspaceView => {
   const view = searchParams.get(VIEW_PARAM)

@@ -13,13 +13,7 @@ import type {
 import type { GradientColorsLightDark, NumberString } from './global'
 import type { CategoryEngine, CategoryRule, CategoryRuleDraft } from './services/category-rule'
 import type { ParsedStatsFile, StatsFile } from './services/stats-file'
-import type {
-  CategoryCode,
-  ParentCategoryCode,
-  SourcedTransaction,
-  StatsTransactions,
-  Transaction,
-} from './services/transaction'
+import type { CategoryId, SourcedTransaction, StatsTransactions, Transaction } from './services/transaction'
 import type { TextRange } from './utils'
 
 // -------------------------------------------------------
@@ -95,8 +89,12 @@ export type WorkspaceSearch = {
  * What was entered in the category form, kept when it moves from the menu to the sidebar.
  */
 export type CategoryEditorDraft = {
-  category: CategoryCode | ''
+  category: CategoryId | ''
   applyTo: 'transaction' | 'rule'
+  /**
+   * For all matching: those recognised as the same library keyword (mapping it in the active rule set), or a new rule.
+   */
+  matchBy: 'library' | 'rule'
   field: CategoryRuleField
   match: CategoryRuleMatch
   keyword: string
@@ -105,14 +103,16 @@ export type CategoryEditorDraft = {
 }
 
 /**
- * The rule being created in the category form, previewed in the transactions table.
+ * What the category form changes, previewed in the transactions table: the transactions a new rule matches, or those
+ * recognised as a library keyword (of the edited transaction's direction).
  */
-export type CategoryRulePreview = {
-  rule: CategoryRuleDraft
+export type CategoryRulePreview = (
+  { type: 'rule'; rule: CategoryRuleDraft } | { type: 'library'; keywordId: string; isIncome: boolean }
+) & {
   /**
    * Chosen in the form, shown as the new category of the matches the rule changes.
    */
-  category: CategoryCode | null
+  category: CategoryId | null
   /**
    * The edited transaction.
    */
@@ -264,19 +264,22 @@ export type CategoryGroup = {
 // Stats page: category breakdown
 // -------------------------------------------------------
 
+/**
+ * A category (or the group of uncategorised transactions) of the breakdown.
+ */
 export type CategoryWithTransactions = {
-  code: CategoryCode
+  id: string
   label: string
   transactions: Transaction[]
   total: NumberString
 }
 
 export type ParentCategoryWithTransactions = {
-  code: ParentCategoryCode
+  id: string
   label: string
   color: GradientColorsLightDark
   direction: CategoryDirection
-  subcategories: Record<CategoryCode, CategoryWithTransactions>
+  subcategories: Record<string, CategoryWithTransactions>
   transactions: Transaction[]
   total: NumberString
 }
@@ -505,9 +508,7 @@ export type CategoryDialogValues = {
  * The category dialog on the rule sets page: adding a parent category or a subcategory, or editing one.
  */
 export type CategoryDialogState =
-  | { type: 'addParent' }
-  | { type: 'addChild'; parentCode: ParentCategoryCode }
-  | { type: 'edit'; code: CategoryCode | ParentCategoryCode }
+  { type: 'addParent' } | { type: 'addChild'; parentId: CategoryId } | { type: 'edit'; id: string }
 
 /**
  * Entered in the dialog adding or editing a keyword rule on the rule sets page.
@@ -517,7 +518,7 @@ export type RuleDialogValues = Pick<CategoryRuleDraft, 'match' | 'keyword' | 'ig
 /**
  * The rule dialog on the rule sets page: adding a rule to a subcategory, or editing one.
  */
-export type RuleDialogState = { type: 'add'; code: CategoryCode } | { type: 'edit'; rule: CategoryRule }
+export type RuleDialogState = { type: 'add'; id: CategoryId } | { type: 'edit'; rule: CategoryRule }
 
 /**
  * The amounts a keyword rule applies to, see `CategoryRuleDirection`.

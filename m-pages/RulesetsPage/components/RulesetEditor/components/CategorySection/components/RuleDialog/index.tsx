@@ -10,6 +10,7 @@ import {
   DialogTitle,
   FormControlLabel,
   TextField,
+  Typography,
 } from '@mui/material'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
@@ -24,6 +25,10 @@ import { ui } from './styled'
 type RuleDialogProps = {
   title: string
   initial: RuleDialogValues
+  /**
+   * Above the fields, e.g. that other rule sets use the rule too.
+   */
+  note?: string
   onSave: (values: RuleDialogValues) => void
   onClose: () => void
 }
@@ -32,7 +37,7 @@ type RuleDialogProps = {
  * Adds or edits a keyword rule of a category, with the fields of the rule form of the category editor (stats page):
  * how and what it matches, and the rarely changed options (case, amounts).
  */
-const Component = ({ title, initial, onSave, onClose }: RuleDialogProps) => {
+const Component = ({ title, initial, note, onSave, onClose }: RuleDialogProps) => {
   const sx = ui()
   const { t } = useTranslation()
   const [match, setMatch] = useState(initial.match)
@@ -73,6 +78,11 @@ const Component = ({ title, initial, onSave, onClose }: RuleDialogProps) => {
       >
         <DialogTitle>{title}</DialogTitle>
         <DialogContent sx={sx.content}>
+          {note ? (
+            <Typography component="p" sx={sx.note}>
+              {note}
+            </Typography>
+          ) : null}
           {renderField(
             t('STATS_PAGE.CATEGORY_RULES.CONDITION'),
             <>

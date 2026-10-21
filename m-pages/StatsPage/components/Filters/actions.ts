@@ -18,15 +18,15 @@ type ToParentOptionsProps = {
 const toParentOptions = ({ tree, direction, counts, inCounts, t }: ToParentOptionsProps): ParentCategoryOption[] => {
   return getDirectionParents(tree, direction).map((parent) => {
     const children = parent.children.map((category) => ({
-      key: category.code,
-      label: getCategoryLabel({ code: category.code, tree, t }),
-      count: counts[category.code] ?? 0,
-      inCount: inCounts[category.code] ?? 0,
+      key: category.id,
+      label: getCategoryLabel({ id: category.id, tree, t }),
+      count: counts[category.id] ?? 0,
+      inCount: inCounts[category.id] ?? 0,
     }))
 
     return {
-      key: parent.code,
-      label: getCategoryLabel({ code: parent.code, tree, t }),
+      key: parent.id,
+      label: getCategoryLabel({ id: parent.id, tree, t }),
       count: sumBy(children, 'count'),
       inCount: sumBy(children, 'inCount'),
       keys: children.map((child) => child.key),
@@ -53,10 +53,10 @@ export const getCategoryGroups = ({ transactions, tree, t }: GetCategoryGroupsPr
   const counts = countBy(transactions, getCategoryKey)
   const inCounts = countBy(transactions.filter(isIncome), getCategoryKey)
   const otherOptions = Object.keys(counts)
-    .filter((key) => !tree.categoriesByCode.has(key))
+    .filter((key) => !tree.categoriesById.has(key))
     .map((key) => ({
       key,
-      label: getCategoryLabel({ code: key === NO_CATEGORY ? null : key, tree, t }),
+      label: getCategoryLabel({ id: key === NO_CATEGORY ? null : key, tree, t }),
       count: counts[key],
       inCount: inCounts[key] ?? 0,
       keys: [key],

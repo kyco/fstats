@@ -14,7 +14,8 @@ import { useState } from 'react'
 import type { CategoryRuleset } from '@/types'
 import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem } from '@/components'
 import {
-  getCategoryCount,
+  getMappingCount,
+  getRuleCount,
   renameRuleset,
   useMutateAddRuleset,
   useMutateRemoveRuleset,
@@ -22,7 +23,7 @@ import {
 } from '@/m-category/service'
 import { useTranslation } from '@/lib/i18n'
 
-import { getCopyName } from '../../actions'
+import { getCopyName, getRulesetCounts } from '../../actions'
 import RenameDialog from './components/RenameDialog'
 import { ui } from './styled'
 
@@ -96,8 +97,12 @@ const Component = ({ rulesets, activeId, selectedId, onSelect, onActivate, onCre
                 {ruleset.name}
               </Box>
               <Box component="span" sx={sx.meta}>
-                {t('RULESETS_PAGE.CATEGORY_COUNT', { count: getCategoryCount(ruleset.categories) })} ·{' '}
-                {t('RULESETS_PAGE.RULE_COUNT', { count: ruleset.rules.length })}
+                {getRulesetCounts({
+                  categories: ruleset.categories,
+                  ruleCount: getRuleCount(ruleset),
+                  mappingCount: getMappingCount(ruleset.mappings),
+                  t,
+                })}
               </Box>
               {/* Absolute, so the tiles are equally high */}
               {ruleset.id === activeId ? (

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CategoryCode, ParsedStatsFile, Transaction } from '@/types'
+import type { CategoryId, ParsedStatsFile, Transaction } from '@/types'
 import { BreakdownPeriod, Currency, StatsFileStatus } from '@/types-enums'
 import { getTemplateTree } from '@/m-category/service'
-import { DEFAULT_TEMPLATE_ID } from '@/utils/Category'
+import { DEFAULT_TEMPLATE_ID, toCategoryId } from '@/utils/Category'
 import { i18n } from '@/lib/i18n'
 import { Big } from '@/lib/w-big'
 
@@ -14,7 +14,7 @@ const tree = getTemplateTree(DEFAULT_TEMPLATE_ID)
 const toTransaction = (
   day: string,
   value: string,
-  category: CategoryCode | null = null,
+  category: CategoryId | null = null,
   currency: Currency = Currency.EUR,
 ) =>
   ({
@@ -74,8 +74,8 @@ describe('splitTransfers', () => {
   })
 
   it('should exclude transactions in a transfer category without a counterpart', () => {
-    const transfer = toAccountTransaction('ing__current', '2026-01-01', '-100', 'TRO_01')
-    const other = toAccountTransaction('ing__current', '2026-01-01', '-20', 'GRO_01')
+    const transfer = toAccountTransaction('ing__current', '2026-01-01', '-100', toCategoryId('transfers_out'))
+    const other = toAccountTransaction('ing__current', '2026-01-01', '-20', toCategoryId('groceries'))
 
     expect(splitTransfers([transfer, other], tree)).toEqual({ transactions: [other], transfers: [transfer] })
   })
@@ -83,13 +83,13 @@ describe('splitTransfers', () => {
 
 describe('getProfitLoss', () => {
   it('should sum income and expenses per category and period, without transfers or duplicates', () => {
-    const salary = toTransaction('2026-01-25', '3000', 'INC_01')
-    const groceries = toTransaction('2026-01-10', '-200', 'GRO_01')
-    const groceriesFeb = toTransaction('2026-02-10', '-150.5', 'GRO_01')
-    const restaurant = toTransaction('2026-02-12', '-50', 'GRO_02')
-    const unknown = toTransaction('2026-02-01', '-10', 'TFO_02')
-    const toCreditCard = toTransaction('2026-02-01', '-500', 'FIN_02')
-    const fromGiro = toTransaction('2026-02-02', '500', 'TFI_02')
+    const salary = toTransaction('2026-01-25', '3000', toCategoryId('salary'))
+    const groceries = toTransaction('2026-01-10', '-200', toCategoryId('groceries'))
+    const groceriesFeb = toTransaction('2026-02-10', '-150.5', toCategoryId('groceries'))
+    const restaurant = toTransaction('2026-02-12', '-50', toCategoryId('eating_out'))
+    const unknown = toTransaction('2026-02-01', '-10', null)
+    const toCreditCard = toTransaction('2026-02-01', '-500', toCategoryId('fees_interest'))
+    const fromGiro = toTransaction('2026-02-02', '500', null)
     const files = [
       toFile('a', [
         { parserId: 'comdirect__giro', transactions: [salary, groceries, toCreditCard, unknown] },
@@ -107,14 +107,14 @@ describe('getProfitLoss', () => {
     })
 
     expect(profitLoss.periods).toEqual(['2026-01', '2026-02'])
-    expect(profitLoss.income.rows.map((row) => [row.key, row.total])).toEqual([['INC', '3000']])
+    expect(profitLoss.income.rows.map((row) => [row.key, row.total])).toEqual([[toCategoryId('income'), '3000']])
     expect(profitLoss.expenses.rows.map((row) => [row.key, row.values, row.total])).toEqual([
-      ['GRO', { '2026-01': '200', '2026-02': '200.5' }, '400.5'],
+      [toCategoryId('food'), { '2026-01': '200', '2026-02': '200.5' }, '400.5'],
       ['uncategorised', { '2026-02': '10' }, '10'],
     ])
     expect(profitLoss.expenses.rows[0].children.map((row) => [row.key, row.total])).toEqual([
-      ['GRO_01', '350.5'],
-      ['GRO_02', '50'],
+      [toCategoryId('groceries'), '350.5'],
+      [toCategoryId('eating_out'), '50'],
     ])
     expect(profitLoss.expenses.total.total).toBe('410.5')
     expect(profitLoss.net.values).toEqual({ '2026-01': '2800', '2026-02': '-210.5' })
@@ -127,9 +127,9 @@ describe('getProfitLoss', () => {
   })
 
   it('should sum incoming and outgoing transactions of categories with both', () => {
-    const doctor = toTransaction('2026-01-05', '-1000', 'HLT_01')
-    const payout = toTransaction('2026-02-10', '600', 'HLT_01')
-    const groceries = toTransaction('2026-01-10', '-200', 'GRO_01')
+    const doctor = toTransaction('2026-01-05', '-1000', toCategoryId('medical'))
+    const payout = toTransaction('2026-02-10', '600', toCategoryId('medical'))
+    const groceries = toTransaction('2026-01-10', '-200', toCategoryId('groceries'))
     const files = [toFile('a', [{ parserId: 'comdirect__giro', transactions: [doctor, payout, groceries] }])]
 
     const [profitLoss] = getProfitLoss({
@@ -152,9 +152,9 @@ describe('getProfitLoss', () => {
   })
 
   it('should pair transfers before filtering', () => {
-    const outgoing = toTransaction('2026-01-01', '-500', 'FIN_02')
-    const incoming = toTransaction('2026-01-02', '500', 'TFI_02')
-    const groceries = toTransaction('2026-01-03', '-20', 'GRO_01')
+    const outgoing = toTransaction('2026-01-01', '-500', toCategoryId('fees_interest'))
+    const incoming = toTransaction('2026-01-02', '500', null)
+    const groceries = toTransaction('2026-01-03', '-20', toCategoryId('groceries'))
     const files = [
       toFile('a', [
         { parserId: 'comdirect__giro', transactions: [outgoing, groceries] },
@@ -179,7 +179,9 @@ describe('getProfitLoss', () => {
 
   it('should skip currencies without shown transactions', () => {
     const files = [
-      toFile('a', [{ parserId: 'ing__giro', transactions: [toTransaction('2026-01-01', '-1', 'GRO_01')] }]),
+      toFile('a', [
+        { parserId: 'ing__giro', transactions: [toTransaction('2026-01-01', '-1', toCategoryId('groceries'))] },
+      ]),
     ]
 
     expect(
@@ -195,11 +197,13 @@ describe('getProfitLoss', () => {
 
   it('should return one per currency', () => {
     const files = [
-      toFile('a', [{ parserId: 'ing__giro', transactions: [toTransaction('2026-01-01', '-1', 'GRO_01')] }]),
+      toFile('a', [
+        { parserId: 'ing__giro', transactions: [toTransaction('2026-01-01', '-1', toCategoryId('groceries'))] },
+      ]),
       toFile('b', [
         {
           parserId: 'fnb__credit_card',
-          transactions: [toTransaction('2026-01-01', '-1', 'GRO_01', Currency.ZAR)],
+          transactions: [toTransaction('2026-01-01', '-1', toCategoryId('groceries'), Currency.ZAR)],
         },
       ]),
     ]

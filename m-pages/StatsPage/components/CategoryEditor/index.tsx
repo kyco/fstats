@@ -7,28 +7,39 @@ import { isEqual } from 'lodash'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
-import type { CategoryEditorDraft, CategoryRulePreview, Transaction } from '@/types'
-import { CategoryRuleDirection, CategoryRuleMatch, CategorySource } from '@/types-enums'
-import { MenuSelect, RuleMoreOptions, SegmentedToggle } from '@/components'
+import type { CategoryEditorDraft, CategoryId, CategoryRulePreview, Transaction } from '@/types'
+import { CategoryDirection, CategoryRuleDirection, CategoryRuleMatch, CategorySource } from '@/types-enums'
+import { MenuSelect, NewCategoryDialog, RuleMoreOptions, SegmentedToggle } from '@/components'
 import {
+  addNamedCategory,
   getCategoryColor,
   getCategoryLabel,
   getRuleFieldValue,
   getRuleRef,
+  recogniseTransaction,
   resolveCategory,
+  setKeywordMapping,
+  setRuleMapping,
   useActiveRuleset,
   useMutateAddCategoryRule,
   useMutateRemoveCategoryOverride,
-  useMutateRemoveCategoryRule,
   useMutateSetCategoryOverride,
+  useMutateUpdateRuleset,
 } from '@/m-category/service'
 import { getSimilarTransactions } from '@/m-transaction/service'
-import { getUncategorisedCode } from '@/utils/Category'
+import { toCategoryId } from '@/utils/Category'
 import { isExpense } from '@/utils/Stats'
 import { Trans, useTranslation } from '@/lib/i18n'
 
 import { useStatsTransactions, useWorkspaceCategories } from '../../context'
-import { getCategoryPickerOptions, getFieldOptions, getRuleMatches, getSourceText, MATCH_STEPS } from './actions'
+import {
+  getCategoryPickerOptions,
+  getFieldOptions,
+  getKeywordMatchCount,
+  getRuleMatches,
+  getSourceText,
+  MATCH_STEPS,
+} from './actions'
 import { ui } from './styled'
 
 type CategoryEditorProps = {
@@ -99,11 +110,11 @@ const Component = ({
   const { unique } = useStatsTransactions()
   const engine = useWorkspaceCategories()
   const { tree } = engine
-  const { ruleset: activeRuleset, rulesets } = useActiveRuleset()
+  const { ruleset: activeRuleset } = useActiveRuleset()
   const { mutateAsync: setOverride } = useMutateSetCategoryOverride()
   const { mutateAsync: removeOverride } = useMutateRemoveCategoryOverride()
   const { mutateAsync: addRule } = useMutateAddCategoryRule()
-  const { mutateAsync: removeRule } = useMutateRemoveCategoryRule()
+  const { mutateAsync: updateRuleset } = useMutateUpdateRuleset()
 
   const isIncome = !isExpense(transaction)
   // Transactions with the same description (this one included), unchanged when changing this one only
@@ -113,6 +124,9 @@ const Component = ({
     () => resolveCategory({ transaction, engine, preset: readOnly ? transaction.category : null }),
     [transaction, engine, readOnly],
   )
+  // The library keyword recognising it, its category can be changed for all transactions it recognises
+  const recognised = useMemo(() => recogniseTransaction({ transaction, engine }), [transaction, engine])
+  const transactionDirection = isIncome ? CategoryDirection.IN : CategoryDirection.OUT
   const categoryOptions = getCategoryPickerOptions({ isIncome, tree, t }).map((option) => ({
     ...option,
     start: <Box component="span" sx={sx.dot(getCategoryColor(tree, option.value))} />,
@@ -124,6 +138,8 @@ const Component = ({
   const [defaults] = useState<CategoryEditorDraft>(() => ({
     category: '',
     applyTo: 'transaction',
+    // What the library recognises it as, unless it doesn't
+    matchBy: recognised ? 'library' : 'rule',
     field: fieldOptions[0],
     match: CategoryRuleMatch.CONTAINS,
     keyword: transaction.description.trim(),
@@ -135,12 +151,15 @@ const Component = ({
   const initial = initialDraft ?? defaults
   const [category, setCategory] = useState(initial.category)
   const [applyTo, setApplyTo] = useState(initial.applyTo)
+  const [matchBy, setMatchBy] = useState(recognised ? initial.matchBy : 'rule')
   const [field, setField] = useState(initial.field)
   const [match, setMatch] = useState(initial.match)
   const [keyword, setKeyword] = useState(initial.keyword)
   const [ignoreCase, setIgnoreCase] = useState(initial.ignoreCase)
   const [amounts, setAmounts] = useState(initial.amounts)
-  const draft: CategoryEditorDraft = { category, applyTo, field, match, keyword, ignoreCase, amounts }
+  const draft: CategoryEditorDraft = { category, applyTo, matchBy, field, match, keyword, ignoreCase, amounts }
+  // All recognised as the library keyword, mapped in the rule set (instead of a keyword rule)
+  const isLibraryMatch = applyTo === 'rule' && matchBy === 'library' && !!recognised
   const hasChanges = !isEqual(draft, defaults)
   // In the sidebar, the match the table is scrolled to, starting at the edited (selected) one
   const focusedId = onFocusMatch ? (focusedMatchId ?? transaction.id) : null
@@ -159,17 +178,16 @@ const Component = ({
   // Matches are shown (and highlighted) before a category is chosen, it's needed to save
   const rule = useMemo(
     () =>
-      isEditing && applyTo === 'rule'
+      isEditing && applyTo === 'rule' && !isLibraryMatch
         ? {
             field,
             match,
             ignoreCase,
             keyword: trimmedKeyword,
             direction,
-            category: category || getUncategorisedCode(transaction),
           }
         : null,
-    [isEditing, applyTo, field, match, ignoreCase, trimmedKeyword, direction, category, transaction],
+    [isEditing, applyTo, isLibraryMatch, field, match, ignoreCase, trimmedKeyword, direction],
   )
   // Among the unique transactions of the checked files
   const matches = useMemo(
@@ -177,14 +195,28 @@ const Component = ({
     [rule, transaction, unique],
   )
 
-  const preview = useMemo(
-    () => (rule?.keyword ? { rule, category: category || null, editedId: transaction.id } : null),
-    [rule, category, transaction.id],
-  )
+  const preview = useMemo((): CategoryRulePreview | null => {
+    const shared = { category: category || null, editedId: transaction.id }
+
+    if (isEditing && isLibraryMatch && recognised) {
+      return { type: 'library', keywordId: recognised.libraryKeyword.id, isIncome, ...shared }
+    }
+
+    return rule?.keyword ? { type: 'rule', rule, ...shared } : null
+  }, [isEditing, isLibraryMatch, recognised, isIncome, rule, category, transaction.id])
 
   useEffect(() => {
     onRuleChange?.(preview)
   }, [preview, onRuleChange])
+
+  // Among the unique transactions of the checked files, of the same direction (mapped separately)
+  const keywordMatchCount = useMemo(
+    () =>
+      recognised && isLibraryMatch
+        ? getKeywordMatchCount({ keywordId: recognised.libraryKeyword.id, isIncome, transactions: unique, engine })
+        : 0,
+    [recognised, isLibraryMatch, isIncome, unique, engine],
+  )
 
   // -1 when it doesn't match (e.g. after changing the keyword)
   const focusedIndex = matches?.transactions.findIndex((other) => other.id === focusedId) ?? -1
@@ -207,7 +239,8 @@ const Component = ({
   const canSave =
     !isSaving &&
     !!category &&
-    (applyTo === 'transaction' || (!!activeRuleset && !!trimmedKeyword && (amounts.in || amounts.out)))
+    !!activeRuleset &&
+    (applyTo === 'transaction' || isLibraryMatch || (!!trimmedKeyword && (amounts.in || amounts.out)))
 
   const run = async (action: () => Promise<unknown>) => {
     setIsSaving(true)
@@ -224,38 +257,82 @@ const Component = ({
     }
   }
 
+  // Everything is saved to the active rule set, the form isn't shown without one
   const save = () =>
     run(async () => {
-      if (!rule || !activeRuleset) {
-        await setOverride({ transactionId: transaction.id, category })
+      if (!activeRuleset || !category) {
         return
       }
 
-      await addRule({ rulesetId: activeRuleset.id, rule })
+      const rulesetId = activeRuleset.id
 
-      // Otherwise the override would still win over the new rule
+      if (isLibraryMatch && recognised) {
+        await updateRuleset({
+          rulesetId,
+          update: setKeywordMapping({ direction: transactionDirection, key: recognised.libraryKeyword.id, category }),
+        })
+      } else if (rule) {
+        await addRule({ rule, rulesetId, category })
+      } else {
+        await setOverride({ rulesetId, transactionId: transaction.id, category })
+        return
+      }
+
+      // Otherwise the override would still win over the new rule or mapping
       if (resolved.source === CategorySource.OVERRIDE) {
-        await removeOverride(transaction.id)
+        await removeOverride({ rulesetId, transactionId: transaction.id })
       }
     })
 
   const sourceAction =
-    resolved.source === CategorySource.OVERRIDE
+    resolved.source === CategorySource.OVERRIDE && activeRuleset
       ? {
           label: t('STATS_PAGE.CATEGORY_RULES.RESET'),
           confirm: t('STATS_PAGE.CATEGORY_RULES.CONFIRM_RESET'),
-          action: () => removeOverride(transaction.id),
+          action: () => removeOverride({ rulesetId: activeRuleset.id, transactionId: transaction.id }),
         }
-      : resolved.rule
+      : resolved.rule && activeRuleset
         ? {
-            label: t('STATS_PAGE.CATEGORY_RULES.DELETE_RULE'),
-            confirm: t('STATS_PAGE.CATEGORY_RULES.CONFIRM_DELETE_RULE', {
-              rule: getRuleRef({ rulesetId: resolved.rule.rulesetId, number: resolved.rule.number, rulesets }),
+            label: t('STATS_PAGE.CATEGORY_RULES.REMOVE_RULE'),
+            confirm: t('STATS_PAGE.CATEGORY_RULES.CONFIRM_REMOVE_RULE', {
+              rule: getRuleRef(resolved.rule.number),
               keyword: resolved.rule.keyword,
+              name: activeRuleset.name,
             }),
-            action: () => removeRule({ rulesetId: resolved.rule!.rulesetId, ruleId: resolved.rule!.id }),
+            action: () =>
+              updateRuleset({
+                rulesetId: activeRuleset.id,
+                update: setRuleMapping({ ruleId: resolved.rule!.id, category: undefined }),
+              }),
           }
         : null
+
+  // Chosen once added to the active rule set, for money in or out like the transaction
+  // Searched for in the category select, asks where to add it
+  const [newCategoryName, setNewCategoryName] = useState<string | null>(null)
+
+  const createCategory = async ({ label, parentId }: { label: string; parentId: CategoryId | null }) => {
+    setNewCategoryName(null)
+    if (!activeRuleset) {
+      return
+    }
+
+    setError(null)
+    try {
+      const { id, update } = addNamedCategory({
+        ruleset: activeRuleset,
+        label,
+        parentId,
+        direction: transactionDirection,
+      })
+      await updateRuleset({ rulesetId: activeRuleset.id, update })
+      setCategory(id)
+    } catch (err) {
+      setError(
+        t('STATS_PAGE.CATEGORY_RULES.SAVE_FAILED', { message: err instanceof Error ? err.message : String(err) }),
+      )
+    }
+  }
 
   const renderField = (label: string, control: ReactNode) => (
     <Box sx={sx.field}>
@@ -280,11 +357,19 @@ const Component = ({
         placeholder={t('STATS_PAGE.CATEGORY_RULES.CHOOSE_CATEGORY')}
         value={category}
         options={categoryOptions}
-        onChange={setCategory}
+        onChange={(value) => setCategory(toCategoryId(value))}
         search={{
           placeholder: t('STATS_PAGE.CATEGORY_RULES.SEARCH_CATEGORIES'),
           noMatches: t('STATS_PAGE.CATEGORY_RULES.NO_MATCHING_CATEGORIES'),
         }}
+        create={
+          activeRuleset
+            ? {
+                getLabel: (name) => t('STATS_PAGE.CATEGORY_RULES.CREATE_CATEGORY', { name }),
+                onCreate: setNewCategoryName,
+              }
+            : undefined
+        }
       />
 
       {renderField(
@@ -320,149 +405,196 @@ const Component = ({
 
       {applyTo === 'rule' ? (
         <>
-          {fieldOptions.length > 1
+          {/* What the library recognises it as, or a keyword */}
+          {recognised
             ? renderField(
-                t('STATS_PAGE.CATEGORY_RULES.FIELD'),
-                <MenuSelect
-                  title={t('STATS_PAGE.CATEGORY_RULES.FIELD')}
-                  value={field}
-                  options={fieldOptions.map((option) => ({
-                    value: option,
-                    label: t(`STATS_PAGE.CATEGORY_RULES.FIELDS.${option}`),
-                    description: getRuleFieldValue(transaction, option),
-                  }))}
-                  onChange={(value) => {
-                    const next = value as typeof field
-                    setField(next)
-                    setKeyword(getRuleFieldValue(transaction, next)?.trim() ?? '')
-                  }}
+                t('STATS_PAGE.CATEGORY_RULES.MATCH_BY'),
+                <SegmentedToggle
+                  value={matchBy}
+                  onChange={setMatchBy}
+                  options={[
+                    {
+                      value: 'library',
+                      label: t('STATS_PAGE.CATEGORY_RULES.RECOGNISED_AS', { name: recognised.libraryKeyword.name }),
+                    },
+                    { value: 'rule', label: t('STATS_PAGE.CATEGORY_RULES.KEYWORD_RULE') },
+                  ]}
                 />,
               )
             : null}
-          {renderField(
-            t('STATS_PAGE.CATEGORY_RULES.CONDITION'),
+          {/* Mapped in the rule set, which rules and single-transaction categories come before */}
+          {isLibraryMatch ? (
             <>
-              <Box sx={sx.condition}>
-                <Box sx={sx.matchSelect}>
-                  <MenuSelect
-                    title={t('STATS_PAGE.CATEGORY_RULES.CONDITION')}
-                    value={match}
-                    options={Object.values(CategoryRuleMatch).map((value) => ({
-                      value,
-                      label: t(`STATS_PAGE.CATEGORY_RULES.MATCH_TYPES.${value}`),
-                    }))}
-                    onChange={(value) => setMatch(value as CategoryRuleMatch)}
+              <Box sx={{ ...sx.notice(true), ...sx.applyNotice }}>
+                <InfoOutlined sx={sx.noticeIcon} />
+                <span>
+                  <Trans
+                    i18nKey="STATS_PAGE.CATEGORY_RULES.LIBRARY_NOTICE"
+                    count={keywordMatchCount}
+                    values={{
+                      count: keywordMatchCount,
+                      name: recognised.libraryKeyword.name,
+                      hint: t(recognised.libraryKeyword.hint, { ns: 'hints' }),
+                      direction: t(`STATS_PAGE.CATEGORY_RULES.${isIncome ? 'MONEY_IN' : 'MONEY_OUT'}`),
+                    }}
+                    components={{ b: <strong /> }}
                   />
-                </Box>
-                <TextField
-                  size="small"
-                  value={keyword}
-                  onChange={(event) => setKeyword(event.target.value)}
-                  error={!!matches && !!trimmedKeyword && !matches.isMatch}
-                  slotProps={{ htmlInput: { 'aria-label': t('STATS_PAGE.CATEGORY_RULES.KEYWORD') } }}
-                  sx={sx.input}
-                />
+                </span>
               </Box>
-              {/* Also when not matching this transaction, the others it would change */}
-              {matches?.count ? (
-                <Box sx={sx.notice(true)}>
-                  <InfoOutlined sx={sx.noticeIcon} />
-                  <Box component="span" sx={sx.noticeText}>
-                    <Trans
-                      i18nKey="STATS_PAGE.CATEGORY_RULES.MATCH_COUNT"
-                      count={matches.count}
-                      values={{ count: matches.count }}
-                      components={{ b: <strong /> }}
+              {resolved.source === CategorySource.RULE ? (
+                <Box sx={{ ...sx.notice(false), ...sx.nextNotice }}>
+                  <WarningAmberOutlined sx={sx.noticeIcon} />
+                  {t('STATS_PAGE.CATEGORY_RULES.LIBRARY_RULE_WINS')}
+                </Box>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {fieldOptions.length > 1
+                ? renderField(
+                    t('STATS_PAGE.CATEGORY_RULES.FIELD'),
+                    <MenuSelect
+                      title={t('STATS_PAGE.CATEGORY_RULES.FIELD')}
+                      value={field}
+                      options={fieldOptions.map((option) => ({
+                        value: option,
+                        label: t(`STATS_PAGE.CATEGORY_RULES.FIELDS.${option}`),
+                        description: getRuleFieldValue(transaction, option),
+                      }))}
+                      onChange={(value) => {
+                        const next = value as typeof field
+                        setField(next)
+                        setKeyword(getRuleFieldValue(transaction, next)?.trim() ?? '')
+                      }}
+                    />,
+                  )
+                : null}
+              {renderField(
+                t('STATS_PAGE.CATEGORY_RULES.CONDITION'),
+                <>
+                  <Box sx={sx.condition}>
+                    <Box sx={sx.matchSelect}>
+                      <MenuSelect
+                        title={t('STATS_PAGE.CATEGORY_RULES.CONDITION')}
+                        value={match}
+                        options={Object.values(CategoryRuleMatch).map((value) => ({
+                          value,
+                          label: t(`STATS_PAGE.CATEGORY_RULES.MATCH_TYPES.${value}`),
+                        }))}
+                        onChange={(value) => setMatch(value as CategoryRuleMatch)}
+                      />
+                    </Box>
+                    <TextField
+                      size="small"
+                      value={keyword}
+                      onChange={(event) => setKeyword(event.target.value)}
+                      error={!!matches && !!trimmedKeyword && !matches.isMatch}
+                      slotProps={{ htmlInput: { 'aria-label': t('STATS_PAGE.CATEGORY_RULES.KEYWORD') } }}
+                      sx={sx.input}
                     />
-                    {/* In the menu, asks to move to the sidebar, to see the matches in the table */}
-                    {onMoveToSidebar ? (
-                      <Box
-                        component="button"
-                        type="button"
-                        aria-expanded={isConfirmingMove}
-                        onClick={() => setIsConfirmingMove((isShown) => !isShown)}
-                        sx={sx.matchesLink}
-                      >
-                        {t('STATS_PAGE.CATEGORY_RULES.VIEW_MATCHES')}
-                      </Box>
-                    ) : null}
                   </Box>
-                  {/* In the sidebar, scrolls the table through the matches */}
-                  {onFocusMatch ? (
-                    <Box sx={sx.matchNav}>
-                      {focusedIndex >= 0 ? (
-                        <span>
-                          {t('STATS_PAGE.CATEGORY_RULES.MATCH_POSITION', {
-                            index: focusedIndex + 1,
-                            count: matches.count,
-                          })}
-                        </span>
+                  {/* Also when not matching this transaction, the others it would change */}
+                  {matches?.count ? (
+                    <Box sx={sx.notice(true)}>
+                      <InfoOutlined sx={sx.noticeIcon} />
+                      <Box component="span" sx={sx.noticeText}>
+                        <Trans
+                          i18nKey="STATS_PAGE.CATEGORY_RULES.MATCH_COUNT"
+                          count={matches.count}
+                          values={{ count: matches.count }}
+                          components={{ b: <strong /> }}
+                        />
+                        {/* In the menu, asks to move to the sidebar, to see the matches in the table */}
+                        {onMoveToSidebar ? (
+                          <Box
+                            component="button"
+                            type="button"
+                            aria-expanded={isConfirmingMove}
+                            onClick={() => setIsConfirmingMove((isShown) => !isShown)}
+                            sx={sx.matchesLink}
+                          >
+                            {t('STATS_PAGE.CATEGORY_RULES.VIEW_MATCHES')}
+                          </Box>
+                        ) : null}
+                      </Box>
+                      {/* In the sidebar, scrolls the table through the matches */}
+                      {onFocusMatch ? (
+                        <Box sx={sx.matchNav}>
+                          {focusedIndex >= 0 ? (
+                            <span>
+                              {t('STATS_PAGE.CATEGORY_RULES.MATCH_POSITION', {
+                                index: focusedIndex + 1,
+                                count: matches.count,
+                              })}
+                            </span>
+                          ) : null}
+                          {MATCH_STEPS.map(({ step, labelKey, Icon }) => (
+                            <IconButton
+                              key={step}
+                              size="small"
+                              color="inherit"
+                              // Only to scroll to the single match
+                              disabled={matches.count < 2 && focusedIndex === 0}
+                              onClick={() => focusMatch(step)}
+                              aria-label={t(labelKey)}
+                              title={t(labelKey)}
+                              sx={sx.matchNavButton}
+                            >
+                              <Icon fontSize="inherit" />
+                            </IconButton>
+                          ))}
+                        </Box>
                       ) : null}
-                      {MATCH_STEPS.map(({ step, labelKey, Icon }) => (
-                        <IconButton
-                          key={step}
-                          size="small"
-                          color="inherit"
-                          // Only to scroll to the single match
-                          disabled={matches.count < 2 && focusedIndex === 0}
-                          onClick={() => focusMatch(step)}
-                          aria-label={t(labelKey)}
-                          title={t(labelKey)}
-                          sx={sx.matchNavButton}
-                        >
-                          <Icon fontSize="inherit" />
-                        </IconButton>
-                      ))}
                     </Box>
                   ) : null}
-                </Box>
-              ) : null}
-              {/* Below the count, asks before moving the form to the sidebar */}
-              {matches?.count && isConfirmingMove ? (
-                <Box sx={sx.confirm}>
-                  <span>{t('STATS_PAGE.CATEGORY_RULES.CONFIRM_MOVE')}</span>
-                  <Box sx={sx.confirmActions}>
-                    <Button
-                      size="small"
-                      color="inherit"
-                      onClick={() => setIsConfirmingMove(false)}
-                      sx={sx.confirmButton}
-                    >
-                      {t('STATS_PAGE.CATEGORY_RULES.CANCEL')}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="info"
-                      disableElevation
-                      onClick={() => onMoveToSidebar?.(draft)}
-                      sx={sx.confirmButton}
-                    >
-                      {t('STATS_PAGE.CATEGORY_RULES.CONTINUE_IN_SIDEBAR')}
-                    </Button>
-                  </Box>
-                </Box>
-              ) : null}
-              {/* Close to the count above it */}
-              {matches && trimmedKeyword && !matches.isMatch ? (
-                <Box sx={{ ...sx.notice(false), ...(matches.count ? sx.nextNotice : null) }}>
-                  <WarningAmberOutlined sx={sx.noticeIcon} />
-                  {t('STATS_PAGE.CATEGORY_RULES.NO_MATCH')}
-                </Box>
-              ) : null}
-              {/* Ticked to match the case, ignored by default (banks write names differently, e.g. "REWE" and "Rewe") */}
-              <FormControlLabel
-                control={<Checkbox checked={!ignoreCase} onChange={(_, checked) => setIgnoreCase(!checked)} />}
-                label={t('STATS_PAGE.CATEGORY_RULES.MATCH_CASE')}
-                sx={sx.checkbox}
-              />
-            </>,
+                  {/* Below the count, asks before moving the form to the sidebar */}
+                  {matches?.count && isConfirmingMove ? (
+                    <Box sx={sx.confirm}>
+                      <span>{t('STATS_PAGE.CATEGORY_RULES.CONFIRM_MOVE')}</span>
+                      <Box sx={sx.confirmActions}>
+                        <Button
+                          size="small"
+                          color="inherit"
+                          onClick={() => setIsConfirmingMove(false)}
+                          sx={sx.confirmButton}
+                        >
+                          {t('STATS_PAGE.CATEGORY_RULES.CANCEL')}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="info"
+                          disableElevation
+                          onClick={() => onMoveToSidebar?.(draft)}
+                          sx={sx.confirmButton}
+                        >
+                          {t('STATS_PAGE.CATEGORY_RULES.CONTINUE_IN_SIDEBAR')}
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : null}
+                  {/* Close to the count above it */}
+                  {matches && trimmedKeyword && !matches.isMatch ? (
+                    <Box sx={{ ...sx.notice(false), ...(matches.count ? sx.nextNotice : null) }}>
+                      <WarningAmberOutlined sx={sx.noticeIcon} />
+                      {t('STATS_PAGE.CATEGORY_RULES.NO_MATCH')}
+                    </Box>
+                  ) : null}
+                  {/* Ticked to match the case, ignored by default (banks write names differently, e.g. "REWE" and "Rewe") */}
+                  <FormControlLabel
+                    control={<Checkbox checked={!ignoreCase} onChange={(_, checked) => setIgnoreCase(!checked)} />}
+                    label={t('STATS_PAGE.CATEGORY_RULES.MATCH_CASE')}
+                    sx={sx.checkbox}
+                  />
+                </>,
+              )}
+              <RuleMoreOptions amounts={amounts} onAmountsChange={setAmounts} />
+            </>
           )}
-          <RuleMoreOptions amounts={amounts} onAmountsChange={setAmounts} />
           {activeRuleset ? (
             <Box sx={sx.saveTo}>
               <Trans
-                i18nKey="STATS_PAGE.CATEGORY_RULES.SAVED_TO"
+                i18nKey={`STATS_PAGE.CATEGORY_RULES.${isLibraryMatch ? 'SAVED_TO' : 'SAVED_RULE'}`}
                 values={{ name: activeRuleset.name }}
                 components={{ b: <strong /> }}
               />
@@ -492,12 +624,8 @@ const Component = ({
       <Box sx={sx.source}>
         <Box component="span" sx={sx.current}>
           <Box component="span" sx={sx.dot(getCategoryColor(tree, resolved.category))} />
-          {getCategoryLabel({ code: resolved.category, tree, t })}
+          {getCategoryLabel({ id: resolved.category, tree, t })}
         </Box>
-        <span>·</span>
-        <span>
-          <Trans {...getSourceText({ resolved, rulesets })} components={{ b: <strong /> }} />
-        </span>
         {sourceAction && !readOnly ? (
           <Button
             size="small"
@@ -508,6 +636,10 @@ const Component = ({
             {sourceAction.label}
           </Button>
         ) : null}
+        {/* Below the category */}
+        <Box component="span" sx={sx.sourceText}>
+          <Trans {...getSourceText({ resolved, activeName: activeRuleset?.name, t })} components={{ b: <strong /> }} />
+        </Box>
       </Box>
 
       {/* In the transaction details: a button, opening the form in a box below it */}
@@ -540,7 +672,20 @@ const Component = ({
     </Box>
   )
 
-  return current
+  return (
+    <>
+      {current}
+      {newCategoryName !== null ? (
+        <NewCategoryDialog
+          name={newCategoryName}
+          tree={tree}
+          direction={transactionDirection}
+          onSave={createCategory}
+          onClose={() => setNewCategoryName(null)}
+        />
+      ) : null}
+    </>
+  )
 }
 
 export default Component

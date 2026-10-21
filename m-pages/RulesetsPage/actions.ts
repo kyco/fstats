@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next'
 
-import type { CategoryRuleset } from '@/types'
+import type { CategoryRuleset, ParentCategoryDef } from '@/types'
+import { getCategoryCount } from '@/m-category/service'
 
 type GetCopyNameProps = {
   /**
@@ -26,4 +27,22 @@ export const getCopyName = ({ name, rulesets, t }: GetCopyNameProps) => {
   }
 
   return copyName
+}
+
+type GetRulesetCountsProps = {
+  categories: ParentCategoryDef[]
+  ruleCount: number
+  mappingCount: number
+  t: TFunction
+}
+
+/**
+ * E.g. "12 categories · 3 rules · 40 library mappings", without rules or mappings when there are none.
+ */
+export const getRulesetCounts = ({ categories, ruleCount, mappingCount, t }: GetRulesetCountsProps) => {
+  return [
+    t('RULESETS_PAGE.CATEGORY_COUNT', { count: getCategoryCount(categories) }),
+    ...(ruleCount ? [t('RULESETS_PAGE.RULE_COUNT', { count: ruleCount })] : []),
+    ...(mappingCount ? [t('RULESETS_PAGE.MAPPING_COUNT', { count: mappingCount })] : []),
+  ].join(' · ')
 }

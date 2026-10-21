@@ -72,7 +72,7 @@ type IsAllExcludedProps = {
  */
 const isAllExcluded = ({ excludedCategories, tree, direction }: IsAllExcludedProps) => {
   const keys = [
-    ...getDirectionParents(tree, direction).flatMap((parent) => parent.children.map((child) => child.code)),
+    ...getDirectionParents(tree, direction).flatMap((parent) => parent.children.map((child) => child.id)),
     ...(direction === CategoryDirection.OUT ? [NO_CATEGORY] : []),
   ]
   return keys.every((key) => excludedCategories.has(key))

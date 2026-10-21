@@ -37,6 +37,20 @@ export const getParserCurrency = (parserId: ParserId) => {
   return requireParser(parserId).currency
 }
 
+/**
+ * E.g. 'fnb' for 'fnb__credit_card', also of custom parsers.
+ */
+export const toBankId = (parserId: ParserId): string => {
+  return parserId.split('__')[0]
+}
+
+/**
+ * Of a built-in bank, `undefined` for custom parsers.
+ */
+export const getBankCountry = (bankId: string) => {
+  return BANKS.find((bank) => bank.id === bankId)?.country
+}
+
 export const getBankAccountId = (parserId: ParserId): BankAccountId => {
   return requireParser(parserId).bankAccountId
 }

@@ -1,6 +1,9 @@
-import type { Transaction } from '@/types'
+import type { CategoryId, Transaction } from '@/types'
 
-const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
+/**
+ * With the categories of the default template.
+ */
+const DEMO_TRANSACTION_DATA: (Omit<Transaction, 'id' | 'category'> & { category: string })[] = [
   // January 2026
   {
     date: '2026-01-02',
@@ -8,7 +11,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-850.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_01',
+    category: 'rent',
   },
   {
     date: '2026-01-03',
@@ -16,7 +19,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_02',
+    category: 'workspace',
   },
   {
     date: '2026-01-05',
@@ -24,7 +27,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_04',
+    category: 'insurance',
   },
   {
     date: '2026-01-06',
@@ -32,7 +35,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-127.35',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_01',
+    category: 'groceries',
   },
   {
     date: '2026-01-08',
@@ -40,7 +43,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '4200.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-01-10',
@@ -48,7 +51,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1850.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_01',
+    category: 'equipment',
   },
   {
     date: '2026-01-12',
@@ -56,7 +59,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-185.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_02',
+    category: 'utilities',
   },
   {
     date: '2026-01-15',
@@ -64,7 +67,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '12.40',
     currency: 'GBP',
     extra: null,
-    category: 'PAS_03',
+    category: 'investment_income',
   },
   {
     date: '2026-01-18',
@@ -72,7 +75,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '2800.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-01-22',
@@ -80,7 +83,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-115.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_01',
+    category: 'car',
   },
   {
     date: '2026-01-28',
@@ -88,7 +91,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '1500.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
 
   // February 2026
@@ -98,7 +101,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-850.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_01',
+    category: 'rent',
   },
   {
     date: '2026-02-02',
@@ -106,7 +109,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_02',
+    category: 'workspace',
   },
   {
     date: '2026-02-03',
@@ -114,7 +117,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_04',
+    category: 'insurance',
   },
   {
     date: '2026-02-05',
@@ -122,7 +125,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '6500.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-02-07',
@@ -130,7 +133,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-86.45',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_01',
+    category: 'groceries',
   },
   {
     date: '2026-02-08',
@@ -138,7 +141,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-2400.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_01',
+    category: 'equipment',
   },
   {
     date: '2026-02-10',
@@ -146,7 +149,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-380.00',
     currency: 'GBP',
     extra: null,
-    category: 'FIN_03',
+    category: 'insurance',
   },
   {
     date: '2026-02-14',
@@ -154,7 +157,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '85.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_04',
+    category: 'business_income',
   },
   {
     date: '2026-02-15',
@@ -162,7 +165,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-420.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_03',
+    category: 'car',
   },
   {
     date: '2026-02-18',
@@ -170,7 +173,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '3800.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-02-22',
@@ -178,7 +181,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-62.50',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_02',
+    category: 'eating_out',
   },
   {
     date: '2026-02-25',
@@ -186,7 +189,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-110.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_01',
+    category: 'car',
   },
 
   // March 2026
@@ -196,7 +199,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-850.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_01',
+    category: 'rent',
   },
   {
     date: '2026-03-02',
@@ -204,7 +207,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_02',
+    category: 'workspace',
   },
   {
     date: '2026-03-03',
@@ -212,7 +215,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_04',
+    category: 'insurance',
   },
   {
     date: '2026-03-05',
@@ -220,7 +223,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '4800.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-03-07',
@@ -228,7 +231,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-105.90',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_01',
+    category: 'groceries',
   },
   {
     date: '2026-03-10',
@@ -236,7 +239,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1650.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_01',
+    category: 'equipment',
   },
   {
     date: '2026-03-12',
@@ -244,7 +247,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-265.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_02',
+    category: 'utilities',
   },
   {
     date: '2026-03-15',
@@ -252,7 +255,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '3200.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-03-16',
@@ -260,7 +263,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-55.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_03',
+    category: 'phone_internet',
   },
   {
     date: '2026-03-18',
@@ -268,7 +271,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-125.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_01',
+    category: 'car',
   },
   {
     date: '2026-03-20',
@@ -276,7 +279,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '145.00',
     currency: 'GBP',
     extra: null,
-    category: 'PAS_02',
+    category: 'investment_income',
   },
   {
     date: '2026-03-24',
@@ -284,7 +287,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-35.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_03',
+    category: 'fitness',
   },
 
   // April 2026
@@ -294,7 +297,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-850.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_01',
+    category: 'rent',
   },
   {
     date: '2026-04-02',
@@ -302,7 +305,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_02',
+    category: 'workspace',
   },
   {
     date: '2026-04-03',
@@ -310,7 +313,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_04',
+    category: 'insurance',
   },
   {
     date: '2026-04-05',
@@ -318,7 +321,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '9500.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-04-07',
@@ -326,7 +329,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-134.75',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_01',
+    category: 'groceries',
   },
   {
     date: '2026-04-08',
@@ -334,7 +337,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-3500.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_01',
+    category: 'equipment',
   },
   {
     date: '2026-04-10',
@@ -342,7 +345,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-580.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_02',
+    category: 'insurance',
   },
   {
     date: '2026-04-12',
@@ -350,7 +353,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '42.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_04',
+    category: 'business_income',
   },
   {
     date: '2026-04-15',
@@ -358,7 +361,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-180.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_05',
+    category: 'professional_services',
   },
   {
     date: '2026-04-22',
@@ -366,7 +369,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-135.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_01',
+    category: 'car',
   },
   {
     date: '2026-04-20',
@@ -374,7 +377,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '11.80',
     currency: 'GBP',
     extra: null,
-    category: 'PAS_03',
+    category: 'investment_income',
   },
   {
     date: '2026-04-25',
@@ -382,7 +385,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-25.00',
     currency: 'GBP',
     extra: null,
-    category: 'FAM_05',
+    category: 'subscriptions',
   },
   {
     date: '2026-04-26',
@@ -390,7 +393,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-28.90',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_02',
+    category: 'eating_out',
   },
   {
     date: '2026-04-30',
@@ -398,7 +401,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-14.90',
     currency: 'GBP',
     extra: null,
-    category: 'FIN_05',
+    category: 'fees_interest',
   },
 
   // May 2026
@@ -408,7 +411,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-850.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_01',
+    category: 'rent',
   },
   {
     date: '2026-05-02',
@@ -416,7 +419,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_02',
+    category: 'workspace',
   },
   {
     date: '2026-05-03',
@@ -424,7 +427,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_04',
+    category: 'insurance',
   },
   {
     date: '2026-05-06',
@@ -432,7 +435,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '7200.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-05-08',
@@ -440,7 +443,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-118.40',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_01',
+    category: 'groceries',
   },
   {
     date: '2026-05-10',
@@ -448,7 +451,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-2100.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_01',
+    category: 'equipment',
   },
   {
     date: '2026-05-12',
@@ -456,7 +459,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-380.00',
     currency: 'GBP',
     extra: null,
-    category: 'FIN_03',
+    category: 'insurance',
   },
   {
     date: '2026-05-15',
@@ -464,7 +467,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '3800.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-05-18',
@@ -472,7 +475,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-120.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_01',
+    category: 'car',
   },
   {
     date: '2026-05-20',
@@ -480,7 +483,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_04',
+    category: 'marketing',
   },
   {
     date: '2026-05-21',
@@ -488,7 +491,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '65.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_04',
+    category: 'business_income',
   },
   {
     date: '2026-05-22',
@@ -496,7 +499,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-89.95',
     currency: 'GBP',
     extra: null,
-    category: 'FAM_03',
+    category: 'clothing',
   },
   {
     date: '2026-05-28',
@@ -504,7 +507,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-200.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_03',
+    category: 'car',
   },
 
   // June 2026
@@ -514,7 +517,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-850.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_01',
+    category: 'rent',
   },
   {
     date: '2026-06-02',
@@ -522,7 +525,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-1150.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_02',
+    category: 'workspace',
   },
   {
     date: '2026-06-03',
@@ -530,7 +533,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HLT_04',
+    category: 'insurance',
   },
   {
     date: '2026-06-05',
@@ -538,7 +541,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '11500.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-06-07',
@@ -546,7 +549,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-109.65',
     currency: 'GBP',
     extra: null,
-    category: 'GRO_01',
+    category: 'groceries',
   },
   {
     date: '2026-06-10',
@@ -554,7 +557,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-3800.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_01',
+    category: 'equipment',
   },
   {
     date: '2026-06-15',
@@ -562,7 +565,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-450.00',
     currency: 'GBP',
     extra: null,
-    category: 'HOU_05',
+    category: 'home',
   },
   {
     date: '2026-06-18',
@@ -570,7 +573,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '4100.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_03',
+    category: 'business_income',
   },
   {
     date: '2026-06-20',
@@ -578,7 +581,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-135.00',
     currency: 'GBP',
     extra: null,
-    category: 'BUS_03',
+    category: 'software',
   },
   {
     date: '2026-06-14',
@@ -586,7 +589,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '95.00',
     currency: 'GBP',
     extra: null,
-    category: 'INC_04',
+    category: 'business_income',
   },
   {
     date: '2026-06-22',
@@ -594,7 +597,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-125.00',
     currency: 'GBP',
     extra: null,
-    category: 'TRN_01',
+    category: 'car',
   },
   {
     date: '2026-06-25',
@@ -602,7 +605,7 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '152.00',
     currency: 'GBP',
     extra: null,
-    category: 'PAS_02',
+    category: 'investment_income',
   },
   {
     date: '2026-06-28',
@@ -610,11 +613,12 @@ const DEMO_TRANSACTION_DATA: Omit<Transaction, 'id'>[] = [
     value: '-32.00',
     currency: 'GBP',
     extra: null,
-    category: 'FAM_04',
+    category: 'personal_care',
   },
 ]
 
 export const DEMO_TRANSACTIONS: Transaction[] = DEMO_TRANSACTION_DATA.map((transaction, index) => ({
   ...transaction,
+  category: transaction.category as CategoryId,
   id: `demo-${index}`,
 }))

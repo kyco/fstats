@@ -6,6 +6,8 @@ import {
   HomeOutlined,
   Label,
   LabelOutlined,
+  MenuBook,
+  MenuBookOutlined,
   Poll,
   PollOutlined,
   Settings,
@@ -19,6 +21,7 @@ export const NAV_ITEMS_TOP: NavItem[] = [
   { route: ROUTES.HOME, labelKey: 'NAVIGATION.HOME', icon: HomeOutlined, iconActive: Home },
   { route: ROUTES.STATS, labelKey: 'NAVIGATION.STATS', icon: PollOutlined, iconActive: Poll },
   { route: ROUTES.RULESETS, labelKey: 'NAVIGATION.RULESETS', icon: LabelOutlined, iconActive: Label },
+  { route: ROUTES.LIBRARY, labelKey: 'NAVIGATION.LIBRARY', icon: MenuBookOutlined, iconActive: MenuBook },
 ]
 
 export const NAV_ITEMS_BOTTOM: NavItem[] = [

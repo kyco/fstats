@@ -70,9 +70,7 @@ const Component = ({
 
       {categoriesToShow.length ? (
         categoriesToShow.map((category) => {
-          return (
-            <BreakdownRow key={category.code} category={category} parentCategoryTotal={total} currency={currency} />
-          )
+          return <BreakdownRow key={category.id} category={category} parentCategoryTotal={total} currency={currency} />
         })
       ) : (
         <Typography variant="body2" noWrap sx={sx.emptyText}>

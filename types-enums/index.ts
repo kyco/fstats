@@ -354,6 +354,10 @@ export const CategorySource = {
    * A rule of the active rule set.
    */
   RULE: 'rule',
+  /**
+   * A library entry recognised it, mapped to a category by the active rule set.
+   */
+  LIBRARY: 'library',
   NONE: 'none',
 } as const
 

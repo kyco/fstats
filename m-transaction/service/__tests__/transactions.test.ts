@@ -88,12 +88,12 @@ describe('getTransactionCounts', () => {
 describe('filterTransactions', () => {
   it('should filter by amount and excluded categories', () => {
     const transactions = [
-      toTransaction('2026-01-01T00:00:00+00:00', '10', 'INC_01'),
-      toTransaction('2026-01-02T00:00:00+00:00', '-5', 'HOU_01'),
+      toTransaction('2026-01-01T00:00:00+00:00', '10', 'salary'),
+      toTransaction('2026-01-02T00:00:00+00:00', '-5', 'rent'),
       toTransaction('2026-01-03T00:00:00+00:00', '-3'),
     ]
 
-    expect(filterTransactions(transactions, toFilter(['HOU_01']))).toEqual([transactions[0], transactions[2]])
+    expect(filterTransactions(transactions, toFilter(['rent']))).toEqual([transactions[0], transactions[2]])
     expect(filterTransactions(transactions, toFilter([NO_CATEGORY]))).toEqual([transactions[0], transactions[1]])
     expect(filterTransactions(transactions, toFilter([NO_CATEGORY], AmountFilter.OUT))).toEqual([transactions[1]])
     expect(filterTransactions(transactions, toFilter([], AmountFilter.NONE))).toEqual([])
@@ -110,13 +110,13 @@ describe('filterTransactions', () => {
 describe('getDirection', () => {
   const tree = getTemplateTree(DEFAULT_TEMPLATE_ID)
   const toKeys = (direction: CategoryDirection) =>
-    getDirectionParents(tree, direction).flatMap((parent) => parent.children.map((child) => child.code))
+    getDirectionParents(tree, direction).flatMap((parent) => parent.children.map((child) => child.id))
   const incomeKeys = toKeys(CategoryDirection.IN)
   const expenseKeys = [...toKeys(CategoryDirection.OUT), NO_CATEGORY]
 
   it('should follow the type of the excluded categories', () => {
     expect(getDirection(new Set(), tree)).toBe(AmountFilter.ALL)
-    expect(getDirection(new Set(['HOU_01']), tree)).toBe(AmountFilter.ALL)
+    expect(getDirection(new Set(['rent']), tree)).toBe(AmountFilter.ALL)
     expect(getDirection(new Set(incomeKeys), tree)).toBe(AmountFilter.OUT)
     expect(getDirection(new Set(expenseKeys), tree)).toBe(AmountFilter.IN)
     expect(getDirection(new Set([...incomeKeys, ...expenseKeys]), tree)).toBeNull()

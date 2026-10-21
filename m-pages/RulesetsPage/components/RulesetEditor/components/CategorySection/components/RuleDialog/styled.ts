@@ -3,6 +3,10 @@ import { sxSmallCheckbox, sxSubheaderText } from '@/styles/styled'
 // Like the rule form of the category editor (stats page)
 export const ui = () => {
   return {
+    note: {
+      fontSize: 13,
+      color: 'text.secondary',
+    },
     content: {
       display: 'flex',
       flexDirection: 'column',

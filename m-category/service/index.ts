@@ -1,5 +1,6 @@
 export * from './engine'
 export * from './hooks'
 export * from './keys'
+export * from './library'
 export * from './ruleset'
 export * from './tree'

@@ -5,14 +5,8 @@ import { uniq } from 'lodash'
 import type { ReactNode } from 'react'
 import { useCallback, useMemo } from 'react'
 
-import type { CategoryRuleset, SourcedTransaction, StatsFile, TransactionFilter } from '@/types'
-import {
-  compileRule,
-  getNewRuleEffect,
-  getRuleDescriptionMatches,
-  matchesRule,
-  useCategoryRulesets,
-} from '@/m-category/service'
+import type { SourcedTransaction, StatsFile, TransactionFilter } from '@/types'
+import { useActiveRuleset } from '@/m-category/service'
 import { isParsed } from '@/m-stats-file/service'
 import { filterTransactions, getSourcedTransactions, getTransactionCounts } from '@/m-transaction/service'
 import { useUserPreferences } from '@/m-user/service'
@@ -32,6 +26,7 @@ import PreviewSection from '../PreviewSection'
 import { STICKY_HEADER_OFFSET } from '../PreviewSection/actions'
 import VirtualTable from '../VirtualTable'
 import {
+  createPreviewMatcher,
   getCategoryInfo,
   getCategoryPreview,
   getSharedCurrency,
@@ -42,8 +37,6 @@ import {
 } from './actions'
 import CategoryCell from './components/CategoryCell'
 import { ui } from './styled'
-
-const NO_RULESETS: CategoryRuleset[] = []
 
 type TransactionsPreviewProps = {
   files: StatsFile[]
@@ -99,7 +92,7 @@ const Component = ({
   const selected = useWorkspaceSelectedTransaction()
   const engine = useWorkspaceCategories()
   const { tree } = engine
-  const { data: rulesets = NO_RULESETS } = useCategoryRulesets()
+  const { ruleset: activeRuleset } = useActiveRuleset()
   const { edit, guard } = selected
   // Asks first while the category form is open in the sidebar, it would be discarded
   const editCategory = useCallback(
@@ -108,9 +101,12 @@ const Component = ({
   )
   // The demo is read-only, its categories can't be changed
   const { isDemoMode } = useWorkspace()
-  // Rows matching the rule being created are highlighted
+  // Rows the category form changes are highlighted
   const rulePreview = selected.rule
-  const ruleMatcher = useMemo(() => (rulePreview ? compileRule(rulePreview.rule) : null), [rulePreview])
+  const ruleMatcher = useMemo(
+    () => (rulePreview ? createPreviewMatcher({ preview: rulePreview, engine }) : null),
+    [rulePreview, engine],
+  )
   const parsedFiles = useMemo(() => files.filter(isParsed), [files])
   const isCombined = parsedFiles.length > 1
   const isSticky = isCombined && canStick
@@ -170,27 +166,21 @@ const Component = ({
   )
   // Where the categories are from, for the info column
   const categoryInfos = useMemo(
-    () => transactions.map((transaction) => getCategoryInfo({ transaction, engine, rulesets, isDemoMode, t })),
-    [transactions, engine, rulesets, isDemoMode, t],
+    () =>
+      transactions.map((transaction) =>
+        getCategoryInfo({ transaction, engine, activeName: activeRuleset?.name, isDemoMode, t }),
+      ),
+    [transactions, engine, activeRuleset?.name, isDemoMode, t],
   )
-  // Of the rows the rule being created matches: what wins over it (`null` when it changes the category)
+  // Of the rows the category form changes: what wins over it (`null` when it changes the category)
   const ruleEffects = useMemo(
     () =>
-      rulePreview && ruleMatcher
+      ruleMatcher
         ? transactions.map((transaction) =>
-            matchesRule(transaction, ruleMatcher)
-              ? {
-                  keptBy: getNewRuleEffect({
-                    transaction,
-                    engine,
-                    rule: ruleMatcher,
-                    editedId: rulePreview.editedId,
-                  }),
-                }
-              : null,
+            ruleMatcher.matches(transaction) ? { keptBy: ruleMatcher.getEffect(transaction) } : null,
           )
         : null,
-    [rulePreview, ruleMatcher, transactions, engine],
+    [ruleMatcher, transactions],
   )
   // The match the category form scrolled to, in this table
   const focusedMatch = rulePreview ? selected.focusedMatch : null
@@ -215,9 +205,10 @@ const Component = ({
           onClick={isDemoMode ? undefined : (anchor) => editCategory(transactions[rowIndex], anchor)}
         />
       ),
-      // What the rule being created matches
+      // What the category form matches
       getDescriptionHighlights: ruleMatcher
-        ? (rowIndex) => getRuleDescriptionMatches(transactions[rowIndex], ruleMatcher)
+        ? (rowIndex) =>
+            ruleMatcher.matches(transactions[rowIndex]) ? ruleMatcher.getHighlights(transactions[rowIndex]) : []
         : undefined,
       tags: shownTags.length ? { shown: shownTags, getTag: (rowIndex) => tags[rowIndex] } : undefined,
     })

@@ -45,11 +45,10 @@ export const ui = (theme: Theme) => {
       flexShrink: 0,
       width: 18,
     },
-    label: (isParent: boolean, isFixed: boolean) => ({
+    label: (isParent: boolean) => ({
       minWidth: 0,
       fontSize: 13,
       fontWeight: isParent ? 500 : 400,
-      color: isFixed ? 'text.secondary' : 'text.primary',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -66,13 +65,6 @@ export const ui = (theme: Theme) => {
       fontSize: 12,
       color: 'text.secondary',
       whiteSpace: 'nowrap',
-    },
-    fixed: {
-      flexShrink: 0,
-      minWidth: 84,
-      textAlign: 'right',
-      fontSize: 12,
-      color: 'text.secondary',
     },
     actions: {
       display: 'flex',
