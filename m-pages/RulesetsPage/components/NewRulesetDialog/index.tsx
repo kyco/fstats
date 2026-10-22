@@ -16,7 +16,7 @@ import {
 import { useState } from 'react'
 
 import type { CategoryRuleset } from '@/types'
-import { useMutateAddRuleset } from '@/m-category/service'
+import { useCategoryRules, useMutateAddRuleset } from '@/m-category/service'
 import { DEFAULT_TEMPLATE_ID, TEMPLATES } from '@/utils/Category'
 import { useTranslation } from '@/lib/i18n'
 
@@ -41,7 +41,8 @@ const Component = ({ isOpen, rulesets, onClose, onCreated }: NewRulesetDialogPro
   // Suggested by the chosen start (e.g. "Standard") until changed
   const [name, setName] = useState<string | null>(null)
   const { mutateAsync: addRuleset, isPending } = useMutateAddRuleset()
-  const groups = getStartGroups({ templates: TEMPLATES, rulesets, t })
+  const { data: rules = [] } = useCategoryRules()
+  const groups = getStartGroups({ templates: TEMPLATES, rulesets, rules, t })
   const options = groups.flatMap((group) => group.options)
   const shownName = name ?? options.find((option) => option.value === start)?.name ?? ''
   const canCreate = !!shownName.trim() && !isPending

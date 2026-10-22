@@ -49,6 +49,11 @@ type MenuSelectProps = {
    * Of the menu, as wide as the select by default.
    */
   menuWidth?: number
+  /**
+   * Opens the menu at this element without a button, e.g. from an item of another menu. `onClose` then closes it.
+   */
+  anchorEl?: HTMLElement | null
+  onClose?: () => void
 }
 
 /**
@@ -64,9 +69,13 @@ const Component = ({
   create,
   renderButton,
   menuWidth,
+  anchorEl,
+  onClose,
 }: MenuSelectProps) => {
   const sx = ui()
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null)
+  const [ownAnchor, setAnchor] = useState<HTMLElement | null>(null)
+  const isControlled = anchorEl !== undefined
+  const anchor = isControlled ? anchorEl : ownAnchor
   const [query, setQuery] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
   const selected = options.find((option) => option.value === value)
@@ -76,6 +85,7 @@ const Component = ({
   const close = () => {
     setAnchor(null)
     setQuery('')
+    onClose?.()
   }
 
   const select = (option: string) => {
@@ -107,7 +117,7 @@ const Component = ({
 
   return (
     <>
-      {renderButton ? (
+      {isControlled ? null : renderButton ? (
         renderButton({ onClick: (event) => setAnchor(event.currentTarget), isOpen: !!anchor })
       ) : (
         <Button

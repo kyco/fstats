@@ -16,7 +16,7 @@ import {
   zCategoryRuleField,
   zCategoryRuleMatch,
 } from '@/types-enums'
-import type { Hint } from '@/utils/Category/hints'
+import type { Tag } from '@/utils/Category/tags'
 import type { BuiltInBankId } from '@/utils/Parser/registry'
 
 import { zDateTimeString, zIdString, zNonEmptyString } from '../global'
@@ -28,9 +28,25 @@ import { zCategoryId } from './transaction'
 // -------------------------------------------------------
 
 /**
+ * A tag (`TAGS`) or library keyword (`{pack}.{id}`) of the built-in library.
+ */
+export const zLibraryRef = z.preprocess(
+  // Saved before hints were renamed to tags (only during development, never released)
+  (value) =>
+    value && typeof value === 'object' && 'type' in value && value.type === 'hint' ? { ...value, type: 'tag' } : value,
+  z.object({
+    type: z.enum(['tag', 'keyword']),
+    key: zNonEmptyString,
+  }),
+)
+
+export type LibraryRef = z.infer<typeof zLibraryRef>
+
+/**
  * The user's own rule (in their library): matches transactions whose `field` matches `keyword` (see `CategoryRuleMatch`),
  * ignoring case unless `ignoreCase` is off. Shared by all rule sets, each maps it to one of its categories (see
- * `CategoryRuleset.rules`), like the keywords of the built-in library.
+ * `CategoryRuleset.rules`), like the keywords of the built-in library. A rule belonging to a tag or library keyword
+ * (`library`) goes where each rule set maps that, unless the rule set maps the rule itself.
  */
 export const zCategoryRule = z.object({
   id: zIdString,
@@ -43,6 +59,10 @@ export const zCategoryRule = z.object({
   ignoreCase: z.boolean(),
   keyword: zNonEmptyString,
   direction: zCategoryRuleDirection,
+  /**
+   * Extends the library: categorised like this tag or library keyword (e.g. another benefit with "Benefits").
+   */
+  library: zLibraryRef.optional(),
 })
 
 export type CategoryRule = z.infer<typeof zCategoryRule>
@@ -83,24 +103,34 @@ export type ParentCategoryDef = z.infer<typeof zParentCategoryDef>
  * How a rule set categorises what the library recognises (see `utils/Category/library/`), for one direction (the
  * direction of the transaction, e.g. interest received and interest paid get different categories).
  */
-export const zCategoryMappings = z.object({
-  /**
-   * By hint (see `HINTS`), e.g. 'supermarket'.
-   */
-  hints: z.record(z.string(), zCategoryId),
-  /**
-   * By library keyword ID (e.g. 'de.rewe'), before its hints. `null` leaves its transactions uncategorised.
-   */
-  keywords: z.record(z.string(), zCategoryId.nullable()),
-})
+export const zCategoryMappings = z.preprocess(
+  // Saved before hints were renamed to tags (only during development, never released)
+  (value) => {
+    if (value && typeof value === 'object' && 'hints' in value && !('tags' in value)) {
+      const { hints, ...rest } = value
+      return { ...rest, tags: hints }
+    }
+    return value
+  },
+  z.object({
+    /**
+     * By tag (see `TAGS`), e.g. 'supermarket'.
+     */
+    tags: z.record(z.string(), zCategoryId),
+    /**
+     * By library keyword ID (e.g. 'de.rewe'), before its tags. `null` leaves its transactions uncategorised.
+     */
+    keywords: z.record(z.string(), zCategoryId.nullable()),
+  }),
+)
 
 export type CategoryMappings = z.infer<typeof zCategoryMappings>
 
 /**
- * A mapping of a rule set to one of its categories: a hint or library keyword, for money in or out.
+ * A mapping of a rule set to one of its categories: a tag or library keyword, for money in or out.
  */
 export type CategoryMappingRef = {
-  type: 'hint' | 'keyword'
+  type: 'tag' | 'keyword'
   key: string
   direction: CategoryDirection
 }
@@ -164,9 +194,9 @@ export type TemplateCategoryDef = {
 export type TemplateDirectionDef = {
   categories: TemplateCategoryDef[]
   /**
-   * Categories of library hints, for transactions of this direction, see `CategoryMappings.hints`.
+   * Categories of library tags, for transactions of this direction, see `CategoryMappings.tags`.
    */
-  hints: Partial<Record<Hint, string>>
+  tags: Partial<Record<Tag, string>>
   /**
    * Categories of single library keywords, see `CategoryMappings.keywords`.
    */
@@ -190,7 +220,7 @@ export type CategoryTemplateDef = {
 export type LibraryMatch = Exclude<CategoryRuleMatch, 'contains'>
 
 /**
- * A library keyword: what the built-in library recognises (e.g. REWE), by one or more keywords. Hints group them.
+ * A library keyword: what the built-in library recognises (e.g. REWE), by one or more keywords. Tags group them.
  */
 export type LibraryKeywordDef = {
   /**
@@ -204,7 +234,7 @@ export type LibraryKeywordDef = {
   /**
    * What it is, which rule sets map to their categories.
    */
-  hint: Hint
+  tag: Tag
   keywords: string[]
   match?: LibraryMatch
   /**
@@ -273,11 +303,11 @@ export type LibraryMatchResult = {
 }
 
 /**
- * How the rule set categorises a recognised transaction: by the library keyword, by a hint, not at all (the library
- * keyword is mapped to `null`), or it doesn't map the library keyword or any of its hints.
+ * How the rule set categorises a recognised transaction: by the library keyword, by a tag, not at all (the library
+ * keyword is mapped to `null`), or it doesn't map the library keyword or any of its tags.
  */
 export type LibraryMapping =
-  { type: 'keyword' } | { type: 'hint'; hint: string } | { type: 'excluded' } | { type: 'unmapped' }
+  { type: 'keyword' } | { type: 'tag'; tag: string } | { type: 'excluded' } | { type: 'unmapped' }
 
 // -------------------------------------------------------
 // Category tree, see `buildCategoryTree`
@@ -332,6 +362,11 @@ export type CompiledCategoryRule = {
    * Stored rules, so they can be referenced and removed.
    */
   rule?: { id: string; number: number; keyword: string }
+  /**
+   * Of a rule belonging to a tag or library keyword (see `CategoryRule.library`), by the direction of the transaction,
+   * instead of `category`. It doesn't apply where `null`.
+   */
+  categories?: Record<CategoryDirection, CategoryId | null>
 }
 
 /**

@@ -11,18 +11,18 @@ type SearchParams = { get: (name: string) => string | null; toString: () => stri
 
 const VIEW_PARAM = 'view'
 
-const HINT_PARAM = 'hint'
+const TAG_PARAM = 'tag'
 
 const KEYWORD_PARAM = 'keyword'
 
 const RULE_PARAM = 'rule'
 
 /**
- * The library page showing a hint (e.g. 'transfer'), a library keyword (e.g. 'de.rewe') or one of the user's rules (by ID).
+ * The library page showing a tag (e.g. 'transfer'), a library keyword (e.g. 'de.rewe') or one of the user's rules (by ID).
  */
-export const getLibraryHref = ({ hint, keyword, rule }: { hint?: string; keyword?: string; rule?: string }) => {
+export const getLibraryHref = ({ tag, keyword, rule }: { tag?: string; keyword?: string; rule?: string }) => {
   const params = new URLSearchParams()
-  Object.entries({ [HINT_PARAM]: hint, [KEYWORD_PARAM]: keyword, [RULE_PARAM]: rule }).forEach(([name, value]) => {
+  Object.entries({ [TAG_PARAM]: tag, [KEYWORD_PARAM]: keyword, [RULE_PARAM]: rule }).forEach(([name, value]) => {
     if (value) {
       params.set(name, value)
     }
@@ -32,11 +32,11 @@ export const getLibraryHref = ({ hint, keyword, rule }: { hint?: string; keyword
 }
 
 /**
- * The hint, library keyword or rule the library page shows, see `getLibraryHref`.
+ * The tag, library keyword or rule the library page shows, see `getLibraryHref`.
  */
 export const getLibraryTarget = (searchParams: SearchParams) => {
   return {
-    hint: searchParams.get(HINT_PARAM),
+    tag: searchParams.get(TAG_PARAM),
     keyword: searchParams.get(KEYWORD_PARAM),
     rule: searchParams.get(RULE_PARAM),
   }

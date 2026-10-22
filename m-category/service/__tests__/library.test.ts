@@ -2,8 +2,8 @@ import { mapValues } from 'lodash'
 import { describe, expect, it } from 'vitest'
 
 import type { LibraryKeyword, LibraryPackDef, Transaction } from '@/types'
-import { CategoryRuleDirection, CategoryRuleMatch, Country } from '@/types-enums'
-import { HINT_GROUPS, HINTS, LIBRARY, toCategoryId } from '@/utils/Category'
+import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch, Country } from '@/types-enums'
+import { LIBRARY, TAG_GROUPS, TAGS, toCategoryId } from '@/utils/Category'
 import { BANKS } from '@/utils/Parser'
 
 import {
@@ -12,11 +12,12 @@ import {
   findLibraryMatch,
   getLibraryIndex,
   getLibraryKeywords,
+  getRuleIssueHref,
   mapLibraryKeyword,
   toWords,
 } from '..'
-import deHints from '../../../public/locales/hints/de.json'
-import enHints from '../../../public/locales/hints/en.json'
+import deTags from '../../../public/locales/tags/de.json'
+import enTags from '../../../public/locales/tags/en.json'
 
 const toTransaction = (description: string, value = '-10.00'): Transaction => ({
   id: description,
@@ -50,9 +51,9 @@ describe('LIBRARY', () => {
     ids.forEach((id) => expect(id).toMatch(/^[a-z0-9_]+\.[a-z0-9_]+$/))
   })
 
-  it('should have valid hints, keywords and examples', () => {
+  it('should have valid tags, keywords and examples', () => {
     libraryKeywords.forEach((libraryKeyword) => {
-      expect(HINTS).toContain(libraryKeyword.hint)
+      expect(TAGS).toContain(libraryKeyword.tag)
       expect(libraryKeyword.keywords.length).toBeGreaterThan(0)
       libraryKeyword.keywords.forEach((keyword) => {
         expect({ id: libraryKeyword.id, keyword, length: keyword.trim().length >= 3 }).toMatchObject({ length: true })
@@ -79,10 +80,10 @@ describe('LIBRARY', () => {
     })
   })
 
-  it('should translate all hints', () => {
-    const groups = HINT_GROUPS.map((group) => group.id).sort()
-    ;[enHints, deHints].forEach(({ GROUPS, ...hints }) => {
-      expect(Object.keys(hints).sort()).toEqual([...HINTS].sort())
+  it('should translate all tags', () => {
+    const groups = TAG_GROUPS.map((group) => group.id).sort()
+    ;[enTags, deTags].forEach(({ GROUPS, ...tags }) => {
+      expect(Object.keys(tags).sort()).toEqual([...TAGS].sort())
       expect(Object.keys(GROUPS).sort()).toEqual(groups)
     })
   })
@@ -121,7 +122,7 @@ describe('findLibraryMatch', () => {
     ): LibraryKeyword => ({
       id,
       name: id,
-      hint: 'general_stores',
+      tag: 'general_stores',
       keywords,
       examples: [keywords[0]],
       packId: 'test',
@@ -150,7 +151,7 @@ describe('mapLibraryKeyword', () => {
   const [libraryKeyword] = getLibraryKeywords([
     {
       id: 'test',
-      libraryKeywords: [{ id: 'shop', name: 'Shop', hint: 'supermarket', keywords: ['SHOP'], examples: ['SHOP'] }],
+      libraryKeywords: [{ id: 'shop', name: 'Shop', tag: 'supermarket', keywords: ['SHOP'], examples: ['SHOP'] }],
     },
   ])
   const tree = buildCategoryTree([
@@ -161,20 +162,20 @@ describe('mapLibraryKeyword', () => {
       children: ['groceries', 'eating_out', 'coffee'].map((id) => ({ id: toCategoryId(id) })),
     },
   ])
-  const map = (hints: Record<string, string>, keywords: Record<string, string | null> = {}) =>
+  const map = (tags: Record<string, string>, keywords: Record<string, string | null> = {}) =>
     mapLibraryKeyword({
       libraryKeyword,
       mappings: {
-        hints: mapValues(hints, toCategoryId),
+        tags: mapValues(tags, toCategoryId),
         keywords: mapValues(keywords, (id) => (id === null ? null : toCategoryId(id))),
       },
       tree,
     })
 
-  it('should map by the library keyword, then its hint, skipping categories the rule set does not have', () => {
+  it('should map by the library keyword, then its tag, skipping categories the rule set does not have', () => {
     expect(map({ supermarket: 'groceries' })).toEqual({
       category: 'groceries',
-      mapping: { type: 'hint', hint: 'supermarket' },
+      mapping: { type: 'tag', tag: 'supermarket' },
     })
     expect(map({ bakery: 'groceries' })).toEqual({ category: null, mapping: { type: 'unmapped' } })
     expect(map({ supermarket: 'groceries' }, { 'test.shop': 'coffee' })).toEqual({
@@ -189,5 +190,28 @@ describe('mapLibraryKeyword', () => {
       category: null,
       mapping: { type: 'unmapped' },
     })
+  })
+})
+
+describe('getRuleIssueHref', () => {
+  it('should prefill the issue form with the rule only', () => {
+    const url = new URL(
+      getRuleIssueHref({
+        id: 'r1',
+        number: 3,
+        field: CategoryRuleField.DESCRIPTION,
+        match: CategoryRuleMatch.CONTAINS,
+        ignoreCase: true,
+        keyword: 'FAMILIENKASSE',
+        direction: CategoryRuleDirection.IN,
+        library: { type: 'tag', key: 'benefits' },
+      }),
+    )
+
+    expect(url.origin + url.pathname).toBe('https://github.com/kyco/fstats/issues/new')
+    expect(url.searchParams.get('template')).toBe('new-library-keyword.yml')
+    expect(url.searchParams.get('keyword')).toBe('FAMILIENKASSE')
+    expect(url.searchParams.get('tag')).toBe('benefits')
+    expect(JSON.parse(url.searchParams.get('rule') ?? '')).not.toHaveProperty('id')
   })
 })

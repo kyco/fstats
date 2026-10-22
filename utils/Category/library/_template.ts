@@ -31,10 +31,10 @@ export const newPack = defineLibraryPack({
       id: 'example_shop',
       name: 'Example Shop',
       /**
-       * What it is, one of `HINTS` (`utils/Category/hints.ts`). Add a hint (to a group of `HINT_GROUPS`, with its
-       * translations in `public/locales/hints/{en,de}.json`) only when none fits.
+       * What it is, one of `TAGS` (`utils/Category/tags.ts`). Add a tag (to a group of `TAG_GROUPS`, with its
+       * translations in `public/locales/tags/{en,de}.json`) only when none fits.
        */
-      hint: 'supermarket',
+      tag: 'supermarket',
       /**
        * Matched as whole words, ignoring case; all words of a keyword in any order. At least 3 characters, avoid
        * common words, first names and surnames (e.g. not 'Müller' alone).

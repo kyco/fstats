@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CategoryRule, CategoryRuleset } from '@/types'
+import { zCategoryRuleset, zLibraryRef } from '@/types'
 import { CategoryDirection, CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch } from '@/types-enums'
 import { getTemplate, toCategoryId } from '@/utils/Category'
 
@@ -16,16 +17,16 @@ import {
   isUnchangedTemplate,
   moveCategory,
   removeCategory,
-  setHintMapping,
   setKeywordMapping,
   setRuleMapping,
+  setTagMapping,
   updateCategory,
 } from '../ruleset'
 
 const NOW = '2026-01-01T00:00:00+00:00'
 const getParent = (ruleset: CategoryRuleset, id: string) => ruleset.categories.find((parent) => parent.id === id)!
 
-const standard = createRuleset({ name: 'Personal', number: 1, now: NOW, template: getTemplate('default') })
+const standard = createRuleset({ name: 'Standard', number: 1, now: NOW, template: getTemplate('default') })
 
 const toRule = (id: string, number: number): CategoryRule => ({
   id,
@@ -65,12 +66,12 @@ describe('createRuleset', () => {
       { id: toCategoryId('transfers_out'), isTransfer: true },
     ])
     expect(standard.rules).toEqual({})
-    expect(standard.mappings.out.hints).toMatchObject({
+    expect(standard.mappings.out.tags).toMatchObject({
       telecom: toCategoryId('phone_internet'),
       mobile: toCategoryId('phone_internet'),
       card_settlement: toCategoryId('transfers_out'),
     })
-    expect(standard.mappings.in.hints).toMatchObject({
+    expect(standard.mappings.in.tags).toMatchObject({
       salary: toCategoryId('salary'),
       card_settlement: toCategoryId('transfers_in'),
     })
@@ -85,7 +86,7 @@ describe('createRuleset', () => {
     expect(createRuleset({ name: 'Empty', number: 3, now: NOW })).toMatchObject({
       categories: [],
       rules: {},
-      mappings: { in: { hints: {}, keywords: {} }, out: { hints: {}, keywords: {} } },
+      mappings: { in: { tags: {}, keywords: {} }, out: { tags: {}, keywords: {} } },
     })
   })
 })
@@ -172,9 +173,9 @@ describe('category changes', () => {
       rewe,
     ])
     expect(getCategoryMappings(withRules, toCategoryId('phone_internet'))).toEqual([
-      { type: 'hint', key: 'telecom', direction: CategoryDirection.OUT },
-      { type: 'hint', key: 'mobile', direction: CategoryDirection.OUT },
-      { type: 'hint', key: 'internet', direction: CategoryDirection.OUT },
+      { type: 'tag', key: 'telecom', direction: CategoryDirection.OUT },
+      { type: 'tag', key: 'mobile', direction: CategoryDirection.OUT },
+      { type: 'tag', key: 'internet', direction: CategoryDirection.OUT },
     ])
 
     const removed = removeCategory(toCategoryId('insurance'))(withRules)
@@ -182,32 +183,32 @@ describe('category changes', () => {
       toCategoryId('insurance'),
     )
     expect(removed.rules).toEqual({ [lidl.id]: toCategoryId('phone_internet') })
-    expect(removed.mappings.out.hints).not.toHaveProperty('health_insurance')
-    expect(removed.mappings.out.hints).toHaveProperty('telecom', toCategoryId('phone_internet'))
+    expect(removed.mappings.out.tags).not.toHaveProperty('health_insurance')
+    expect(removed.mappings.out.tags).toHaveProperty('telecom', toCategoryId('phone_internet'))
 
     const removedParent = removeCategory(toCategoryId('bills'))(withRules)
     expect(removedParent.categories.map((parent) => parent.id)).not.toContain(toCategoryId('bills'))
     expect(removedParent.rules).toEqual({})
-    expect(Object.values(removedParent.mappings.out.hints)).not.toContain(toCategoryId('phone_internet'))
-    expect(removedParent.mappings.out.hints).toHaveProperty('supermarket', toCategoryId('groceries'))
+    expect(Object.values(removedParent.mappings.out.tags)).not.toContain(toCategoryId('phone_internet'))
+    expect(removedParent.mappings.out.tags).toHaveProperty('supermarket', toCategoryId('groceries'))
   })
 
-  it('should map hints and library keywords, and remove their mappings', () => {
+  it('should map tags and library keywords, and remove their mappings', () => {
     const mapped = setKeywordMapping({ direction: CategoryDirection.OUT, key: 'de.rewe', category: null })(
-      setHintMapping({
+      setTagMapping({
         direction: CategoryDirection.OUT,
         key: toCategoryId('salary'),
         category: toCategoryId('subscriptions'),
       })(standard),
     )
     expect(mapped.mappings.out).toMatchObject({
-      hints: { salary: toCategoryId('subscriptions') },
+      tags: { salary: toCategoryId('subscriptions') },
       keywords: { 'de.rewe': null },
     })
     expect(mapped.mappings.in).toEqual(standard.mappings.in)
 
     const unmapped = setKeywordMapping({ direction: CategoryDirection.OUT, key: 'de.rewe', category: undefined })(
-      setHintMapping({ direction: CategoryDirection.OUT, key: toCategoryId('salary'), category: undefined })(mapped),
+      setTagMapping({ direction: CategoryDirection.OUT, key: toCategoryId('salary'), category: undefined })(mapped),
     )
     expect(unmapped.mappings).toEqual(standard.mappings)
   })
@@ -239,9 +240,19 @@ describe('isUnchangedTemplate', () => {
     ).toBe(false)
     expect(
       isUnchangedTemplate(
-        setHintMapping({ direction: CategoryDirection.OUT, key: 'telecom', category: undefined })(standard),
+        setTagMapping({ direction: CategoryDirection.OUT, key: 'telecom', category: undefined })(standard),
       ),
     ).toBe(false)
     expect(isUnchangedTemplate(createRuleset({ name: 'Empty', number: 2, now: NOW }))).toBe(false)
+  })
+})
+
+describe('stored rule sets and rules', () => {
+  it('should read those saved before hints were renamed to tags', () => {
+    const { tags, ...out } = standard.mappings.out
+    const legacy = { ...standard, mappings: { ...standard.mappings, out: { ...out, hints: tags } } }
+
+    expect(zCategoryRuleset.parse(legacy).mappings.out.tags).toEqual(tags)
+    expect(zLibraryRef.parse({ type: 'hint', key: 'benefits' })).toEqual({ type: 'tag', key: 'benefits' })
   })
 })

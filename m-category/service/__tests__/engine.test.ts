@@ -19,6 +19,7 @@ import {
   getLibraryDescriptionMatches,
   getNewRuleEffect,
   getRuleRef,
+  getUsedRuleCount,
   resolveCategory,
 } from '..'
 
@@ -75,14 +76,14 @@ const other: CategoryRuleset = {
       children: [{ id: toCategoryId('everything') }],
     },
   ],
-  mappings: { in: { hints: {}, keywords: {} }, out: { hints: { rent: toCategoryId('everything') }, keywords: {} } },
+  mappings: { in: { tags: {}, keywords: {} }, out: { tags: { rent: toCategoryId('everything') }, keywords: {} } },
 }
 
 /**
  * With the standard categories, without library mappings.
  */
 const toRuleset = (rules: TestRule[]) =>
-  withRules({ ...standard, mappings: { in: { hints: {}, keywords: {} }, out: { hints: {}, keywords: {} } } }, rules)
+  withRules({ ...standard, mappings: { in: { tags: {}, keywords: {} }, out: { tags: {}, keywords: {} } } }, rules)
 
 type ResolveProps = {
   ruleset?: CategoryRuleset | null
@@ -121,7 +122,7 @@ describe('resolveCategory', () => {
       library: {
         libraryKeyword: { id: 'de.rewe', name: 'REWE' },
         keyword: 'REWE',
-        mapping: { type: 'hint', hint: 'supermarket' },
+        mapping: { type: 'tag', tag: 'supermarket' },
       },
     })
   })
@@ -157,6 +158,39 @@ describe('resolveCategory', () => {
     // Mapped by another rule set only, the library applies
     expect(resolve(toTransaction('REWE Markt'), { rules }).category).toBe(toCategoryId('groceries'))
     expect(category('REWE Markt', withRules(other, [toRule('REWE', toCategoryId('general_shopping'))]))).toBeNull()
+  })
+
+  it('should apply rules belonging to a tag or library keyword where the rule set maps it', () => {
+    const linked = (library: CategoryRule['library']) => [
+      { ...omit(toRule('FAMKASSE', toCategoryId('groceries')), 'category'), library },
+    ]
+    const tagRules = linked({ type: 'tag', key: 'benefits' })
+
+    // Benefits are mapped for money in only
+    expect(resolve(toTransaction('FAMKASSE 03', '250.00'), { rules: tagRules })).toMatchObject({
+      category: toCategoryId('benefits'),
+      source: CategorySource.RULE,
+    })
+    expect(resolve(toTransaction('FAMKASSE 03'), { rules: tagRules })).toMatchObject({
+      category: null,
+      source: CategorySource.NONE,
+    })
+    expect(category('FAMKASSE 03', { ruleset: other, rules: tagRules })).toBeNull()
+
+    // A library keyword goes where its tag goes
+    expect(category('FAMKASSE 03', { rules: linked({ type: 'keyword', key: 'de.rewe' }) })).toBe(
+      toCategoryId('groceries'),
+    )
+    expect(category('FAMKASSE 03', { rules: linked({ type: 'keyword', key: 'de.unknown' }) })).toBeNull()
+  })
+
+  it('should prefer the rule set mapping the rule itself over its tag', () => {
+    const rule = {
+      ...toRule('FAMKASSE', toCategoryId('other_income')),
+      library: { type: 'tag' as const, key: 'benefits' },
+    }
+
+    expect(category('FAMKASSE 03', withRules(standard, [rule]))).toBe(toCategoryId('other_income'))
   })
 
   it('should apply rules before the library', () => {
@@ -356,5 +390,18 @@ describe('getKeywordMappingEffect', () => {
     expect(getKeywordMappingEffect({ transaction: manual, engine, editedId: '' })).toBe('override')
     expect(getKeywordMappingEffect({ transaction: manual, engine, editedId: manual.id })).toBeNull()
     expect(getLibraryDescriptionMatches(rewe, engine)).toEqual([[0, 4]])
+  })
+})
+
+describe('getUsedRuleCount', () => {
+  it('should count the rules the rule set maps and those belonging to what it maps', () => {
+    const { ruleset, rules } = withRules(standard, [toRule('REWE', toCategoryId('groceries'))])
+    const linked = (key: string): CategoryRule => ({
+      ...omit(toRule(key, toCategoryId('groceries')), 'category'),
+      library: { type: 'tag', key },
+    })
+
+    expect(getUsedRuleCount({ ruleset, rules: [...rules, linked('benefits')] })).toBe(2)
+    expect(getUsedRuleCount({ ruleset: other, rules: [...rules, linked('benefits'), linked('rent')] })).toBe(1)
   })
 })

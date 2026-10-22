@@ -1,4 +1,4 @@
 export * from './definition'
-export * from './hints'
+export * from './tags'
 export * from './keyword'
 export * from './registry'

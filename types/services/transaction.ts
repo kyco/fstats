@@ -18,7 +18,7 @@ export const zCategoryId = z
   .brand<'CategoryId'>()
 
 /**
- * Branded, so it isn't mixed up with other strings, e.g. hints. Plain strings (e.g. of templates or selects) are
+ * Branded, so it isn't mixed up with other strings, e.g. tags. Plain strings (e.g. of templates or selects) are
  * converted with `toCategoryId`.
  */
 export type CategoryId = z.infer<typeof zCategoryId>

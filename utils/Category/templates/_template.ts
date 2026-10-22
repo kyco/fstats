@@ -26,16 +26,16 @@ export const newTemplate = defineTemplate({
       { id: 'income_transfers', color: 'cyan', children: ['transfers_in'], isTransfer: true },
     ],
     /**
-     * Categories of what the library recognises (see `utils/Category/library/`), by hint (`HINTS`), for money in (also
-     * zero amounts). Unmapped hints stay uncategorised.
+     * Categories of what the library recognises (see `utils/Category/library/`), by tag (`TAGS`), for money in (also
+     * zero amounts). Unmapped tags stay uncategorised.
      */
-    hints: {
+    tags: {
       salary: 'salary',
       own_account_transfer: 'transfers_in',
       card_settlement: 'transfers_in',
     },
     /**
-     * Optional: categories of single library keywords, before their hints (`null` leaves them uncategorised).
+     * Optional: categories of single library keywords, before their tags (`null` leaves them uncategorised).
      */
     keywords: {
       'global.dividends': 'salary',
@@ -46,7 +46,7 @@ export const newTemplate = defineTemplate({
    */
   expense: {
     categories: [{ id: 'food', color: 'orange', children: ['groceries'] }],
-    hints: {
+    tags: {
       supermarket: 'groceries',
       bakery: 'groceries',
     },

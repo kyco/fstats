@@ -20,7 +20,7 @@ type CategoryRowProps = {
   color?: CategoryColor
   ruleCount: number
   /**
-   * Library hints and library keywords mapped to it (or its subcategories), see `getCategoryMappings`.
+   * Library tags and library keywords mapped to it (or its subcategories), see `getCategoryMappings`.
    */
   mappingCount: number
   /**

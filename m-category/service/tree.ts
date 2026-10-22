@@ -103,3 +103,27 @@ export const isTransferCategory = (tree: CategoryTree, id: string | null) => {
 export const hasCategory = (tree: CategoryTree, id: string) => {
   return tree.categoriesById.has(id)
 }
+
+type GetCategoryOptionsProps = {
+  tree: CategoryTree
+  direction: CategoryDirection
+  t: TFunction
+}
+
+/**
+ * The categories a mapping or rule can choose, grouped by parent category (without "Uncategorised"), those of the direction
+ * first. Also of the other one, e.g. so refunds reduce an expense category.
+ */
+export const getCategoryOptions = ({ tree, direction, t }: GetCategoryOptionsProps) => {
+  const directions = [CategoryDirection.IN, CategoryDirection.OUT]
+
+  return (direction === CategoryDirection.IN ? directions : directions.toReversed()).flatMap((parentDirection) =>
+    getDirectionParents(tree, parentDirection).flatMap((parent) =>
+      parent.children.map((child) => ({
+        value: child.id,
+        label: getCategoryLabel({ id: child.id, tree, t }),
+        group: `${getCategoryLabel({ id: parent.id, tree, t })} · ${t(parentDirection === CategoryDirection.IN ? 'MISC.INCOME' : 'MISC.EXPENSES')}`,
+      })),
+    ),
+  )
+}

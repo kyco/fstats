@@ -132,7 +132,7 @@ export const getSourceText = ({ resolved: { source, rule, library }, activeName,
           : 'library_unmapped'
     const values = {
       keyword: library.libraryKeyword.name,
-      hint: t(library.libraryKeyword.hint, { ns: 'hints' }),
+      tag: t(library.libraryKeyword.tag, { ns: 'tags' }),
       name: activeName,
     }
 

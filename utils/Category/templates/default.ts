@@ -20,7 +20,7 @@ export const defaultTemplate = defineTemplate({
         isTransfer: true,
       },
     ],
-    hints: {
+    tags: {
       salary: 'salary',
       benefits: 'benefits',
       pension: 'benefits',
@@ -99,7 +99,7 @@ export const defaultTemplate = defineTemplate({
         isTransfer: true,
       },
     ],
-    hints: {
+    tags: {
       rent: 'rent',
       mortgage: 'rent',
       utilities: 'utilities',

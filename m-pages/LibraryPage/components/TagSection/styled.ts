@@ -6,19 +6,26 @@ export const ui = () => {
       borderColor: 'divider',
     },
     // Highlighted when linked
-    header: (isTarget: boolean) => ({
+    row: (isTarget: boolean) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.5,
+      borderRadius: '6px',
+      bgcolor: isTarget ? 'action.selected' : 'transparent',
+    }),
+    header: {
       display: 'flex',
       alignItems: 'center',
       gap: 1,
-      width: '100%',
+      flexGrow: 1,
+      minWidth: 0,
       minHeight: 38,
       px: 0.5,
       justifyContent: 'flex-start',
       textAlign: 'left',
       borderRadius: '6px',
-      bgcolor: isTarget ? 'action.selected' : 'transparent',
       '&:hover': { bgcolor: 'action.hover' },
-    }),
+    },
     chevron: (isExpanded: boolean) => ({
       flexShrink: 0,
       fontSize: 18,
@@ -35,12 +42,32 @@ export const ui = () => {
       fontSize: 11,
       color: 'text.secondary',
     },
-    count: {
+    // Of the active rule set, dimmed when not mapped
+    mapping: (isEmpty: boolean) => ({
       ml: 'auto',
+      minWidth: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      fontSize: 12,
+      color: isEmpty ? 'text.disabled' : 'text.secondary',
+    }),
+    editButton: {
+      flexShrink: 0,
+      p: 0.5,
+      fontSize: 16,
+    },
+    count: {
       flexShrink: 0,
       fontSize: 12,
       color: 'text.secondary',
       whiteSpace: 'nowrap',
+    },
+    // Below the cards, across the columns
+    addRule: {
+      gridColumn: '1 / -1',
+      justifySelf: 'start',
+      fontSize: 12,
     },
     // Indented below the header, aligned with its label
     body: {

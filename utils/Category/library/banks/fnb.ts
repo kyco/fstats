@@ -10,7 +10,7 @@ export const fnbPack = defineLibraryPack({
     {
       id: 'fees',
       name: 'FNB fees',
-      hint: 'bank_fees',
+      tag: 'bank_fees',
       keywords: [
         'Monthly Account Admin Fee',
         'International Processing Card Purchase Fee',
@@ -24,7 +24,7 @@ export const fnbPack = defineLibraryPack({
     {
       id: 'internet_banking_transfer',
       name: 'Internet Banking Transfer',
-      hint: 'own_account_transfer',
+      tag: 'own_account_transfer',
       keywords: ['Internet Banking Transfer'],
       examples: ['Internet Banking Transfer To Savings'],
     },

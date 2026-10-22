@@ -1,6 +1,6 @@
 'use client'
 
-import { Box } from '@mui/material'
+import { Box, Tooltip } from '@mui/material'
 
 import { getRuleRef } from '@/m-category/service'
 import { useTranslation } from '@/lib/i18n'
@@ -8,32 +8,38 @@ import { useTranslation } from '@/lib/i18n'
 import { ui } from './styled'
 
 type LibraryRefProps = {
-  type: 'hint' | 'keyword' | 'rule'
+  type: 'tag' | 'keyword' | 'rule'
   /**
-   * Of the user's rules, e.g. "R-003".
+   * Of the user's rules, e.g. "R-003". Without, a rule of a library keyword (one of its texts).
    */
   number?: number
 }
 
-const LETTERS = { hint: 'H', keyword: 'L', rule: 'R' }
-
-const TITLE_KEYS = {
-  hint: 'RULESETS_PAGE.LIBRARY.HINT',
-  keyword: 'RULESETS_PAGE.LIBRARY.KEYWORD',
-  rule: 'RULESETS_PAGE.LIBRARY.RULE',
-}
+const LETTERS = { tag: 'T', keyword: 'K', rule: 'R' }
 
 /**
- * What something of the library is: a hint (H), a library keyword (L) or one of the user's rules (e.g. R-003).
+ * What something of the library is: a tag (T, a tag in the code), a library keyword (K), a rule of a library keyword (R) or one of the
+ * user's rules (e.g. R-003), named on hover.
  */
 const Component = ({ type, number }: LibraryRefProps) => {
   const sx = ui()
   const { t } = useTranslation()
+  const label = type === 'rule' && number ? getRuleRef(number) : LETTERS[type]
+  const name =
+    type === 'tag'
+      ? t('RULESETS_PAGE.LIBRARY.TAG')
+      : type === 'keyword'
+        ? t('RULESETS_PAGE.LIBRARY.KEYWORD')
+        : number
+          ? t('RULESETS_PAGE.LIBRARY.RULE')
+          : t('RULESETS_PAGE.LIBRARY.BUILT_IN_RULE')
 
   return (
-    <Box component="span" title={t(TITLE_KEYS[type])} sx={sx.ref}>
-      {type === 'rule' && number ? getRuleRef(number) : LETTERS[type]}
-    </Box>
+    <Tooltip title={name} placement="top">
+      <Box component="span" sx={sx.ref}>
+        {label}
+      </Box>
+    </Tooltip>
   )
 }
 

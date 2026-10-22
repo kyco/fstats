@@ -1,0 +1,38 @@
+name: New library keyword
+description: Suggest one of your rules for the built-in library, so everyone's transactions are recognised by it
+title: 'Library keyword: '
+labels: ['library']
+body:
+  - type: markdown
+    attributes:
+      value: Only the keyword of the rule and how it matches are shared, no transactions. Please check that the keyword doesn't contain personal details (names, IBANs, account numbers).
+  - type: input
+    id: keyword
+    attributes:
+      label: Keyword
+      placeholder: e.g. FAMILIENKASSE
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: What it is
+      description: The tag or library keyword it belongs to, or what the transactions are.
+      placeholder: e.g. Benefits
+  - type: textarea
+    id: rule
+    attributes:
+      label: Rule
+      description: Filled in by fstats when suggesting from the app.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example descriptions
+      description: How banks write it, anonymised (no names, IBANs or account numbers).
+  - type: input
+    id: version
+    attributes:
+      label: fstats version

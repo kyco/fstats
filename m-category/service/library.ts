@@ -1,9 +1,10 @@
 import type { TFunction } from 'i18next'
-import { maxBy } from 'lodash'
+import { maxBy, pick } from 'lodash'
 
 import type {
   CategoryId,
   CategoryMappings,
+  CategoryRule,
   CategoryTree,
   CompiledLibraryKeyword,
   LibraryIndex,
@@ -12,9 +13,11 @@ import type {
   LibraryMatch,
   LibraryMatchResult,
   LibraryPackDef,
+  LibraryRef,
   Transaction,
 } from '@/types'
 import { CategoryRuleDirection, CategoryRuleMatch } from '@/types-enums'
+import { CONFIG } from '@/common'
 import { LIBRARY, toKeywordHighlightPattern, toKeywordPattern } from '@/utils/Category'
 import { getBankCountry } from '@/utils/Parser'
 import { isExpense } from '@/utils/Stats'
@@ -91,6 +94,7 @@ export const createLibraryIndex = (libraryKeywords: LibraryKeyword[]): LibraryIn
 }
 
 let libraryIndex: LibraryIndex | null = null
+let libraryKeywordsById: Map<string, LibraryKeyword> | null = null
 
 /**
  * Of the whole library, compiled once.
@@ -98,6 +102,16 @@ let libraryIndex: LibraryIndex | null = null
 export const getLibraryIndex = () => {
   libraryIndex ??= createLibraryIndex(getLibraryKeywords())
   return libraryIndex
+}
+
+/**
+ * Of the whole library, by its full ID (e.g. 'de.rewe').
+ */
+export const getLibraryKeyword = (id: string) => {
+  libraryKeywordsById ??= new Map(
+    getLibraryIndex().libraryKeywords.map((item) => [item.libraryKeyword.id, item.libraryKeyword]),
+  )
+  return libraryKeywordsById.get(id)
 }
 
 const compareStrings = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
@@ -166,7 +180,7 @@ type MapLibraryKeywordProps = {
 }
 
 /**
- * The category the rule set maps the library keyword to: by itself, otherwise by its hint. Categories the rule set
+ * The category the rule set maps the library keyword to: by itself, otherwise by its tag. Categories the rule set
  * doesn't have are skipped.
  */
 export const mapLibraryKeyword = ({
@@ -186,21 +200,44 @@ export const mapLibraryKeyword = ({
     }
   }
 
-  const { hint } = libraryKeyword
-  const category = mappings.hints[hint]
+  const { tag } = libraryKeyword
+  const category = mappings.tags[tag]
 
   return category && hasCategory(tree, category)
-    ? { category, mapping: { type: 'hint', hint } }
+    ? { category, mapping: { type: 'tag', tag } }
     : { category: null, mapping: { type: 'unmapped' } }
 }
 
+type MapLibraryRefProps = {
+  library: LibraryRef
+  /**
+   * Of the rule set, for the direction of the transaction.
+   */
+  mappings: CategoryMappings
+  tree: CategoryTree
+}
+
 /**
- * Library keywords by their hint.
+ * The category the rule set maps the tag or library keyword to (see `mapLibraryKeyword`), e.g. of a rule belonging to
+ * it. `null` when it doesn't, or it no longer exists.
  */
-export const groupKeywordsByHint = (libraryKeywords: LibraryKeyword[]) => {
+export const mapLibraryRef = ({ library, mappings, tree }: MapLibraryRefProps): CategoryId | null => {
+  if (library.type === 'tag') {
+    const category = mappings.tags[library.key]
+    return category && hasCategory(tree, category) ? category : null
+  }
+
+  const libraryKeyword = getLibraryKeyword(library.key)
+  return libraryKeyword ? mapLibraryKeyword({ libraryKeyword, mappings, tree }).category : null
+}
+
+/**
+ * Library keywords by their tag.
+ */
+export const groupKeywordsByTag = (libraryKeywords: LibraryKeyword[]) => {
   const groups = new Map<string, LibraryKeyword[]>()
   libraryKeywords.forEach((libraryKeyword) =>
-    groups.set(libraryKeyword.hint, [...(groups.get(libraryKeyword.hint) ?? []), libraryKeyword]),
+    groups.set(libraryKeyword.tag, [...(groups.get(libraryKeyword.tag) ?? []), libraryKeyword]),
   )
   return groups
 }
@@ -212,14 +249,34 @@ type SearchLibraryKeywordsProps = {
 }
 
 /**
- * Library keywords whose name, keywords, ID or hint contain the query, ignoring case.
+ * Library keywords whose name, keywords, ID or tag contain the query, ignoring case.
  */
 export const searchLibraryKeywords = ({ libraryKeywords, query, t }: SearchLibraryKeywordsProps) => {
   const needle = query.trim().toLowerCase()
 
   return libraryKeywords.filter((libraryKeyword) =>
-    [libraryKeyword.name, libraryKeyword.id, ...libraryKeyword.keywords, t(libraryKeyword.hint, { ns: 'hints' })].some(
+    [libraryKeyword.name, libraryKeyword.id, ...libraryKeyword.keywords, t(libraryKeyword.tag, { ns: 'tags' })].some(
       (text) => text.toLowerCase().includes(needle),
     ),
   )
+}
+
+/**
+ * GitHub issue form (`.github/ISSUE_TEMPLATE/new-library-keyword.yml`) prefilled with one of the user's rules, so it can
+ * be added to the library. Only the rule, no transactions, the user reviews it before submitting.
+ */
+export const getRuleIssueHref = (rule: CategoryRule) => {
+  const url = new URL(`${CONFIG.GITHUB_URL}/issues/new`)
+  url.searchParams.set('template', 'new-library-keyword.yml')
+  url.searchParams.set('title', `Library keyword: ${rule.keyword}`)
+  url.searchParams.set('keyword', rule.keyword)
+  if (rule.library) {
+    url.searchParams.set('tag', rule.library.key)
+  }
+  url.searchParams.set(
+    'rule',
+    JSON.stringify(pick(rule, ['keyword', 'match', 'ignoreCase', 'direction', 'field', 'library']), null, 2),
+  )
+  url.searchParams.set('version', CONFIG.APP_VERSION)
+  return url.toString()
 }

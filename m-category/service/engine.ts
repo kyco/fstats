@@ -22,10 +22,10 @@ import { getPatternRanges, toKeywordHighlightPattern, toKeywordPattern } from '@
 import { toBankId } from '@/utils/Parser'
 import { isExpense } from '@/utils/Stats'
 
-import { findLibraryMatch, getLibraryIndex, mapLibraryKeyword } from './library'
+import { findLibraryMatch, getLibraryIndex, mapLibraryKeyword, mapLibraryRef } from './library'
 import { buildCategoryTree, hasCategory } from './tree'
 
-const NO_MAPPINGS: CategoryMappings = { hints: {}, keywords: {} }
+const NO_MAPPINGS: CategoryMappings = { tags: {}, keywords: {} }
 
 type CompileRuleProps = {
   /**
@@ -79,7 +79,20 @@ export const createCategoryEngine = ({
   // Oldest first, the first of equally long keywords wins
   const mappedRules = sortBy(rules, 'number').flatMap((rule) => {
     const category = ruleset?.rules[rule.id]
-    return category && hasCategory(tree, category) ? [compileRule({ rule, category })] : []
+    if (category && hasCategory(tree, category)) {
+      return [compileRule({ rule, category })]
+    }
+
+    // Otherwise where the rule set maps its tag or library keyword
+    if (!ruleset || !rule.library) {
+      return []
+    }
+    const { library } = rule
+    const categories = {
+      [CategoryDirection.IN]: mapLibraryRef({ library, mappings: ruleset.mappings.in, tree }),
+      [CategoryDirection.OUT]: mapLibraryRef({ library, mappings: ruleset.mappings.out, tree }),
+    }
+    return categories.in || categories.out ? [{ ...compileRule({ rule }), categories }] : []
   })
 
   return {
@@ -157,13 +170,27 @@ export const getRuleDescriptionMatches = (transaction: Transaction, rule: Compil
 }
 
 /**
- * The most specific (longest keyword) matching rule, the first of equally long ones.
+ * The category the rule assigns to the transaction, see `CompiledCategoryRule.categories`.
+ */
+const getRuleCategory = (rule: CompiledCategoryRule, transaction: Transaction) => {
+  return rule.categories
+    ? rule.categories[isExpense(transaction) ? CategoryDirection.OUT : CategoryDirection.IN]
+    : rule.category
+}
+
+/**
+ * The most specific (longest keyword) matching rule, the first of equally long ones. Rules belonging to a tag or
+ * library keyword only apply where the rule set maps it.
  */
 const findRule = (transaction: Transaction, rules: CompiledCategoryRule[]) => {
   let match: CompiledCategoryRule | null = null
 
   for (const rule of rules) {
-    if ((!match || rule.length > match.length) && matchesRule(transaction, rule)) {
+    if (
+      (!match || rule.length > match.length) &&
+      (!rule.categories || getRuleCategory(rule, transaction)) &&
+      matchesRule(transaction, rule)
+    ) {
       match = rule
     }
   }
@@ -201,7 +228,7 @@ export const resolveCategory = ({ transaction, engine, preset, bankId }: Resolve
 
   const rule = findRule(transaction, engine.rules)
   if (rule) {
-    return { category: rule.category, source: CategorySource.RULE, rule: rule.rule }
+    return { category: getRuleCategory(rule, transaction), source: CategorySource.RULE, rule: rule.rule }
   }
 
   const match = recogniseTransaction({ transaction, engine, bankId })
@@ -285,6 +312,31 @@ export const getKeywordMappingEffect = ({
 export const getLibraryDescriptionMatches = (transaction: Transaction, engine: CategoryEngine): TextRange[] => {
   const match = recogniseTransaction({ transaction, engine })
   return match ? getPatternRanges(transaction.description, match.pattern.highlightPattern) : []
+}
+
+type GetUsedRuleCountProps = {
+  ruleset: CategoryRuleset
+  /**
+   * The user's rules (their library).
+   */
+  rules: CategoryRule[]
+}
+
+/**
+ * Number of the user's rules the rule set uses: those it maps, and those belonging to a tag or library keyword it maps
+ * (see `createCategoryEngine`).
+ */
+export const getUsedRuleCount = ({ ruleset, rules }: GetUsedRuleCountProps) => {
+  const tree = buildCategoryTree(ruleset.categories)
+
+  return rules.filter(
+    (rule) =>
+      rule.id in ruleset.rules ||
+      (!!rule.library &&
+        [ruleset.mappings.in, ruleset.mappings.out].some(
+          (mappings) => !!rule.library && !!mapLibraryRef({ library: rule.library, mappings, tree }),
+        )),
+  ).length
 }
 
 /**

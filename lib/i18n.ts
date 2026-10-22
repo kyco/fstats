@@ -10,12 +10,12 @@ import deCategories from '@/public/locales/categories/de.json'
 import enCategories from '@/public/locales/categories/en.json'
 import de from '@/public/locales/de.json'
 import en from '@/public/locales/en.json'
-import deHints from '@/public/locales/hints/de.json'
-import enHints from '@/public/locales/hints/en.json'
+import deTags from '@/public/locales/tags/de.json'
+import enTags from '@/public/locales/tags/en.json'
 
 const resources = {
-  [UserLocale.EN]: { translation: en, categories: enCategories, hints: enHints },
-  [UserLocale.DE]: { translation: de, categories: deCategories, hints: deHints },
+  [UserLocale.EN]: { translation: en, categories: enCategories, tags: enTags },
+  [UserLocale.DE]: { translation: de, categories: deCategories, tags: deTags },
 } as const
 
 i18n

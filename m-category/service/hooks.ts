@@ -229,10 +229,10 @@ export const useMutateRemoveRuleset = () => {
 type AddCategoryRuleProps = {
   rule: CategoryRuleDraft
   /**
-   * Maps the new rule to the category in this rule set.
+   * Maps the new rule to the category in this rule set, not mapped without both.
    */
-  rulesetId: string
-  category: CategoryId
+  rulesetId?: string
+  category?: CategoryId
 }
 
 /**
@@ -248,11 +248,13 @@ export const useMutateAddCategoryRule = () => {
         id: crypto.randomUUID(),
         number: getNextNumber(await getStoredCategoryRules()),
       })
-      const ruleset = await getCategoryRuleset(rulesetId)
-      await putCategoryRuleset({
-        ...setRuleMapping({ ruleId: added.id, category })(ruleset),
-        modified: formatISO(new Date()),
-      })
+      if (rulesetId && category) {
+        const ruleset = await getCategoryRuleset(rulesetId)
+        await putCategoryRuleset({
+          ...setRuleMapping({ ruleId: added.id, category })(ruleset),
+          modified: formatISO(new Date()),
+        })
+      }
       return added
     },
     onSettled,

@@ -1,6 +1,7 @@
 'use client'
 
-import { Box } from '@mui/material'
+import { EditOutlined } from '@mui/icons-material'
+import { Box, IconButton } from '@mui/material'
 
 import type { LibraryKeyword } from '@/types'
 import { CategoryRuleDirection, CategoryRuleMatch } from '@/types-enums'
@@ -8,25 +9,45 @@ import { LibraryRef } from '@/components'
 import { BANKS } from '@/utils/Parser'
 import { useTranslation } from '@/lib/i18n'
 
-import { toAnchorId } from '../../actions'
+import { toAnchorId, toRulesetMapping } from '../../actions'
 import { ui } from './styled'
 
 type KeywordCardProps = {
   libraryKeyword: LibraryKeyword
   /**
-   * Its hints, e.g. in search results, where it isn't listed under them.
+   * Its tags, e.g. in search results, where it isn't listed under them.
    */
-  showHint?: boolean
+  showTag?: boolean
   /**
    * Linked, highlighted.
    */
   isTarget?: boolean
+  /**
+   * Where the active rule set puts it, when mapped on its own, see `getMappingSummary`.
+   */
+  mapping: string | null
+  /**
+   * Of the active rule set, which `mapping` is of.
+   */
+  rulesetName: string | null
+  /**
+   * Opens the dialog choosing its categories in the rule sets.
+   */
+  onEditMapping: () => void
 }
 
 /**
- * What a library keyword recognises: its keywords (and how they match), limits and example descriptions.
+ * What a library keyword recognises: its keywords (and how they match), limits and example descriptions, and where the
+ * active rule set puts it when not where its tag goes.
  */
-const Component = ({ libraryKeyword, showHint = false, isTarget = false }: KeywordCardProps) => {
+const Component = ({
+  libraryKeyword,
+  showTag = false,
+  isTarget = false,
+  mapping,
+  rulesetName,
+  onEditMapping,
+}: KeywordCardProps) => {
   const sx = ui()
   const { t } = useTranslation()
   const bankName = libraryKeyword.bank
@@ -59,10 +80,20 @@ const Component = ({ libraryKeyword, showHint = false, isTarget = false }: Keywo
         <Box component="span" sx={sx.id}>
           {libraryKeyword.id}
         </Box>
+        <IconButton
+          size="small"
+          title={t('LIBRARY_PAGE.CHANGE_CATEGORIES')}
+          aria-label={t('LIBRARY_PAGE.MAPPING_TITLE', { name: libraryKeyword.name })}
+          onClick={onEditMapping}
+          sx={sx.editButton}
+        >
+          <EditOutlined fontSize="inherit" />
+        </IconButton>
       </Box>
 
-      {showHint ? <Box sx={sx.meta}>{t(libraryKeyword.hint, { ns: 'hints' })}</Box> : null}
+      {showTag ? <Box sx={sx.meta}>{t(libraryKeyword.tag, { ns: 'tags' })}</Box> : null}
       {limits.length ? <Box sx={sx.meta}>{limits.join(' · ')}</Box> : null}
+      {mapping ? <Box sx={sx.meta}>{toRulesetMapping({ name: rulesetName, mapping, t })}</Box> : null}
 
       <Box sx={sx.keywords} aria-label={t('LIBRARY_PAGE.KEYWORDS')}>
         {libraryKeyword.keywords.map((keyword) => (

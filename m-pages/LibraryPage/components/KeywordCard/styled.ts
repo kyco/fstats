@@ -27,6 +27,12 @@ export const ui = () => {
       fontSize: 11,
       color: 'text.secondary',
     },
+    editButton: {
+      ml: 'auto',
+      alignSelf: 'center',
+      p: 0.5,
+      fontSize: 16,
+    },
     meta: {
       fontSize: 12,
       color: 'text.secondary',
@@ -34,6 +40,7 @@ export const ui = () => {
     keywords: {
       display: 'flex',
       flexWrap: 'wrap',
+      alignItems: 'center',
       gap: 0.5,
     },
     keyword: {

@@ -31,18 +31,19 @@ export const getCopyName = ({ name, rulesets, t }: GetCopyNameProps) => {
 
 type GetRulesetCountsProps = {
   categories: ParentCategoryDef[]
-  ruleCount: number
-  mappingCount: number
+  /**
+   * Of the user's rules it uses, not shown without (e.g. of templates).
+   */
+  ruleCount?: number
   t: TFunction
 }
 
 /**
- * E.g. "12 categories · 3 rules · 40 library mappings", without rules or mappings when there are none.
+ * E.g. "12 categories · 3 custom rules".
  */
-export const getRulesetCounts = ({ categories, ruleCount, mappingCount, t }: GetRulesetCountsProps) => {
+export const getRulesetCounts = ({ categories, ruleCount, t }: GetRulesetCountsProps) => {
   return [
     t('RULESETS_PAGE.CATEGORY_COUNT', { count: getCategoryCount(categories) }),
-    ...(ruleCount ? [t('RULESETS_PAGE.RULE_COUNT', { count: ruleCount })] : []),
-    ...(mappingCount ? [t('RULESETS_PAGE.MAPPING_COUNT', { count: mappingCount })] : []),
+    ...(ruleCount === undefined ? [] : [t('RULESETS_PAGE.CUSTOM_RULE_COUNT', { count: ruleCount })]),
   ].join(' · ')
 }

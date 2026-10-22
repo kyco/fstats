@@ -1,6 +1,6 @@
 'use client'
 
-import { Add, DeleteOutlined, EditOutlined, LinkOff, MenuBookOutlined } from '@mui/icons-material'
+import { Add, DeleteOutlined, EditOutlined, LibraryAddOutlined, LinkOff, MenuBookOutlined } from '@mui/icons-material'
 import { Box, Button, Typography } from '@mui/material'
 import { pick } from 'lodash'
 import { useRouter } from 'next/navigation'
@@ -20,14 +20,24 @@ import type {
 import type { CategoryDirection } from '@/types-enums'
 import { CategoryRuleDirection, CategoryRuleField, CategoryRuleMatch } from '@/types-enums'
 import { getLibraryHref } from '@/common'
-import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem, LibraryRef } from '@/components'
+import {
+  DropdownMenu,
+  DropdownMenuDivider,
+  DropdownMenuItem,
+  LibraryRef,
+  MenuSelect,
+  NewCategoryDialog,
+  RuleDialog,
+} from '@/components'
 import type { RulesetUpdate } from '@/m-category/service'
 import {
   addCategory,
+  addNamedCategory,
   addParentCategory,
   createCategoryId,
   getCategoryLabel,
   getCategoryMappings,
+  getCategoryOptions,
   getCategoryRules,
   getDirectionParents,
   getLibraryKeywords,
@@ -36,7 +46,9 @@ import {
   moveCategory,
   removeCategory,
   removeMapping,
+  setKeywordMapping,
   setRuleMapping,
+  setTagMapping,
   updateCategory,
   useCategoryRules,
   useMutateAddCategoryRule,
@@ -51,7 +63,7 @@ import { getLibraryPickerOptions, toLibraryMapping, toLibraryRefProps } from './
 import CategoryDialog from './components/CategoryDialog'
 import CategoryRow from './components/CategoryRow'
 import CategoryRules from './components/CategoryRules'
-import RuleDialog from './components/RuleDialog'
+import MappingCategoryDialog from './components/MappingCategoryDialog'
 import { ui } from './styled'
 
 type CategorySectionProps = {
@@ -70,7 +82,7 @@ const NO_RULES: CategoryRule[] = []
 
 /**
  * The parent categories of a direction with their subcategories, the system ones last and fixed. Added and edited in a
- * dialog, subcategories expand to what assigns them: library hints and library keywords, and the user's rules (added there,
+ * dialog, subcategories expand to what assigns them: library tags and library keywords, and the user's rules (added there,
  * changed in the menus).
  */
 const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: CategorySectionProps) => {
@@ -91,6 +103,11 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
     name: string
   } | null>(null)
   const [ruleDialog, setRuleDialog] = useState<RuleDialogState | null>(null)
+  // "Add rule or tag from library" in the menu of a subcategory, opened at its menu button
+  const [libraryPicker, setLibraryPicker] = useState<{ anchor: HTMLElement; id: CategoryId } | null>(null)
+  // Moving a tag or library keyword to another category, which can be created first
+  const [mappingDialog, setMappingDialog] = useState<{ mapping: CategoryMappingRef; name: string } | null>(null)
+  const [creating, setCreating] = useState<{ name: string; mapping: CategoryMappingRef } | null>(null)
   const parents = getDirectionParents(tree, direction)
   const { data: rules = NO_RULES } = useCategoryRules()
   const { mutateAsync: addRule } = useMutateAddCategoryRule()
@@ -98,6 +115,8 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
   const { mutateAsync: deleteRule } = useMutateRemoveCategoryRule()
   const libraryKeywords = useMemo(() => getLibraryKeywords(), [])
   const getRules = (id: CategoryId) => getCategoryRules({ ruleset, rules, id })
+  // Categorised like their tag or library keyword in this rule set
+  const linkedRules = rules.filter((rule) => rule.library && !(rule.id in ruleset.rules))
 
   const remove = (id: CategoryId) => {
     const name = getCategoryLabel({ id, tree, t })
@@ -157,6 +176,29 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
 
     setRuleDialog(null)
   }
+
+  const toMappingUpdate = ({ type, key, direction: mappingDirection }: CategoryMappingRef, category: CategoryId) =>
+    (type === 'tag' ? setTagMapping : setKeywordMapping)({ direction: mappingDirection, key, category })
+
+  // Where it's mapped now, it's only shown under a category
+  const getMappedCategory = ({ type, key, direction: mappingDirection }: CategoryMappingRef) => {
+    const mappings = ruleset.mappings[mappingDirection]
+    return (type === 'tag' ? mappings.tags[key] : mappings.keywords[key]) as CategoryId
+  }
+
+  const createAndMap = ({ label, parentId }: { label: string; parentId: CategoryId | null }) => {
+    if (creating) {
+      const { id, update } = addNamedCategory({ ruleset, label, parentId, direction: creating.mapping.direction })
+      onUpdate((current) => toMappingUpdate(creating.mapping, id)(update(current)))
+    }
+    setCreating(null)
+  }
+
+  const getLibraryOptions = (id: CategoryId) =>
+    getLibraryPickerOptions({ ruleset, rules, libraryKeywords, id, direction, tree, t }).map((option) => ({
+      ...option,
+      start: <LibraryRef {...toLibraryRefProps(option.value, rules)} />,
+    }))
 
   const getRowProps = (id: CategoryId, index: number, count: number) => ({
     label: getCategoryLabel({ id, tree, t }),
@@ -250,22 +292,13 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
                   ruleset={ruleset}
                   rules={getRules(child.id)}
                   libraryKeywords={libraryKeywords}
+                  linkedRules={linkedRules}
                   id={child.id}
+                  direction={direction}
                   onMenu={(anchor, rule) => setRuleMenu({ anchor, rule })}
                   onAdd={() => openAddRule(child.id)}
                   onMappingMenu={(anchor, mapping, name) => setMappingMenu({ anchor, mapping, name })}
-                  libraryOptions={getLibraryPickerOptions({
-                    ruleset,
-                    rules,
-                    libraryKeywords,
-                    id: child.id,
-                    direction,
-                    tree,
-                    t,
-                  }).map((option) => ({
-                    ...option,
-                    start: <LibraryRef {...toLibraryRefProps(option.value, rules)} />,
-                  }))}
+                  libraryOptions={getLibraryOptions(child.id)}
                   onAddFromLibrary={(value) => onUpdate(toLibraryMapping({ value, id: child.id, direction }))}
                 />
               ) : null}
@@ -297,7 +330,17 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
               setMenu(null)
             }}
             start={<Add sx={sx.menuIcon} />}
-            label={t('RULESETS_PAGE.ADD_RULE')}
+            label={t('RULESETS_PAGE.CREATE_RULE')}
+          />
+        ) : null}
+        {menu && tree.categoriesById.has(menu.id) ? (
+          <DropdownMenuItem
+            onClick={() => {
+              setLibraryPicker(menu)
+              setMenu(null)
+            }}
+            start={<LibraryAddOutlined sx={sx.menuIcon} />}
+            label={t('RULESETS_PAGE.LIBRARY.ADD_FROM_LIBRARY')}
           />
         ) : null}
         <DropdownMenuItem
@@ -371,12 +414,20 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
           onClick={() => {
             if (mappingMenu) {
               const { type, key } = mappingMenu.mapping
-              router.push(getLibraryHref(type === 'hint' ? { hint: key } : { keyword: key }))
+              router.push(getLibraryHref(type === 'tag' ? { tag: key } : { keyword: key }))
             }
             setMappingMenu(null)
           }}
           start={<MenuBookOutlined sx={sx.menuIcon} />}
           label={t('RULESETS_PAGE.LIBRARY.SHOW_IN_LIBRARY')}
+        />
+        <DropdownMenuItem
+          onClick={() => {
+            setMappingDialog(mappingMenu ? pick(mappingMenu, ['mapping', 'name']) : null)
+            setMappingMenu(null)
+          }}
+          start={<EditOutlined sx={sx.menuIcon} />}
+          label={t('RULESETS_PAGE.CHANGE_CATEGORY')}
         />
         <DropdownMenuDivider />
         <DropdownMenuItem
@@ -416,6 +467,54 @@ const Component = ({ ruleset, rulesets, tree, direction, title, onUpdate }: Cate
           }
           onSave={saveRule}
           onClose={() => setRuleDialog(null)}
+        />
+      ) : null}
+
+      {libraryPicker ? (
+        <MenuSelect
+          title={t('RULESETS_PAGE.LIBRARY.ADD_FROM_LIBRARY')}
+          value=""
+          options={getLibraryOptions(libraryPicker.id)}
+          onChange={(value) => {
+            onUpdate(toLibraryMapping({ value, id: libraryPicker.id, direction }))
+            // Shows what was added below the subcategory
+            expand(libraryPicker.id)
+          }}
+          search={{
+            placeholder: t('RULESETS_PAGE.LIBRARY.SEARCH_ALL'),
+            noMatches: t('RULESETS_PAGE.LIBRARY.NO_MATCHES'),
+          }}
+          menuWidth={380}
+          anchorEl={libraryPicker.anchor}
+          onClose={() => setLibraryPicker(null)}
+        />
+      ) : null}
+
+      {mappingDialog ? (
+        <MappingCategoryDialog
+          name={mappingDialog.name}
+          note={t(`RULESETS_PAGE.DIRECTIONS_ONLY.${mappingDialog.mapping.direction}`)}
+          initial={getMappedCategory(mappingDialog.mapping)}
+          options={getCategoryOptions({ tree, direction: mappingDialog.mapping.direction, t })}
+          onSave={(category) => {
+            onUpdate(toMappingUpdate(mappingDialog.mapping, category))
+            setMappingDialog(null)
+          }}
+          onCreate={(name) => {
+            setCreating({ name, mapping: mappingDialog.mapping })
+            setMappingDialog(null)
+          }}
+          onClose={() => setMappingDialog(null)}
+        />
+      ) : null}
+
+      {creating ? (
+        <NewCategoryDialog
+          name={creating.name}
+          tree={tree}
+          direction={creating.mapping.direction}
+          onSave={createAndMap}
+          onClose={() => setCreating(null)}
         />
       ) : null}
 

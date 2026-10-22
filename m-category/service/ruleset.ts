@@ -26,9 +26,9 @@ export const createCategoryId = (): CategoryId => {
   return toCategoryId(`c_${[...values].map((value) => ID_CHARS[value % ID_CHARS.length]).join('')}`)
 }
 
-const toMappings = ({ hints, keywords = {} }: TemplateDirectionDef): CategoryMappings => {
+const toMappings = ({ tags, keywords = {} }: TemplateDirectionDef): CategoryMappings => {
   return {
-    hints: mapValues(hints, (id) => toCategoryId(id!)),
+    tags: mapValues(tags, (id) => toCategoryId(id!)),
     keywords: mapValues(keywords, (id) => (id === null ? null : toCategoryId(id))),
   }
 }
@@ -41,8 +41,8 @@ export const toTemplateMappings = (template: CategoryTemplateDef): CategoryRules
 }
 
 const EMPTY_MAPPINGS: CategoryRuleset['mappings'] = {
-  in: { hints: {}, keywords: {} },
-  out: { hints: {}, keywords: {} },
+  in: { tags: {}, keywords: {} },
+  out: { tags: {}, keywords: {} },
 }
 
 /**
@@ -103,16 +103,6 @@ export const createRuleset = ({ name, number, now, template, copyOf }: CreateRul
  */
 export const getCategoryCount = (categories: ParentCategoryDef[]) => {
   return categories.reduce((count, parent) => count + parent.children.length, 0)
-}
-
-/**
- * Number of library hints and keywords the rule set maps, in both directions.
- */
-export const getMappingCount = (mappings: CategoryRuleset['mappings']) => {
-  return [mappings.in, mappings.out].reduce(
-    (count, { hints, keywords }) => count + Object.keys(hints).length + Object.keys(keywords).length,
-    0,
-  )
 }
 
 /**
@@ -301,7 +291,7 @@ export const getRuleCount = (ruleset: CategoryRuleset) => {
 }
 
 /**
- * Library hints and keywords mapped to the category, or a subcategory of the parent category, by direction.
+ * Library tags and keywords mapped to the category, or a subcategory of the parent category, by direction.
  */
 export const getCategoryMappings = (ruleset: CategoryRuleset, id: string): CategoryMappingRef[] => {
   const ids = getCategoryIds(ruleset, id)
@@ -315,17 +305,17 @@ export const getCategoryMappings = (ruleset: CategoryRuleset, id: string): Categ
       .map((key) => ({ type, key, direction }))
 
   return [CategoryDirection.OUT, CategoryDirection.IN].flatMap((direction) => [
-    ...toRefs('hint', direction, ruleset.mappings[direction].hints),
+    ...toRefs('tag', direction, ruleset.mappings[direction].tags),
     ...toRefs('keyword', direction, ruleset.mappings[direction].keywords),
   ])
 }
 
 /**
- * Removes a mapping, see `getCategoryMappings`. Its transactions are then categorised by broader hints, or not at all.
+ * Removes a mapping, see `getCategoryMappings`. Its transactions are then categorised by broader tags, or not at all.
  */
 export const removeMapping = ({ type, key, direction }: CategoryMappingRef): RulesetUpdate => {
-  return type === 'hint'
-    ? setHintMapping({ direction, key, category: undefined })
+  return type === 'tag'
+    ? setTagMapping({ direction, key, category: undefined })
     : setKeywordMapping({ direction, key, category: undefined })
 }
 
@@ -339,8 +329,8 @@ export const removeCategory =
     const ids = getCategoryIds(ruleset, id)
     const withoutIds = <T extends CategoryId | null>(map: Record<string, T>) =>
       Object.fromEntries(Object.entries(map).filter(([, value]) => !value || !ids.includes(value)))
-    const toRemaining = ({ hints, keywords }: CategoryMappings): CategoryMappings => ({
-      hints: withoutIds(hints),
+    const toRemaining = ({ tags, keywords }: CategoryMappings): CategoryMappings => ({
+      tags: withoutIds(tags),
       keywords: withoutIds(keywords),
     })
 
@@ -412,11 +402,11 @@ export const setRuleMapping =
 type SetMappingProps = {
   direction: CategoryDirection
   /**
-   * A hint (see `HINTS`) or a library keyword ID.
+   * A tag (see `TAGS`) or a library keyword ID.
    */
   key: string
   /**
-   * `undefined` removes the mapping (inherited from a broader hint, or unmapped). Only keywords can be mapped to `null`,
+   * `undefined` removes the mapping (inherited from a broader tag, or unmapped). Only keywords can be mapped to `null`,
    * which leaves them uncategorised.
    */
   category: CategoryId | null | undefined
@@ -427,18 +417,18 @@ const setMapping = <T extends CategoryId | null>(map: Record<string, T>, key: st
 }
 
 /**
- * Maps the library hint to a category, for transactions of the direction.
+ * Maps the library tag to a category, for transactions of the direction.
  */
-export const setHintMapping =
+export const setTagMapping =
   ({ direction, key, category }: SetMappingProps): RulesetUpdate =>
   (ruleset) => {
     const mappings = ruleset.mappings[direction]
-    const hints = setMapping(mappings.hints, key, category ?? undefined)
-    return { ...ruleset, mappings: { ...ruleset.mappings, [direction]: { ...mappings, hints } } }
+    const tags = setMapping(mappings.tags, key, category ?? undefined)
+    return { ...ruleset, mappings: { ...ruleset.mappings, [direction]: { ...mappings, tags } } }
   }
 
 /**
- * Maps the library keyword to a category (before its hints), for transactions of the direction.
+ * Maps the library keyword to a category (before its tags), for transactions of the direction.
  */
 export const setKeywordMapping =
   ({ direction, key, category }: SetMappingProps): RulesetUpdate =>

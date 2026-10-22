@@ -17,9 +17,9 @@ const ids = (mapping: Parameters<typeof getMappedKeywords>[0]['mapping'], rulese
   getMappedKeywords({ mapping, ruleset, libraryKeywords }).map((libraryKeyword) => libraryKeyword.id)
 
 describe('getMappedKeywords', () => {
-  const supermarket = { type: 'hint' as const, key: 'supermarket', direction: CategoryDirection.OUT }
+  const supermarket = { type: 'tag' as const, key: 'supermarket', direction: CategoryDirection.OUT }
 
-  it('should list the library keywords of a hint', () => {
+  it('should list the library keywords of a tag', () => {
     expect(ids(supermarket)).toEqual(expect.arrayContaining(['de.rewe', 'gb.tesco']))
     expect(ids(supermarket)).not.toContain('de.bakery')
   })

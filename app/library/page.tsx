@@ -6,7 +6,7 @@ import { PageWrapper } from '@/components'
 import { LibraryPage } from '@/m-pages'
 
 const Page = () => {
-  // Reads the search params (the hint or entry to show), which need a suspense boundary when prerendering
+  // Reads the search params (the tag or entry to show), which need a suspense boundary when prerendering
   return (
     <Suspense fallback={<PageWrapper />}>
       <LibraryPage />

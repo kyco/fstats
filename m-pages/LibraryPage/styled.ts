@@ -43,6 +43,14 @@ export const ui = () => {
       letterSpacing: 0.5,
       color: 'text.secondary',
     },
+    addRule: {
+      mb: 1,
+    },
+    note: {
+      mb: 1,
+      fontSize: 12,
+      color: 'text.secondary',
+    },
     rules: {
       display: 'grid',
       gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },

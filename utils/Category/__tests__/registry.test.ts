@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { zCategoryId } from '@/types'
-import { HINT_GROUPS, HINTS, LIBRARY, TEMPLATES } from '@/utils/Category'
+import { LIBRARY, TAG_GROUPS, TAGS, TEMPLATES } from '@/utils/Category'
 
 import deCategories from '../../../public/locales/categories/de.json'
 import enCategories from '../../../public/locales/categories/en.json'
@@ -28,7 +28,7 @@ describe('TEMPLATES', () => {
     })
   })
 
-  it('should map hints and library keywords to its own categories', () => {
+  it('should map tags and library keywords to its own categories', () => {
     const keywordIds = LIBRARY.flatMap((pack) =>
       pack.libraryKeywords.map((libraryKeyword) => `${pack.id}.${libraryKeyword.id}`),
     )
@@ -39,8 +39,8 @@ describe('TEMPLATES', () => {
           categories.flatMap((parent) => parent.children),
         )
 
-        Object.entries(direction.hints).forEach(([hint, id]) => {
-          expect(HINTS).toContain(hint)
+        Object.entries(direction.tags).forEach(([tag, id]) => {
+          expect(TAGS).toContain(tag)
           expect(ids).toContain(id)
         })
         Object.entries(direction.keywords ?? {}).forEach(([keywordId, id]) => {
@@ -53,22 +53,22 @@ describe('TEMPLATES', () => {
     })
   })
 
-  it('should map every hint the library uses for money out', () => {
-    const used = new Set(LIBRARY.flatMap((pack) => pack.libraryKeywords.map((libraryKeyword) => libraryKeyword.hint)))
+  it('should map every tag the library uses for money out', () => {
+    const used = new Set(LIBRARY.flatMap((pack) => pack.libraryKeywords.map((libraryKeyword) => libraryKeyword.tag)))
     // Only money in, or deliberately left uncategorised (e.g. cash, which could be anything)
     const unmapped = ['salary', 'benefits', 'pension', 'dividends', 'cash']
 
     TEMPLATES.forEach((template) => {
-      const hints = template.expense.hints as Record<string, string>
-      const missing = [...used].filter((hint) => !hints[hint] && !unmapped.includes(hint))
+      const tags = template.expense.tags as Record<string, string>
+      const missing = [...used].filter((tag) => !tags[tag] && !unmapped.includes(tag))
 
       expect({ template: template.id, missing }).toEqual({ template: template.id, missing: [] })
     })
   })
 
-  it('should list every hint once, in one group', () => {
-    expect(new Set(HINTS).size).toBe(HINTS.length)
-    expect(HINT_GROUPS.flatMap((group) => group.hints)).toEqual(HINTS)
+  it('should list every tag once, in one group', () => {
+    expect(new Set(TAGS).size).toBe(TAGS.length)
+    expect(TAG_GROUPS.flatMap((group) => group.tags)).toEqual(TAGS)
   })
 
   it('should have translated names and category labels', () => {

@@ -46,7 +46,7 @@ export const ui = () => {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
     },
-    // The name of a hint or library keyword, expanding to its library keywords
+    // The name of a tag or library keyword, expanding to its library keywords
     toggle: {
       display: 'flex',
       alignItems: 'center',
@@ -66,7 +66,7 @@ export const ui = () => {
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
     },
-    // Below the hint, aligned with its name
+    // Below the tag, aligned with its name
     expanded: {
       display: 'flex',
       flexDirection: 'column',

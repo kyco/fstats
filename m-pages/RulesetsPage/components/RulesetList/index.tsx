@@ -14,9 +14,9 @@ import { useState } from 'react'
 import type { CategoryRuleset } from '@/types'
 import { DropdownMenu, DropdownMenuDivider, DropdownMenuItem } from '@/components'
 import {
-  getMappingCount,
-  getRuleCount,
+  getUsedRuleCount,
   renameRuleset,
+  useCategoryRules,
   useMutateAddRuleset,
   useMutateRemoveRuleset,
   useMutateUpdateRuleset,
@@ -46,6 +46,7 @@ type RulesetListProps = {
 const Component = ({ rulesets, activeId, selectedId, onSelect, onActivate, onCreate }: RulesetListProps) => {
   const sx = ui()
   const { t } = useTranslation()
+  const { data: rules = [] } = useCategoryRules()
   // One menu for all rule sets
   const [menu, setMenu] = useState<{ anchor: HTMLElement; ruleset: CategoryRuleset } | null>(null)
   const { mutateAsync: addRuleset } = useMutateAddRuleset()
@@ -99,8 +100,7 @@ const Component = ({ rulesets, activeId, selectedId, onSelect, onActivate, onCre
               <Box component="span" sx={sx.meta}>
                 {getRulesetCounts({
                   categories: ruleset.categories,
-                  ruleCount: getRuleCount(ruleset),
-                  mappingCount: getMappingCount(ruleset.mappings),
+                  ruleCount: getUsedRuleCount({ ruleset, rules }),
                   t,
                 })}
               </Box>

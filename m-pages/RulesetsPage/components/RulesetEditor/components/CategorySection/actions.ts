@@ -11,8 +11,8 @@ import type {
 } from '@/types'
 import type { CategoryDirection } from '@/types-enums'
 import type { RulesetUpdate } from '@/m-category/service'
-import { getCategoryLabel, setHintMapping, setKeywordMapping, setRuleMapping } from '@/m-category/service'
-import { HINTS } from '@/utils/Category'
+import { getCategoryLabel, setKeywordMapping, setRuleMapping, setTagMapping } from '@/m-category/service'
+import { TAGS } from '@/utils/Category'
 
 type GetLibraryPickerOptionsProps = {
   ruleset: CategoryRuleset
@@ -31,7 +31,7 @@ type GetLibraryPickerOptionsProps = {
 }
 
 /**
- * What can be added to a subcategory from the library: hints, the user's rules and the built-in library keywords, without those
+ * What can be added to a subcategory from the library: tags, the user's rules and the built-in library keywords, without those
  * already mapped to it. Others show where they're mapped now (adding them moves them).
  */
 export const getLibraryPickerOptions = ({
@@ -43,7 +43,7 @@ export const getLibraryPickerOptions = ({
   tree,
   t,
 }: GetLibraryPickerOptionsProps): MenuSelectOption[] => {
-  const { hints, keywords: keywordMap } = ruleset.mappings[direction]
+  const { tags, keywords: keywordMap } = ruleset.mappings[direction]
   const toCurrent = (current: CategoryId | null | undefined) =>
     current ? t('RULESETS_PAGE.LIBRARY.CURRENTLY', { category: getCategoryLabel({ id: current, tree, t }) }) : undefined
 
@@ -56,11 +56,11 @@ export const getLibraryPickerOptions = ({
         description: toCurrent(ruleset.rules[rule.id]),
         group: t('RULESETS_PAGE.LIBRARY.YOUR_RULES'),
       })),
-    ...HINTS.filter((hint) => hints[hint] !== id).map((hint) => ({
-      value: `hint:${hint}`,
-      label: t(hint, { ns: 'hints' }),
-      description: toCurrent(hints[hint]) ?? hint,
-      group: t('RULESETS_PAGE.LIBRARY.HINTS'),
+    ...TAGS.filter((tag) => tags[tag] !== id).map((tag) => ({
+      value: `tag:${tag}`,
+      label: t(tag, { ns: 'tags' }),
+      description: toCurrent(tags[tag]) ?? tag,
+      group: t('RULESETS_PAGE.LIBRARY.TAGS'),
     })),
     ...libraryKeywords
       .filter((libraryKeyword) => keywordMap[libraryKeyword.id] !== id)
@@ -92,8 +92,8 @@ export const toLibraryMapping = ({ value, id, direction }: ToLibraryMappingProps
     return setRuleMapping({ ruleId: key, category: id })
   }
 
-  return type === 'hint'
-    ? setHintMapping({ direction, key, category: id })
+  return type === 'tag'
+    ? setTagMapping({ direction, key, category: id })
     : setKeywordMapping({ direction, key, category: id })
 }
 
@@ -104,7 +104,7 @@ type GetMappedKeywordsProps = {
 }
 
 /**
- * The library keywords a hint or library keyword mapping categorises: of a hint, those with the hint (not those mapped
+ * The library keywords a tag or library keyword mapping categorises: of a tag, those with the tag (not those mapped
  * on their own).
  */
 export const getMappedKeywords = ({ mapping, ruleset, libraryKeywords }: GetMappedKeywordsProps) => {
@@ -114,7 +114,7 @@ export const getMappedKeywords = ({ mapping, ruleset, libraryKeywords }: GetMapp
 
   const keywordMap = ruleset.mappings[mapping.direction].keywords
   return libraryKeywords.filter(
-    (libraryKeyword) => libraryKeyword.hint === mapping.key && !(libraryKeyword.id in keywordMap),
+    (libraryKeyword) => libraryKeyword.tag === mapping.key && !(libraryKeyword.id in keywordMap),
   )
 }
 
@@ -125,5 +125,5 @@ export const toLibraryRefProps = (value: string, rules: CategoryRule[] = []) => 
   const [type, key] = [value.slice(0, value.indexOf(':')), value.slice(value.indexOf(':') + 1)]
   return type === 'rule'
     ? { type: 'rule' as const, number: rules.find((rule) => rule.id === key)?.number }
-    : { type: type === 'hint' ? ('hint' as const) : ('keyword' as const) }
+    : { type: type === 'tag' ? ('tag' as const) : ('keyword' as const) }
 }

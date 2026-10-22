@@ -17,9 +17,10 @@ import { useState } from 'react'
 
 import type { RuleDialogValues } from '@/types'
 import { CategoryRuleDirection, CategoryRuleMatch } from '@/types-enums'
-import { MenuSelect, RuleMoreOptions } from '@/components'
 import { useTranslation } from '@/lib/i18n'
 
+import MenuSelect from '../MenuSelect'
+import RuleMoreOptions from '../RuleMoreOptions'
 import { ui } from './styled'
 
 type RuleDialogProps = {
@@ -29,15 +30,19 @@ type RuleDialogProps = {
    * Above the fields, e.g. that other rule sets use the rule too.
    */
   note?: string
+  /**
+   * Below the rule's fields, e.g. the category to map it to.
+   */
+  children?: ReactNode
   onSave: (values: RuleDialogValues) => void
   onClose: () => void
 }
 
 /**
- * Adds or edits a keyword rule of a category, with the fields of the rule form of the category editor (stats page):
- * how and what it matches, and the rarely changed options (case, amounts).
+ * Adds or edits a keyword rule, with the fields of the rule form of the category editor (stats page): how and what it
+ * matches, and the rarely changed options (case, amounts).
  */
-const Component = ({ title, initial, note, onSave, onClose }: RuleDialogProps) => {
+const Component = ({ title, initial, note, children, onSave, onClose }: RuleDialogProps) => {
   const sx = ui()
   const { t } = useTranslation()
   const [match, setMatch] = useState(initial.match)
@@ -121,6 +126,7 @@ const Component = ({ title, initial, note, onSave, onClose }: RuleDialogProps) =
               />
             </>,
           )}
+          {children}
           <RuleMoreOptions amounts={amounts} onAmountsChange={setAmounts} />
         </DialogContent>
         <DialogActions>

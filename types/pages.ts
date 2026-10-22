@@ -11,7 +11,7 @@ import type {
 } from '@/types-enums'
 
 import type { GradientColorsLightDark, NumberString } from './global'
-import type { CategoryEngine, CategoryRule, CategoryRuleDraft } from './services/category-rule'
+import type { CategoryEngine, CategoryRule, CategoryRuleDraft, LibraryRef } from './services/category-rule'
 import type { ParsedStatsFile, StatsFile } from './services/stats-file'
 import type { CategoryId, SourcedTransaction, StatsTransactions, Transaction } from './services/transaction'
 import type { TextRange } from './utils'
@@ -509,6 +509,11 @@ export type CategoryDialogValues = {
  */
 export type CategoryDialogState =
   { type: 'addParent' } | { type: 'addChild'; parentId: CategoryId } | { type: 'edit'; id: string }
+
+/**
+ * A tag or library keyword whose categories are chosen on the library page, `tag` of a library keyword.
+ */
+export type LibraryMappingTarget = LibraryRef & { name: string; tag?: string }
 
 /**
  * Entered in the dialog adding or editing a keyword rule on the rule sets page.

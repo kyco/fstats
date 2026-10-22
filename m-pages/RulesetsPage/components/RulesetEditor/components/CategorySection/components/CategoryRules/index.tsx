@@ -10,8 +10,10 @@ import type {
   CategoryRule,
   CategoryRuleset,
   LibraryKeyword,
+  LibraryRef as LibraryRefValue,
   MenuSelectOption,
 } from '@/types'
+import type { CategoryDirection } from '@/types-enums'
 import { CategoryRuleDirection, CategoryRuleField } from '@/types-enums'
 import { LibraryRef, MenuSelect } from '@/components'
 import { getCategoryMappings } from '@/m-category/service'
@@ -32,7 +34,15 @@ type CategoryRulesProps = {
    * Of the built-in library, for the names of the mapped ones.
    */
   libraryKeywords: LibraryKeyword[]
+  /**
+   * The user's rules belonging to a tag or library keyword that the rule set doesn't map itself, listed with it.
+   */
+  linkedRules: CategoryRule[]
   id: CategoryId
+  /**
+   * Of its parent category, money in or out.
+   */
+  direction: CategoryDirection
   /**
    * Opens the menu to edit or delete the rule.
    */
@@ -42,25 +52,27 @@ type CategoryRulesProps = {
    */
   onAdd: () => void
   /**
-   * Opens the menu of a library hint or library keyword mapped to the category (show in the library, remove), `name` as shown.
+   * Opens the menu of a library tag or library keyword mapped to the category (show in the library, remove), `name` as shown.
    */
   onMappingMenu: (anchor: HTMLElement, mapping: CategoryMappingRef, name: string) => void
   /**
-   * Hints, library keywords and the user's rules that can be added, see `getLibraryPickerOptions`.
+   * Tags, library keywords and the user's rules that can be added, see `getLibraryPickerOptions`.
    */
   libraryOptions: MenuSelectOption[]
   onAddFromLibrary: (value: string) => void
 }
 
 /**
- * What assigns a category: the library hints and library keywords mapped to it, then the user's rules, newest first. A new rule
+ * What assigns a category: the library tags and library keywords mapped to it, then the user's rules, newest first. A new rule
  * or something from the library is added with the buttons below them.
  */
 const Component = ({
   ruleset,
   rules,
   libraryKeywords,
+  linkedRules,
   id,
+  direction,
   onMenu,
   onAdd,
   onMappingMenu,
@@ -75,7 +87,9 @@ const Component = ({
     [libraryKeywords],
   )
   const getMappingName = ({ type, key }: CategoryMappingRef) =>
-    type === 'hint' ? t(key, { ns: 'hints' }) : (keywordsById.get(key)?.name ?? key)
+    type === 'tag' ? t(key, { ns: 'tags' }) : (keywordsById.get(key)?.name ?? key)
+  const getLinkedRules = (type: LibraryRefValue['type'], key: string) =>
+    linkedRules.filter((rule) => rule.library?.type === type && rule.library.key === key)
   // Mappings showing the library keywords they categorise, collapsed at first
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
@@ -100,13 +114,13 @@ const Component = ({
               </Box>
               {/* Like rules: how a library keyword matches */}
               <Box component="span" sx={sx.condition}>
-                {mapping.type === 'hint'
-                  ? t('RULESETS_PAGE.LIBRARY.HINT')
+                {mapping.type === 'tag'
+                  ? t('RULESETS_PAGE.LIBRARY.TAG')
                   : t(
                       `STATS_PAGE.CATEGORY_RULES.MATCH_TYPES.${keywordsById.get(mapping.key)?.match ?? 'containsWord'}`,
                     )}
               </Box>
-              {/* Expands to what the hint or library keyword is made up of */}
+              {/* Expands to what the tag or library keyword is made up of */}
               <ButtonBase
                 onClick={() => setExpanded((prev) => toggleKeys(prev, [rowId]))}
                 aria-expanded={isExpanded}
@@ -116,9 +130,12 @@ const Component = ({
                   {name}
                 </Box>
               </ButtonBase>
-              <Box component="span" sx={sx.direction}>
-                {t(`RULESETS_PAGE.DIRECTIONS_ONLY.${mapping.direction}`)}
-              </Box>
+              {/* Only when unusual for the category, e.g. refunds (money in) mapped to an expense category */}
+              {mapping.direction === direction ? null : (
+                <Box component="span" sx={sx.direction}>
+                  {t(`RULESETS_PAGE.DIRECTIONS_ONLY.${mapping.direction}`)}
+                </Box>
+              )}
               <IconButton
                 size="small"
                 title={t('RULESETS_PAGE.ACTIONS')}
@@ -131,14 +148,29 @@ const Component = ({
                 <MoreHoriz fontSize="inherit" />
               </IconButton>
             </Box>
-            {/* A hint lists its library keywords, each expanding to what it matches */}
+            {/* A tag lists its library keywords, each expanding to what it matches */}
             {isExpanded && mapping.type === 'keyword' && keywordsById.get(mapping.key) ? (
               <Box sx={sx.expanded}>
-                <KeywordDetails libraryKeyword={keywordsById.get(mapping.key)!} />
+                <KeywordDetails
+                  libraryKeyword={keywordsById.get(mapping.key)!}
+                  rules={getLinkedRules('keyword', mapping.key)}
+                />
               </Box>
             ) : null}
-            {isExpanded && mapping.type === 'hint' ? (
+            {isExpanded && mapping.type === 'tag' ? (
               <Box sx={sx.expanded}>
+                {/* The user's rules belonging to the tag, like its library keywords */}
+                {getLinkedRules('tag', mapping.key).map((rule) => (
+                  <Box key={rule.id} sx={sx.expandedKeyword}>
+                    <LibraryRef type="rule" number={rule.number} />
+                    <Box component="span" sx={sx.condition}>
+                      {t(`STATS_PAGE.CATEGORY_RULES.MATCH_TYPES.${rule.match}`)}
+                    </Box>
+                    <Box component="span" sx={sx.keyword}>
+                      {rule.keyword}
+                    </Box>
+                  </Box>
+                ))}
                 {mapped.length ? (
                   mapped.map((libraryKeyword) => {
                     const keywordId = `${rowId}>${libraryKeyword.id}`
@@ -158,7 +190,12 @@ const Component = ({
                             </Box>
                           </ButtonBase>
                         </Box>
-                        {isKeywordExpanded ? <KeywordDetails libraryKeyword={libraryKeyword} /> : null}
+                        {isKeywordExpanded ? (
+                          <KeywordDetails
+                            libraryKeyword={libraryKeyword}
+                            rules={getLinkedRules('keyword', libraryKeyword.id)}
+                          />
+                        ) : null}
                       </Box>
                     )
                   })
@@ -186,8 +223,8 @@ const Component = ({
           <Box component="span" sx={sx.keyword}>
             {rule.keyword}
           </Box>
-          {/* Only when limited, both is the default */}
-          {rule.direction === CategoryRuleDirection.ANY ? null : (
+          {/* Only when limited to the opposite of the category's direction, e.g. refunds of an expense category */}
+          {rule.direction === CategoryRuleDirection.ANY || rule.direction === direction ? null : (
             <Box component="span" sx={sx.direction}>
               {t(`RULESETS_PAGE.DIRECTIONS_ONLY.${rule.direction}`)}
             </Box>

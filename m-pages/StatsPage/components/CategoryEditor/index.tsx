@@ -434,7 +434,7 @@ const Component = ({
                     values={{
                       count: keywordMatchCount,
                       name: recognised.libraryKeyword.name,
-                      hint: t(recognised.libraryKeyword.hint, { ns: 'hints' }),
+                      tag: t(recognised.libraryKeyword.tag, { ns: 'tags' }),
                       direction: t(`STATS_PAGE.CATEGORY_RULES.${isIncome ? 'MONEY_IN' : 'MONEY_OUT'}`),
                     }}
                     components={{ b: <strong /> }}
