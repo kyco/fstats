@@ -209,8 +209,8 @@ importers:
         specifier: 26.4.4
         version: 26.4.4(@typescript/typescript6@6.0.2)
       i18next-browser-languagedetector:
-        specifier: 8.2.1
-        version: 8.2.1
+        specifier: 8.2.3
+        version: 8.2.3
       localforage:
         specifier: 1.10.0
         version: 1.10.0
@@ -3084,8 +3084,8 @@ packages:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
 
-  i18next-browser-languagedetector@8.2.1:
-    resolution: {integrity: sha512-bZg8+4bdmaOiApD7N7BPT9W8MLZG+nPTOFlLiJiT8uzKXFjhxw4v2ierCXOwB5sFDMtuA5G4kgYZ0AznZxQ/cw==}
+  i18next-browser-languagedetector@8.2.3:
+    resolution: {integrity: sha512-0jSTK3ncpXj9MFdxRz+TVTKDkSvYH8ifB/OCmUdEMprvXC3vy7kEvdKpj0yYB72B0UKEHJLPMEeRVC/UXroWnw==}
 
   i18next@26.4.4:
     resolution: {integrity: sha512-O+rqmQUi54OwAgnZ4SAwO6aRrbXZt36VZXWt6zvq0FpC3vJbH46oQRs6u4Uwm1vf8ZI7UqOXQiJhQVTor7vRiQ==}
@@ -7200,7 +7200,7 @@ snapshots:
 
   human-signals@2.1.0: {}
 
-  i18next-browser-languagedetector@8.2.1:
+  i18next-browser-languagedetector@8.2.3:
     dependencies:
       '@babel/runtime': 7.29.10
 
